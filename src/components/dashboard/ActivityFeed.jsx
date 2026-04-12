@@ -24,19 +24,20 @@ export function ActivityFeed({
   pagination,
   onPageChange,
   isLoading,
+  onActivityClick,
 }) {
   const page = pagination?.page || 1;
   const totalPage = pagination?.totalPage || 1;
 
   return (
-    <section className="rounded-2xl border border-[#162338] bg-[#050b16] p-6 transition-colors duration-300 hover:border-[#28415f]">
+    <section className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-6 shadow-[var(--dash-shadow)] transition-colors duration-300 hover:border-[var(--dash-accent)]">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="m-0 flex items-center gap-2 text-lg font-semibold text-white sm:text-xl">
-            <Sparkles size={20} className="text-[#00d09c]" />
+          <h3 className="m-0 flex items-center gap-2 text-lg font-semibold text-[var(--dash-text)] sm:text-xl">
+            <Sparkles size={20} className="text-[var(--dash-accent)]" />
             Recent Activity
           </h3>
-          <p className="m-0 mt-1 text-xs text-[#8096b4] sm:text-sm">
+          <p className="m-0 mt-1 text-xs text-[var(--dash-muted)] sm:text-sm">
             Latest platform events and actions
           </p>
         </div>
@@ -46,7 +47,7 @@ export function ActivityFeed({
             type="button"
             disabled={page <= 1 || isLoading}
             onClick={() => onPageChange(page - 1)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1f3048] text-[#89a0bc] transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--dash-border)] text-[var(--dash-muted)] transition hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)] disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Previous page"
           >
             <ChevronLeft size={16} />
@@ -55,7 +56,7 @@ export function ActivityFeed({
             type="button"
             disabled={page >= totalPage || isLoading}
             onClick={() => onPageChange(page + 1)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1f3048] text-[#89a0bc] transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--dash-border)] text-[var(--dash-muted)] transition hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)] disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Next page"
           >
             <ChevronRight size={16} />
@@ -65,11 +66,13 @@ export function ActivityFeed({
 
       <div className="mt-5 space-y-2">
         {isLoading && (
-          <p className="m-0 text-sm text-[#8ea2be]">Loading activity...</p>
+          <p className="m-0 text-sm text-[var(--dash-muted)]">
+            Loading activity...
+          </p>
         )}
 
         {!isLoading && items.length === 0 && (
-          <p className="m-0 text-sm text-[#8ea2be]">
+          <p className="m-0 text-sm text-[var(--dash-muted)]">
             No recent activity found for this page.
           </p>
         )}
@@ -78,16 +81,26 @@ export function ActivityFeed({
           items.map((item) => (
             <article
               key={item.id}
-              className="flex items-start gap-4 rounded-xl border border-transparent px-2 py-3 transition duration-200 hover:border-[#1f3048] hover:bg-[#070f1b]"
+              className="flex items-start gap-4 rounded-xl border border-transparent px-2 py-3 transition duration-200 hover:border-[var(--dash-border)] hover:bg-[var(--dash-accent-soft)]"
+              onClick={() => onActivityClick?.(item)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onActivityClick?.(item);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open activity ${item.title || item.id}`}
             >
-              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-[#0f1c2d] text-[#00d09c]">
+              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--dash-accent-soft)] text-[var(--dash-accent)]">
                 <UserRound size={18} />
               </div>
               <div>
-                <p className="m-0 text-base text-white">
+                <p className="m-0 text-base text-[var(--dash-text)]">
                   {item.title || item.message}
                 </p>
-                <p className="m-0 text-sm text-[#8ca1bd]">
+                <p className="m-0 text-sm text-[var(--dash-muted)]">
                   {formatRelativeDate(item.created_at)}
                 </p>
               </div>
@@ -95,7 +108,7 @@ export function ActivityFeed({
           ))}
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-[#152136] pt-4 text-sm text-[#8096b4]">
+      <div className="mt-4 flex items-center justify-between border-t border-[var(--dash-border)] pt-4 text-sm text-[var(--dash-muted)]">
         <span>
           Page {page} of {totalPage}
         </span>
