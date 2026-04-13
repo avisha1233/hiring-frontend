@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+﻿import { X } from "lucide-react";
 import { useState } from "react";
 
 const ROLES = ["admin", "company", "candidate"];
@@ -113,7 +113,7 @@ export function UserFormModal({ isOpen, user, onClose, onSave, isSaving }) {
                 type="password"
                 value={form.password}
                 onChange={(e) => handleChange("password", e.target.value)}
-                placeholder="••••••••"
+                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                 className={`w-full rounded-lg border bg-[#0a131f] px-3 py-2 text-white outline-none transition ${
                   errors.password ? "border-[#f87171]" : "border-[#1f3048]"
                 } focus:border-[#00d09c]`}
@@ -181,3 +181,4 @@ export function UserFormModal({ isOpen, user, onClose, onSave, isSaving }) {
     </>
   );
 }
+

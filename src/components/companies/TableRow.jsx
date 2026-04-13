@@ -1,4 +1,4 @@
-import { MapPin, UsersRound } from "lucide-react";
+﻿import { MapPin, UsersRound } from "lucide-react";
 import { StatusBadge } from "@/components/companies/StatusBadge";
 import { DropdownMenu } from "@/components/companies/DropdownMenu";
 
@@ -28,31 +28,31 @@ export function TableRow({ company, onEdit, onDelete }) {
   const status = company.status || "active";
 
   return (
-    <tr className="border-b border-[var(--dash-border)] transition hover:bg-[var(--dash-accent-soft)]">
+    <tr className="border-b border-(--dash-border) transition hover:bg-(--dash-accent-soft)">
       <td className="px-4 py-4 text-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--dash-accent-soft)] text-sm font-semibold text-[var(--dash-accent)]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-(--dash-accent-soft) text-sm font-semibold text-(--dash-accent)">
             {getInitials(name)}
           </div>
           <div>
-            <p className="m-0 text-base font-medium text-[var(--dash-text)]">
+            <p className="m-0 text-base font-medium text-(--dash-text)">
               {name}
             </p>
-            <p className="m-0 text-sm text-[var(--dash-muted)]">{industry}</p>
+            <p className="m-0 text-sm text-(--dash-muted)">{industry}</p>
           </div>
         </div>
       </td>
 
-      <td className="px-4 py-4 text-sm text-[var(--dash-muted)]">
+      <td className="px-4 py-4 text-sm text-(--dash-muted)">
         <span className="inline-flex items-center gap-2">
-          <MapPin size={16} className="text-[var(--dash-warning)]" />
+          <MapPin size={16} className="text-(--dash-warning)" />
           {location}
         </span>
       </td>
 
-      <td className="px-4 py-4 text-sm text-[var(--dash-muted)]">
+      <td className="px-4 py-4 text-sm text-(--dash-muted)">
         <span className="inline-flex items-center gap-2">
-          <UsersRound size={16} className="text-[var(--dash-warning)]" />
+          <UsersRound size={16} className="text-(--dash-warning)" />
           {size}
         </span>
       </td>
@@ -61,7 +61,7 @@ export function TableRow({ company, onEdit, onDelete }) {
         <StatusBadge status={status} />
       </td>
 
-      <td className="px-4 py-4 text-sm text-[var(--dash-muted)]">
+      <td className="px-4 py-4 text-sm text-(--dash-muted)">
         {formatDate(company.created_at)}
       </td>
 
@@ -71,3 +71,4 @@ export function TableRow({ company, onEdit, onDelete }) {
     </tr>
   );
 }
+

@@ -1,4 +1,4 @@
-import { Outlet, createRootRoute, redirect } from "@tanstack/react-router";
+﻿import { Outlet, createRootRoute, redirect } from "@tanstack/react-router";
 import { getAccessToken } from "@/lib/auth";
 
 export const Route = createRootRoute({
@@ -22,3 +22,4 @@ export const Route = createRootRoute({
 function RootComponent() {
   return <Outlet />;
 }
+

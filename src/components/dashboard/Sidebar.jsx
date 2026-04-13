@@ -1,4 +1,4 @@
-import {
+﻿import {
   BriefcaseBusiness,
   Building2,
   Grid2X2,
@@ -36,28 +36,28 @@ export function Sidebar({
   return (
     <>
       <div
-        className={`fixed inset-0 z-30 bg-[var(--dash-overlay)] transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-30 bg-(--dash-overlay) transition-opacity duration-300 lg:hidden ${
           mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={onCloseMobile}
       />
 
       <aside
-        className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-[var(--dash-border)] bg-[var(--dash-bg-elevated)] shadow-[var(--dash-shadow)] transition-all duration-300 ease-out lg:translate-x-0 ${
-          collapsed ? "w-[92px]" : "w-[320px]"
+        className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-(--dash-border) bg-(--dash-bg-elevated) shadow-(--dash-shadow) transition-all duration-300 ease-out lg:translate-x-0 ${
+          collapsed ? "w-23" : "w-80"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex h-[78px] items-center border-b border-[var(--dash-border)] px-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--dash-accent)] text-white">
+        <div className="flex h-19.5 items-center border-b border-(--dash-border) px-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-(--dash-accent) text-white">
             {">_"}
           </div>
 
           {!collapsed && (
             <div className="ml-3">
-              <p className="m-0 text-lg font-semibold leading-none text-[var(--dash-text)]">
+              <p className="m-0 text-lg font-semibold leading-none text-(--dash-text)">
                 HR Platform
               </p>
-              <p className="m-0 text-sm text-[var(--dash-muted)]">admin</p>
+              <p className="m-0 text-sm text-(--dash-muted)">admin</p>
             </div>
           )}
         </div>
@@ -65,7 +65,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={onToggle}
-          className="absolute -right-4 top-[96px] hidden h-8 w-8 items-center justify-center rounded-full border border-[var(--dash-border)] bg-[var(--dash-bg-elevated)] text-[var(--dash-muted)] transition hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)] lg:flex"
+          className="absolute -right-4 top-24 hidden h-8 w-8 items-center justify-center rounded-full border border-(--dash-border) bg-(--dash-bg-elevated) text-(--dash-muted) transition hover:bg-(--dash-accent-soft) hover:text-(--dash-accent) lg:flex"
           aria-label="Toggle sidebar"
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -81,8 +81,8 @@ export function Sidebar({
                 to={item.href}
                 className={`group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-all duration-300 no-underline ${
                   active
-                    ? "bg-[var(--dash-accent-soft)] text-[var(--dash-accent)]"
-                    : "text-[var(--dash-muted)] hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)]"
+                    ? "bg-(--dash-accent-soft) text-(--dash-accent)"
+                    : "text-(--dash-muted) hover:bg-(--dash-accent-soft) hover:text-(--dash-accent)"
                 }`}
               >
                 <Icon size={20} />
@@ -92,18 +92,18 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="border-t border-[var(--dash-border)] p-4">
+        <div className="border-t border-(--dash-border) p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--dash-accent-soft)] text-[var(--dash-accent)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-(--dash-accent-soft) text-(--dash-accent)">
               AD
             </div>
 
             {!collapsed && (
               <div>
-                <p className="m-0 text-base font-semibold text-[var(--dash-text)]">
+                <p className="m-0 text-base font-semibold text-(--dash-text)">
                   {user?.full_name || "Admin User"}
                 </p>
-                <p className="m-0 text-sm text-[var(--dash-muted)]">
+                <p className="m-0 text-sm text-(--dash-muted)">
                   {user?.email || "admin@example.com"}
                 </p>
               </div>
@@ -113,7 +113,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onLogout}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--dash-border)] px-3 py-2 text-[var(--dash-muted)] transition hover:border-[var(--dash-accent)] hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)]"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-(--dash-border) px-3 py-2 text-(--dash-muted) transition hover:border-(--dash-accent) hover:bg-(--dash-accent-soft) hover:text-(--dash-accent)"
           >
             <LogOut size={16} />
             {!collapsed && <span className="text-base">Logout</span>}
@@ -123,3 +123,4 @@ export function Sidebar({
     </>
   );
 }
+

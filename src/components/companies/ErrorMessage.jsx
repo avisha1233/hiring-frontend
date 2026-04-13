@@ -1,4 +1,4 @@
-import { Button } from "@/components/companies/Button";
+﻿import { Button } from "@/components/companies/Button";
 
 export function ErrorMessage({
   title = "Something went wrong",
@@ -7,10 +7,10 @@ export function ErrorMessage({
 }) {
   return (
     <section className="rounded-2xl border border-[#fecaca] bg-[#fff1f2] p-5">
-      <p className="m-0 text-lg font-semibold text-[var(--dash-danger)]">
+      <p className="m-0 text-lg font-semibold text-(--dash-danger)">
         {title}
       </p>
-      <p className="m-0 mt-2 text-sm text-[var(--dash-danger)]">
+      <p className="m-0 mt-2 text-sm text-(--dash-danger)">
         {message || "Unable to load companies right now."}
       </p>
       {onRetry ? (
@@ -21,3 +21,4 @@ export function ErrorMessage({
     </section>
   );
 }
+

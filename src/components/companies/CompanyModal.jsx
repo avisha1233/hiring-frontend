@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Button } from "@/components/companies/Button";
 import { Modal } from "@/components/companies/Modal";
 
@@ -72,10 +72,10 @@ export function CompanyModal({
           onSubmit(form);
         }}
       >
-        <label className="space-y-1 text-sm text-[var(--dash-muted)]">
+        <label className="space-y-1 text-sm text-(--dash-muted)">
           <span>Name</span>
           <input
-            className="h-10 w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 text-sm text-[var(--dash-text)] outline-none focus:border-[var(--dash-accent)]"
+            className="h-10 w-full rounded-xl border border-(--dash-border) bg-(--dash-surface) px-3 text-sm text-(--dash-text) outline-none focus:border-(--dash-accent)"
             value={form.name}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, name: event.target.value }))
@@ -85,10 +85,10 @@ export function CompanyModal({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-[var(--dash-muted)]">
+        <label className="space-y-1 text-sm text-(--dash-muted)">
           <span>Industry</span>
           <input
-            className="h-10 w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 text-sm text-[var(--dash-text)] outline-none focus:border-[var(--dash-accent)]"
+            className="h-10 w-full rounded-xl border border-(--dash-border) bg-(--dash-surface) px-3 text-sm text-(--dash-text) outline-none focus:border-(--dash-accent)"
             value={form.industry}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, industry: event.target.value }))
@@ -97,10 +97,10 @@ export function CompanyModal({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-[var(--dash-muted)]">
+        <label className="space-y-1 text-sm text-(--dash-muted)">
           <span>Location</span>
           <input
-            className="h-10 w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 text-sm text-[var(--dash-text)] outline-none focus:border-[var(--dash-accent)]"
+            className="h-10 w-full rounded-xl border border-(--dash-border) bg-(--dash-surface) px-3 text-sm text-(--dash-text) outline-none focus:border-(--dash-accent)"
             value={form.location}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, location: event.target.value }))
@@ -109,22 +109,22 @@ export function CompanyModal({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-[var(--dash-muted)]">
+        <label className="space-y-1 text-sm text-(--dash-muted)">
           <span>Size</span>
           <input
-            className="h-10 w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 text-sm text-[var(--dash-text)] outline-none focus:border-[var(--dash-accent)]"
+            className="h-10 w-full rounded-xl border border-(--dash-border) bg-(--dash-surface) px-3 text-sm text-(--dash-text) outline-none focus:border-(--dash-accent)"
             value={form.size}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, size: event.target.value }))
             }
-            placeholder="100-500 employees"
+            placeholder=" employees"
           />
         </label>
 
-        <label className="space-y-1 text-sm text-[var(--dash-muted)]">
+        <label className="space-y-1 text-sm text-(--dash-muted)">
           <span>Status</span>
           <select
-            className="h-10 w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 text-sm text-[var(--dash-text)] outline-none focus:border-[var(--dash-accent)]"
+            className="h-10 w-full rounded-xl border border-(--dash-border) bg-(--dash-surface) px-3 text-sm text-(--dash-text) outline-none focus:border-(--dash-accent)"
             value={form.status}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, status: event.target.value }))
@@ -136,10 +136,10 @@ export function CompanyModal({
           </select>
         </label>
 
-        <label className="space-y-1 text-sm text-[var(--dash-muted)]">
+        <label className="space-y-1 text-sm text-(--dash-muted)">
           <span>Website URL</span>
           <input
-            className="h-10 w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 text-sm text-[var(--dash-text)] outline-none focus:border-[var(--dash-accent)]"
+            className="h-10 w-full rounded-xl border border-(--dash-border) bg-(--dash-surface) px-3 text-sm text-(--dash-text) outline-none focus:border-(--dash-accent)"
             value={form.website_url}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, website_url: event.target.value }))
@@ -148,10 +148,10 @@ export function CompanyModal({
           />
         </label>
 
-        <label className="space-y-1 text-sm text-[var(--dash-muted)] md:col-span-2">
+        <label className="space-y-1 text-sm text-(--dash-muted) md:col-span-2">
           <span>Logo URL</span>
           <input
-            className="h-10 w-full rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 text-sm text-[var(--dash-text)] outline-none focus:border-[var(--dash-accent)]"
+            className="h-10 w-full rounded-xl border border-(--dash-border) bg-(--dash-surface) px-3 text-sm text-(--dash-text) outline-none focus:border-(--dash-accent)"
             value={form.logo_url}
             onChange={(event) =>
               setForm((prev) => ({ ...prev, logo_url: event.target.value }))
@@ -163,3 +163,4 @@ export function CompanyModal({
     </Modal>
   );
 }
+

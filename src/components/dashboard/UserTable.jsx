@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+﻿import { Loader2 } from "lucide-react";
 import { UserRow } from "./UserRow";
 
 export function UserTable({ users, onEdit, onDelete, isLoading, deletingIds }) {
@@ -60,3 +60,4 @@ export function UserTable({ users, onEdit, onDelete, isLoading, deletingIds }) {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { MoreVertical, Trash2, Edit2 } from "lucide-react";
+﻿import { MoreVertical, Trash2, Edit2 } from "lucide-react";
 import { useState } from "react";
 import { StatusBadge } from "./StatusBadge";
 import { RoleBadge } from "./RoleBadge";
@@ -15,9 +15,9 @@ function initials(name) {
 }
 
 function formatDate(dateString) {
-  if (!dateString) return "—";
+  if (!dateString) return "â€”";
   const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "â€”";
   return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "2-digit",
@@ -37,9 +37,9 @@ export function UserRow({ user, onEdit, onDelete, isDeleting = false }) {
           </div>
           <div>
             <p className="m-0 font-medium text-white">
-              {user.full_name || "—"}
+              {user.full_name || "â€”"}
             </p>
-            <p className="m-0 text-sm text-[#8ca1bd]">{user.email || "—"}</p>
+            <p className="m-0 text-sm text-[#8ca1bd]">{user.email || "â€”"}</p>
           </div>
         </div>
       </td>
@@ -105,3 +105,4 @@ export function UserRow({ user, onEdit, onDelete, isDeleting = false }) {
     </tr>
   );
 }
+

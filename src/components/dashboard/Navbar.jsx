@@ -1,14 +1,14 @@
-import { Menu, Search } from "lucide-react";
+﻿import { Menu, Search } from "lucide-react";
 import { NotificationMenu } from "@/components/notifications/NotificationMenu";
 
 export function Navbar({ onMenuClick }) {
   return (
-    <header className="flex h-[78px] items-center justify-between border-b border-[var(--dash-border)] bg-[var(--dash-bg-elevated)] px-4 sm:px-8">
+    <header className="flex h-19.5 items-center justify-between border-b border-(--dash-border) bg-(--dash-bg-elevated) px-4 sm:px-8">
       <div>
-        <h1 className="m-0 text-2xl font-semibold leading-none text-[var(--dash-text)] sm:text-3xl">
+        <h1 className="m-0 text-2xl font-semibold leading-none text-(--dash-text) sm:text-3xl">
           Dashboard
         </h1>
-        <p className="m-0 text-xs text-[var(--dash-muted)] sm:text-sm">
+        <p className="m-0 text-xs text-(--dash-muted) sm:text-sm">
           Welcome back. Here&apos;s an overview of your platform.
         </p>
       </div>
@@ -17,19 +17,19 @@ export function Navbar({ onMenuClick }) {
         <button
           type="button"
           onClick={onMenuClick}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--dash-border)] text-[var(--dash-muted)] transition hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)] lg:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-(--dash-border) text-(--dash-muted) transition hover:bg-(--dash-accent-soft) hover:text-(--dash-accent) lg:hidden"
           aria-label="Open sidebar"
         >
           <Menu size={18} />
         </button>
 
-        <div className="hidden h-11 items-center gap-2 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-3 text-[var(--dash-muted)] sm:flex">
+        <div className="hidden h-11 items-center gap-2 rounded-xl border border-(--dash-border) bg-(--dash-surface) px-3 text-(--dash-muted) sm:flex">
           <Search size={16} />
           <input
             placeholder="Search..."
-            className="w-[260px] bg-transparent text-sm text-[var(--dash-text)] outline-none placeholder:text-[var(--dash-muted)]"
+            className="w-65 bg-transparent text-sm text-(--dash-text) outline-none placeholder:text-(--dash-muted)"
           />
-          <span className="rounded-md border border-[var(--dash-border)] px-2 py-1 text-xs">
+          <span className="rounded-md border border-(--dash-border) px-2 py-1 text-xs">
             K
           </span>
         </div>
@@ -39,3 +39,4 @@ export function Navbar({ onMenuClick }) {
     </header>
   );
 }
+

@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+﻿/* eslint-disable react-refresh/only-export-components */
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -142,7 +142,7 @@ function CompaniesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--dash-bg)] text-[var(--dash-text)]">
+    <div className="min-h-screen bg-(--dash-bg) text-(--dash-text)">
       <Sidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed((prev) => !prev)}
@@ -157,7 +157,7 @@ function CompaniesPage() {
 
       <div
         className={`transition-all duration-300 ${
-          collapsed ? "lg:ml-[92px]" : "lg:ml-[320px]"
+          collapsed ? "lg:ml-23" : "lg:ml-80"
         }`}
       >
         <Header
@@ -169,7 +169,7 @@ function CompaniesPage() {
         />
 
         <main className="space-y-5 p-4 sm:p-8">
-          <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-3 shadow-[var(--dash-shadow)]">
+          <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-(--dash-border) bg-(--dash-surface) p-3 shadow-(--dash-shadow)">
             <SearchBar
               value={companySearch}
               onChange={(value) => {
@@ -177,7 +177,7 @@ function CompaniesPage() {
                 setCompanySearch(value);
               }}
               placeholder="Search companies..."
-              className="min-w-[260px] flex-1"
+              className="min-w-65 flex-1"
             />
 
             <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ function CompaniesPage() {
                 <select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value)}
-                  className="h-10 rounded-xl border border-[var(--dash-border)] bg-[var(--dash-surface)] pl-9 pr-8 text-sm text-[var(--dash-text)] outline-none"
+                  className="h-10 rounded-xl border border-(--dash-border) bg-(--dash-surface) pl-9 pr-8 text-sm text-(--dash-text) outline-none"
                 >
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
@@ -194,7 +194,7 @@ function CompaniesPage() {
                 </select>
                 <Funnel
                   size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--dash-accent)]"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-(--dash-accent)"
                 />
               </div>
 
@@ -237,8 +237,8 @@ function CompaniesPage() {
                 }}
               />
 
-              <section className="flex items-center justify-between rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] px-4 py-3 shadow-[var(--dash-shadow)]">
-                <p className="m-0 text-sm text-[var(--dash-muted)]">
+              <section className="flex items-center justify-between rounded-2xl border border-(--dash-border) bg-(--dash-surface) px-4 py-3 shadow-(--dash-shadow)">
+                <p className="m-0 text-sm text-(--dash-muted)">
                   Page {pagination.currentPage} of {pagination.totalPage}
                 </p>
 
@@ -310,7 +310,7 @@ function CompaniesPage() {
           </>
         }
       >
-        <p className="m-0 text-sm text-[var(--dash-muted)]">
+        <p className="m-0 text-sm text-(--dash-muted)">
           Are you sure you want to delete {deleteTarget?.name || "this company"}
           ? This action cannot be undone.
         </p>
@@ -318,3 +318,4 @@ function CompaniesPage() {
     </div>
   );
 }
+

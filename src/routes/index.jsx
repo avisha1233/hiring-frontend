@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+﻿/* eslint-disable react-refresh/only-export-components */
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -72,18 +72,18 @@ function getItemPrimaryText(type, item) {
 
 function getItemSecondaryText(type, item) {
   if (type === "users")
-    return `${item.email || "No email"} • ${item.role || "role n/a"}`;
+    return `${item.email || "No email"} â€¢ ${item.role || "role n/a"}`;
   if (type === "pendingApprovals") {
-    return `${item.email || "No email"} • ${item.role || "role n/a"} • verification pending`;
+    return `${item.email || "No email"} â€¢ ${item.role || "role n/a"} â€¢ verification pending`;
   }
   if (type === "newThisWeek") {
-    return `${item.email || "No email"} • ${item.role || "role n/a"} • joined this week`;
+    return `${item.email || "No email"} â€¢ ${item.role || "role n/a"} â€¢ joined this week`;
   }
   if (type === "companies") return `${item.location || "Unknown location"}`;
   if (type === "jobs")
-    return `${item.location || "Unknown"} • ${item.status || "status n/a"}`;
+    return `${item.location || "Unknown"} â€¢ ${item.status || "status n/a"}`;
   if (type === "applications") {
-    return `Candidate ${item.candidate_id || "-"} • Job ${item.job_id || "-"} • ${item.status || "pending"}`;
+    return `Candidate ${item.candidate_id || "-"} â€¢ Job ${item.job_id || "-"} â€¢ ${item.status || "pending"}`;
   }
   return "";
 }
@@ -236,12 +236,12 @@ function HomePage() {
     const status = dashboardQuery.error?.status;
 
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--dash-bg)] px-4">
-        <section className="w-full max-w-lg rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-6 text-center shadow-[var(--dash-shadow)]">
-          <h2 className="m-0 text-2xl font-semibold text-[var(--dash-text)]">
+      <main className="flex min-h-screen items-center justify-center bg-(--dash-bg) px-4">
+        <section className="w-full max-w-lg rounded-2xl border border-(--dash-border) bg-(--dash-surface) p-6 text-center shadow-(--dash-shadow)">
+          <h2 className="m-0 text-2xl font-semibold text-(--dash-text)">
             {status === 401 ? "Session expired" : "Dashboard unavailable"}
           </h2>
-          <p className="mt-2 text-[var(--dash-muted)]">
+          <p className="mt-2 text-(--dash-muted)">
             {status === 401
               ? "Your login has expired. Please sign in again to continue."
               : status === 400
@@ -256,7 +256,7 @@ function HomePage() {
                   clearAuthSession();
                   window.location.assign("/login");
                 }}
-                className="rounded-xl bg-[var(--dash-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--dash-accent-strong)]"
+                className="rounded-xl bg-(--dash-accent) px-4 py-2 text-sm font-semibold text-white transition hover:bg-(--dash-accent-strong)"
               >
                 Go to login
               </button>
@@ -264,7 +264,7 @@ function HomePage() {
               <button
                 type="button"
                 onClick={() => dashboardQuery.refetch()}
-                className="rounded-xl bg-[var(--dash-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--dash-accent-strong)]"
+                className="rounded-xl bg-(--dash-accent) px-4 py-2 text-sm font-semibold text-white transition hover:bg-(--dash-accent-strong)"
               >
                 Retry
               </button>
@@ -276,7 +276,7 @@ function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--dash-bg)] text-[var(--dash-text)]">
+    <div className="min-h-screen bg-(--dash-bg) text-(--dash-text)">
       <Sidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed((prev) => !prev)}
@@ -291,7 +291,7 @@ function HomePage() {
 
       <div
         className={`transition-all duration-300 ${
-          collapsed ? "lg:ml-[92px]" : "lg:ml-[320px]"
+          collapsed ? "lg:ml-23" : "lg:ml-80"
         }`}
       >
         <Navbar onMenuClick={() => setMobileOpen(true)} />
@@ -311,7 +311,7 @@ function HomePage() {
 
           <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <article
-              className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-6 shadow-[var(--dash-shadow)] transition duration-300 hover:border-[var(--dash-accent)] hover:bg-[var(--dash-accent-soft)] cursor-pointer"
+              className="rounded-2xl border border-(--dash-border) bg-(--dash-surface) p-6 shadow-(--dash-shadow) transition duration-300 hover:border-(--dash-accent) hover:bg-(--dash-accent-soft) cursor-pointer"
               onClick={() => setSelectedStatType("pendingApprovals")}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -323,20 +323,20 @@ function HomePage() {
               tabIndex={0}
               aria-label="View pending approvals details"
             >
-              <p className="m-0 flex items-center justify-between text-lg font-semibold text-[var(--dash-text)] sm:text-xl">
+              <p className="m-0 flex items-center justify-between text-lg font-semibold text-(--dash-text) sm:text-xl">
                 Pending Approvals
-                <Clock3 size={18} className="text-[var(--dash-warning)]" />
+                <Clock3 size={18} className="text-(--dash-warning)" />
               </p>
-              <p className="m-0 mt-8 text-2xl font-semibold text-[var(--dash-text)]">
+              <p className="m-0 mt-8 text-2xl font-semibold text-(--dash-text)">
                 {formatNumber(highlights.pendingApprovals)}
               </p>
-              <p className="m-0 mt-2 text-sm text-[var(--dash-muted)]">
+              <p className="m-0 mt-2 text-sm text-(--dash-muted)">
                 Users awaiting verification
               </p>
             </article>
 
             <article
-              className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-6 shadow-[var(--dash-shadow)] transition duration-300 hover:border-[var(--dash-accent)] hover:bg-[var(--dash-accent-soft)] cursor-pointer"
+              className="rounded-2xl border border-(--dash-border) bg-(--dash-surface) p-6 shadow-(--dash-shadow) transition duration-300 hover:border-(--dash-accent) hover:bg-(--dash-accent-soft) cursor-pointer"
               onClick={() => setSelectedStatType("newThisWeek")}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -348,23 +348,23 @@ function HomePage() {
               tabIndex={0}
               aria-label="View new users this week"
             >
-              <p className="m-0 flex items-center justify-between text-lg font-semibold text-[var(--dash-text)] sm:text-xl">
+              <p className="m-0 flex items-center justify-between text-lg font-semibold text-(--dash-text) sm:text-xl">
                 New This Week
                 <UserRoundPlus
                   size={18}
-                  className="text-[var(--dash-accent)]"
+                  className="text-(--dash-accent)"
                 />
               </p>
-              <p className="m-0 mt-8 text-2xl font-semibold text-[var(--dash-text)]">
+              <p className="m-0 mt-8 text-2xl font-semibold text-(--dash-text)">
                 {formatNumber(highlights.newThisWeek)}
               </p>
-              <p className="m-0 mt-2 text-sm text-[var(--dash-muted)]">
+              <p className="m-0 mt-2 text-sm text-(--dash-muted)">
                 New user registrations
               </p>
             </article>
 
             <article
-              className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-6 shadow-[var(--dash-shadow)] transition duration-300 hover:border-[var(--dash-accent)] hover:bg-[var(--dash-accent-soft)] cursor-pointer"
+              className="rounded-2xl border border-(--dash-border) bg-(--dash-surface) p-6 shadow-(--dash-shadow) transition duration-300 hover:border-(--dash-accent) hover:bg-(--dash-accent-soft) cursor-pointer"
               onClick={() => setAnalyticsModalOpen(true)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -376,14 +376,14 @@ function HomePage() {
               tabIndex={0}
               aria-label="View conversion rate analytics"
             >
-              <p className="m-0 flex items-center justify-between text-lg font-semibold text-[var(--dash-text)] sm:text-xl">
+              <p className="m-0 flex items-center justify-between text-lg font-semibold text-(--dash-text) sm:text-xl">
                 Conversion Rate
-                <TrendingUp size={18} className="text-[var(--dash-accent)]" />
+                <TrendingUp size={18} className="text-(--dash-accent)" />
               </p>
-              <p className="m-0 mt-8 text-2xl font-semibold text-[var(--dash-accent)]">
+              <p className="m-0 mt-8 text-2xl font-semibold text-(--dash-accent)">
                 {Number(highlights.conversionRate || 0).toFixed(1)}%
               </p>
-              <p className="m-0 mt-2 text-sm text-[var(--dash-muted)]">
+              <p className="m-0 mt-2 text-sm text-(--dash-muted)">
                 Applications to interviews
               </p>
             </article>
@@ -414,13 +414,13 @@ function HomePage() {
         onClose={() => setSelectedStatType(null)}
       >
         {statDetailsQuery.isPending ? (
-          <p className="m-0 text-sm text-[var(--dash-muted)]">
+          <p className="m-0 text-sm text-(--dash-muted)">
             Loading details...
           </p>
         ) : null}
 
         {statDetailsQuery.isError ? (
-          <p className="m-0 rounded-xl border border-[#fecaca] bg-[#fef2f2] px-3 py-3 text-sm text-[var(--dash-danger)]">
+          <p className="m-0 rounded-xl border border-[#fecaca] bg-[#fef2f2] px-3 py-3 text-sm text-(--dash-danger)">
             Unable to load detail list right now.
           </p>
         ) : null}
@@ -431,15 +431,15 @@ function HomePage() {
               {statDetailItems.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] px-4 py-3"
+                  className="rounded-xl border border-(--dash-border) bg-(--dash-bg) px-4 py-3"
                 >
-                  <p className="m-0 text-sm font-semibold text-[var(--dash-text)]">
+                  <p className="m-0 text-sm font-semibold text-(--dash-text)">
                     {getItemPrimaryText(selectedStatType, item)}
                   </p>
-                  <p className="m-0 mt-1 text-sm text-[var(--dash-muted)]">
+                  <p className="m-0 mt-1 text-sm text-(--dash-muted)">
                     {getItemSecondaryText(selectedStatType, item)}
                   </p>
-                  <p className="m-0 mt-1 text-xs text-[var(--dash-muted)]">
+                  <p className="m-0 mt-1 text-xs text-(--dash-muted)">
                     Created: {formatDate(item.created_at || item.applied_at)}
                   </p>
 
@@ -463,7 +463,7 @@ function HomePage() {
                             action: "approve",
                           })
                         }
-                        className="rounded-lg border border-[#86efac] bg-[#f0fdf4] px-3 py-1 text-xs font-semibold text-[var(--dash-success)] transition hover:bg-[#dcfce7] disabled:opacity-50"
+                        className="rounded-lg border border-[#86efac] bg-[#f0fdf4] px-3 py-1 text-xs font-semibold text-(--dash-success) transition hover:bg-[#dcfce7] disabled:opacity-50"
                       >
                         {approvalActionMutation.isPending &&
                         approvalActionMutation.variables?.userId === item.id
@@ -480,7 +480,7 @@ function HomePage() {
                             action: "reject",
                           })
                         }
-                        className="rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-1 text-xs font-semibold text-[var(--dash-danger)] transition hover:bg-[#ffe4e6] disabled:opacity-50"
+                        className="rounded-lg border border-[#fecaca] bg-[#fff1f2] px-3 py-1 text-xs font-semibold text-(--dash-danger) transition hover:bg-[#ffe4e6] disabled:opacity-50"
                       >
                         {approvalActionMutation.isPending &&
                         approvalActionMutation.variables?.userId === item.id
@@ -495,7 +495,7 @@ function HomePage() {
                       <button
                         type="button"
                         onClick={() => setSelectedProfileUser(item)}
-                        className="rounded-lg border border-[var(--dash-border)] bg-white px-3 py-1 text-xs font-medium text-[var(--dash-muted)] transition hover:border-[var(--dash-accent)] hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)]"
+                        className="rounded-lg border border-(--dash-border) bg-white px-3 py-1 text-xs font-medium text-(--dash-muted) transition hover:border-(--dash-accent) hover:bg-(--dash-accent-soft) hover:text-(--dash-accent)"
                       >
                         View Profile
                       </button>
@@ -505,7 +505,7 @@ function HomePage() {
               ))}
             </div>
           ) : (
-            <p className="m-0 text-sm text-[var(--dash-muted)]">
+            <p className="m-0 text-sm text-(--dash-muted)">
               No records found.
             </p>
           )
@@ -520,39 +520,39 @@ function HomePage() {
         sizeClassName="max-w-md"
       >
         <div className="space-y-2">
-          <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
-            <p className="m-0 text-xs text-[var(--dash-muted)]">Name</p>
-            <p className="m-0 mt-1 text-sm font-medium text-[var(--dash-text)]">
+          <div className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-3">
+            <p className="m-0 text-xs text-(--dash-muted)">Name</p>
+            <p className="m-0 mt-1 text-sm font-medium text-(--dash-text)">
               {selectedProfileUser?.full_name || "-"}
             </p>
           </div>
 
-          <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
-            <p className="m-0 text-xs text-[var(--dash-muted)]">Email</p>
-            <p className="m-0 mt-1 text-sm text-[var(--dash-text)]">
+          <div className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-3">
+            <p className="m-0 text-xs text-(--dash-muted)">Email</p>
+            <p className="m-0 mt-1 text-sm text-(--dash-text)">
               {selectedProfileUser?.email || "-"}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
-              <p className="m-0 text-xs text-[var(--dash-muted)]">Role</p>
-              <p className="m-0 mt-1 text-sm text-[var(--dash-text)]">
+            <div className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-3">
+              <p className="m-0 text-xs text-(--dash-muted)">Role</p>
+              <p className="m-0 mt-1 text-sm text-(--dash-text)">
                 {selectedProfileUser?.role || "-"}
               </p>
             </div>
 
-            <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
-              <p className="m-0 text-xs text-[var(--dash-muted)]">Status</p>
-              <p className="m-0 mt-1 text-sm text-[var(--dash-text)]">
+            <div className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-3">
+              <p className="m-0 text-xs text-(--dash-muted)">Status</p>
+              <p className="m-0 mt-1 text-sm text-(--dash-text)">
                 {selectedProfileUser?.status || "-"}
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
-            <p className="m-0 text-xs text-[var(--dash-muted)]">Verification</p>
-            <p className="m-0 mt-1 text-sm text-[var(--dash-text)]">
+          <div className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-3">
+            <p className="m-0 text-xs text-(--dash-muted)">Verification</p>
+            <p className="m-0 mt-1 text-sm text-(--dash-text)">
               {selectedProfileUser?.is_verified ? "Verified" : "Unverified"}
             </p>
           </div>
@@ -566,20 +566,20 @@ function HomePage() {
         onClose={() => setAnalyticsModalOpen(false)}
       >
         <div className="space-y-3">
-          <article className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-4">
-            <p className="m-0 text-xs uppercase tracking-wide text-[var(--dash-muted)]">
+          <article className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-4">
+            <p className="m-0 text-xs uppercase tracking-wide text-(--dash-muted)">
               Current Conversion
             </p>
-            <p className="m-0 mt-1 text-2xl font-semibold text-[var(--dash-accent)]">
+            <p className="m-0 mt-1 text-2xl font-semibold text-(--dash-accent)">
               {conversionRateValue.toFixed(1)}%
             </p>
             <div className="mt-3 h-2 w-full rounded-full bg-[#ffe2c7]">
               <div
-                className="h-2 rounded-full bg-[var(--dash-accent)]"
+                className="h-2 rounded-full bg-(--dash-accent)"
                 style={{ width: `${toPositivePercent(conversionRateValue)}%` }}
               />
             </div>
-            <p className="m-0 mt-2 text-xs text-[var(--dash-muted)]">
+            <p className="m-0 mt-2 text-xs text-(--dash-muted)">
               Based on {formatNumber(summary.totalApplications)} applications
               and
               {formatNumber(estimatedInterviews)} estimated interview
@@ -587,11 +587,11 @@ function HomePage() {
             </p>
           </article>
 
-          <article className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-4">
-            <p className="m-0 text-sm font-semibold text-[var(--dash-text)]">
+          <article className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-4">
+            <p className="m-0 text-sm font-semibold text-(--dash-text)">
               Weekly Trend Breakdown
             </p>
-            <p className="m-0 mt-1 text-xs text-[var(--dash-muted)]">
+            <p className="m-0 mt-1 text-xs text-(--dash-muted)">
               Growth by category over the previous period.
             </p>
 
@@ -606,14 +606,14 @@ function HomePage() {
                 return (
                   <div key={metric.label}>
                     <div className="mb-1 flex items-center justify-between text-xs">
-                      <span className="text-[var(--dash-muted)]">
+                      <span className="text-(--dash-muted)">
                         {metric.label}
                       </span>
                       <span
                         className={
                           positive
-                            ? "text-[var(--dash-success)]"
-                            : "text-[var(--dash-danger)]"
+                            ? "text-(--dash-success)"
+                            : "text-(--dash-danger)"
                         }
                       >
                         {positive ? "+" : ""}
@@ -622,7 +622,7 @@ function HomePage() {
                     </div>
                     <div className="h-2 w-full rounded-full bg-[#ffe2c7]">
                       <div
-                        className={`h-2 rounded-full ${positive ? "bg-[var(--dash-success)]" : "bg-[var(--dash-danger)]"}`}
+                        className={`h-2 rounded-full ${positive ? "bg-(--dash-success)" : "bg-(--dash-danger)"}`}
                         style={{ width: toMetricBarWidth(metric.value) }}
                       />
                     </div>
@@ -632,11 +632,11 @@ function HomePage() {
             </div>
           </article>
 
-          <article className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-4">
-            <p className="m-0 text-sm font-semibold text-[var(--dash-text)]">
+          <article className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-4">
+            <p className="m-0 text-sm font-semibold text-(--dash-text)">
               Summary
             </p>
-            <ul className="m-0 mt-2 list-disc space-y-1 pl-4 text-sm text-[var(--dash-muted)]">
+            <ul className="m-0 mt-2 list-disc space-y-1 pl-4 text-sm text-(--dash-muted)">
               <li>
                 Total applications: {formatNumber(summary.totalApplications)}
               </li>
@@ -656,23 +656,23 @@ function HomePage() {
         onClose={() => setSelectedActivity(null)}
       >
         <div className="space-y-3">
-          <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-4">
-            <p className="m-0 text-sm text-[var(--dash-muted)]">Message</p>
-            <p className="m-0 mt-1 text-sm text-[var(--dash-text)]">
+          <div className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-4">
+            <p className="m-0 text-sm text-(--dash-muted)">Message</p>
+            <p className="m-0 mt-1 text-sm text-(--dash-text)">
               {selectedActivity?.message || "No message available."}
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
-              <p className="m-0 text-xs text-[var(--dash-muted)]">Type</p>
-              <p className="m-0 mt-1 text-sm text-[var(--dash-text)]">
+            <div className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-3">
+              <p className="m-0 text-xs text-(--dash-muted)">Type</p>
+              <p className="m-0 mt-1 text-sm text-(--dash-text)">
                 {selectedActivity?.type || "info"}
               </p>
             </div>
-            <div className="rounded-xl border border-[var(--dash-border)] bg-[var(--dash-bg)] p-3">
-              <p className="m-0 text-xs text-[var(--dash-muted)]">Created</p>
-              <p className="m-0 mt-1 text-sm text-[var(--dash-text)]">
+            <div className="rounded-xl border border-(--dash-border) bg-(--dash-bg) p-3">
+              <p className="m-0 text-xs text-(--dash-muted)">Created</p>
+              <p className="m-0 mt-1 text-sm text-(--dash-text)">
                 {formatDate(selectedActivity?.created_at)}
               </p>
             </div>
@@ -682,3 +682,5 @@ function HomePage() {
     </div>
   );
 }
+
+

@@ -1,4 +1,4 @@
-export function Button({
+﻿export function Button({
   children,
   className = "",
   variant = "primary",
@@ -8,13 +8,13 @@ export function Button({
 }) {
   const variants = {
     primary:
-      "border border-transparent bg-[var(--dash-accent)] text-white hover:bg-[var(--dash-accent-strong)]",
+      "border border-transparent bg-(--dash-accent) text-white hover:bg-(--dash-accent-strong)",
     outline:
-      "border border-[var(--dash-border)] bg-[var(--dash-surface)] text-[var(--dash-muted)] hover:border-[var(--dash-accent)] hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)]",
+      "border border-(--dash-border) bg-(--dash-surface) text-(--dash-muted) hover:border-(--dash-accent) hover:bg-(--dash-accent-soft) hover:text-(--dash-accent)",
     ghost:
-      "border border-transparent bg-transparent text-[var(--dash-muted)] hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)]",
+      "border border-transparent bg-transparent text-(--dash-muted) hover:bg-(--dash-accent-soft) hover:text-(--dash-accent)",
     danger:
-      "border border-[#fecaca] bg-[#fff1f2] text-[var(--dash-danger)] hover:bg-[#ffe4e6]",
+      "border border-[#fecaca] bg-[#fff1f2] text-(--dash-danger) hover:bg-[#ffe4e6]",
   };
 
   const sizes = {
@@ -33,3 +33,4 @@ export function Button({
     </button>
   );
 }
+

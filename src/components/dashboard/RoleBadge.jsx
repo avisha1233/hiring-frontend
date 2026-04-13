@@ -1,4 +1,4 @@
-export function RoleBadge({ role }) {
+﻿export function RoleBadge({ role }) {
   const roleStyles = {
     admin: "bg-[#1a3a4a] text-[#00d09c] border border-[#2d5a7a]",
     company: "bg-[#1a3a4a] text-[#00d09c] border border-[#2d5a7a]",
@@ -18,3 +18,4 @@ export function RoleBadge({ role }) {
     </span>
   );
 }
+

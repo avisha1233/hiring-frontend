@@ -1,10 +1,18 @@
-import { apiRequest, ApiError } from "@/apis/client";
+import { apiRequest } from "@/apis/client";
 
-export async function getUsers({ page = 1, limit = 10, search = "" } = {}) {
+export async function getUsers({
+  page = 1,
+  limit = 10,
+  search = "",
+  role = "all",
+  status = "all",
+} = {}) {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
     ...(search ? { search } : {}),
+    ...(role && role !== "all" ? { role } : {}),
+    ...(status && status !== "all" ? { status } : {}),
   });
 
   const response = await apiRequest(`/users?${params.toString()}`);

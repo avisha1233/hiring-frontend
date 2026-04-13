@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { loginApi, registerApi } from "@/apis/auth";
@@ -142,3 +142,4 @@ function LoginPage() {
     </main>
   );
 }
+

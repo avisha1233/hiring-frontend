@@ -1,4 +1,4 @@
-import { AlertTriangle, X } from "lucide-react";
+﻿import { AlertTriangle, X } from "lucide-react";
 
 export function ConfirmDeleteModal({
   isOpen,
@@ -51,3 +51,4 @@ export function ConfirmDeleteModal({
     </>
   );
 }
+

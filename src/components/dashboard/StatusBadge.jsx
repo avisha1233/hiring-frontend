@@ -1,4 +1,4 @@
-export function StatusBadge({ status }) {
+﻿export function StatusBadge({ status }) {
   const statusStyles = {
     active: "bg-[#0f2b22] text-[#00d09c] border border-[#1a5d49]",
     disabled: "bg-[#3a1515] text-[#f87171] border border-[#5a2c2c]",
@@ -17,3 +17,4 @@ export function StatusBadge({ status }) {
     </span>
   );
 }
+

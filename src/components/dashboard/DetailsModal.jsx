@@ -1,4 +1,4 @@
-export function DetailsModal({
+﻿export function DetailsModal({
   open,
   title,
   subtitle,
@@ -9,17 +9,17 @@ export function DetailsModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--dash-overlay)] p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-(--dash-overlay) p-4">
       <section
-        className={`w-full ${sizeClassName} rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-6 shadow-[var(--dash-shadow)]`}
+        className={`w-full ${sizeClassName} rounded-2xl border border-(--dash-border) bg-(--dash-surface) p-6 shadow-(--dash-shadow)`}
       >
         <header className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="m-0 text-xl font-semibold text-[var(--dash-text)]">
+            <h2 className="m-0 text-xl font-semibold text-(--dash-text)">
               {title}
             </h2>
             {subtitle ? (
-              <p className="m-0 mt-1 text-sm text-[var(--dash-muted)]">
+              <p className="m-0 mt-1 text-sm text-(--dash-muted)">
                 {subtitle}
               </p>
             ) : null}
@@ -28,7 +28,7 @@ export function DetailsModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-[var(--dash-border)] px-2 py-1 text-sm text-[var(--dash-muted)] transition hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)]"
+            className="rounded-lg border border-(--dash-border) px-2 py-1 text-sm text-(--dash-muted) transition hover:bg-(--dash-accent-soft) hover:text-(--dash-accent)"
             aria-label="Close details"
           >
             X
@@ -40,3 +40,4 @@ export function DetailsModal({
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Sparkles, UserRound } from "lucide-react";
+﻿import { ChevronLeft, ChevronRight, Sparkles, UserRound } from "lucide-react";
 
 function formatRelativeDate(input) {
   const date = new Date(input);
@@ -30,14 +30,14 @@ export function ActivityFeed({
   const totalPage = pagination?.totalPage || 1;
 
   return (
-    <section className="rounded-2xl border border-[var(--dash-border)] bg-[var(--dash-surface)] p-6 shadow-[var(--dash-shadow)] transition-colors duration-300 hover:border-[var(--dash-accent)]">
+    <section className="rounded-2xl border border-(--dash-border) bg-(--dash-surface) p-6 shadow-(--dash-shadow) transition-colors duration-300 hover:border-(--dash-accent)">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="m-0 flex items-center gap-2 text-lg font-semibold text-[var(--dash-text)] sm:text-xl">
-            <Sparkles size={20} className="text-[var(--dash-accent)]" />
+          <h3 className="m-0 flex items-center gap-2 text-lg font-semibold text-(--dash-text) sm:text-xl">
+            <Sparkles size={20} className="text-(--dash-accent)" />
             Recent Activity
           </h3>
-          <p className="m-0 mt-1 text-xs text-[var(--dash-muted)] sm:text-sm">
+          <p className="m-0 mt-1 text-xs text-(--dash-muted) sm:text-sm">
             Latest platform events and actions
           </p>
         </div>
@@ -47,7 +47,7 @@ export function ActivityFeed({
             type="button"
             disabled={page <= 1 || isLoading}
             onClick={() => onPageChange(page - 1)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--dash-border)] text-[var(--dash-muted)] transition hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-(--dash-border) text-(--dash-muted) transition hover:bg-(--dash-accent-soft) hover:text-(--dash-accent) disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Previous page"
           >
             <ChevronLeft size={16} />
@@ -56,7 +56,7 @@ export function ActivityFeed({
             type="button"
             disabled={page >= totalPage || isLoading}
             onClick={() => onPageChange(page + 1)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--dash-border)] text-[var(--dash-muted)] transition hover:bg-[var(--dash-accent-soft)] hover:text-[var(--dash-accent)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-(--dash-border) text-(--dash-muted) transition hover:bg-(--dash-accent-soft) hover:text-(--dash-accent) disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Next page"
           >
             <ChevronRight size={16} />
@@ -66,13 +66,13 @@ export function ActivityFeed({
 
       <div className="mt-5 space-y-2">
         {isLoading && (
-          <p className="m-0 text-sm text-[var(--dash-muted)]">
+          <p className="m-0 text-sm text-(--dash-muted)">
             Loading activity...
           </p>
         )}
 
         {!isLoading && items.length === 0 && (
-          <p className="m-0 text-sm text-[var(--dash-muted)]">
+          <p className="m-0 text-sm text-(--dash-muted)">
             No recent activity found for this page.
           </p>
         )}
@@ -81,7 +81,7 @@ export function ActivityFeed({
           items.map((item) => (
             <article
               key={item.id}
-              className="flex items-start gap-4 rounded-xl border border-transparent px-2 py-3 transition duration-200 hover:border-[var(--dash-border)] hover:bg-[var(--dash-accent-soft)]"
+              className="flex items-start gap-4 rounded-xl border border-transparent px-2 py-3 transition duration-200 hover:border-(--dash-border) hover:bg-(--dash-accent-soft)"
               onClick={() => onActivityClick?.(item)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -93,14 +93,14 @@ export function ActivityFeed({
               tabIndex={0}
               aria-label={`Open activity ${item.title || item.id}`}
             >
-              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--dash-accent-soft)] text-[var(--dash-accent)]">
+              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-(--dash-accent-soft) text-(--dash-accent)">
                 <UserRound size={18} />
               </div>
               <div>
-                <p className="m-0 text-base text-[var(--dash-text)]">
+                <p className="m-0 text-base text-(--dash-text)">
                   {item.title || item.message}
                 </p>
-                <p className="m-0 text-sm text-[var(--dash-muted)]">
+                <p className="m-0 text-sm text-(--dash-muted)">
                   {formatRelativeDate(item.created_at)}
                 </p>
               </div>
@@ -108,7 +108,7 @@ export function ActivityFeed({
           ))}
       </div>
 
-      <div className="mt-4 flex items-center justify-between border-t border-[var(--dash-border)] pt-4 text-sm text-[var(--dash-muted)]">
+      <div className="mt-4 flex items-center justify-between border-t border-(--dash-border) pt-4 text-sm text-(--dash-muted)">
         <span>
           Page {page} of {totalPage}
         </span>
@@ -117,3 +117,4 @@ export function ActivityFeed({
     </section>
   );
 }
+
