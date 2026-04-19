@@ -55,7 +55,7 @@ export function Sidebar({
           {!collapsed && (
             <div className="ml-3">
               <p className="m-0 text-lg font-semibold leading-none text-(--dash-text)">
-                HR Platform
+                Smart Hiring system
               </p>
               <p className="m-0 text-sm text-(--dash-muted)">admin</p>
             </div>
@@ -123,4 +123,3 @@ export function Sidebar({
     </>
   );
 }
-

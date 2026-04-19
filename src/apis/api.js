@@ -53,6 +53,8 @@ export const apiClient = {
   get: (path, options = {}) => request(path, { ...options, method: "GET" }),
   post: (path, data, options = {}) =>
     request(path, { ...options, method: "POST", data }),
+  put: (path, data, options = {}) =>
+    request(path, { ...options, method: "PUT", data }),
   patch: (path, data, options = {}) =>
     request(path, { ...options, method: "PATCH", data }),
   delete: (path, options = {}) =>
