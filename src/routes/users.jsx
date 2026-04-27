@@ -17,6 +17,19 @@ export const Route = createFileRoute("/users")({
   component: UsersPage,
 });
 
+const getCreateUserErrorMessage = (error) => {
+  if (!error) {
+    return "";
+  }
+
+  const firstValidationError = error.payload?.errors?.[0]?.msg;
+  if (firstValidationError) {
+    return firstValidationError;
+  }
+
+  return error.message || "Failed to create user.";
+};
+
 function UsersPage() {
   const queryClient = useQueryClient();
 
@@ -46,11 +59,16 @@ function UsersPage() {
 
   const createMutation = useMutation({
     mutationFn: createUser,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setAddUserOpen(false);
     },
   });
+
+  const createUserError = createMutation.isError
+    ? getCreateUserErrorMessage(createMutation.error)
+    : "";
 
   const baseUsers = useMemo(() => {
     if (Array.isArray(usersQuery.data?.data)) return usersQuery.data.data;
@@ -167,7 +185,12 @@ function UsersPage() {
       <AddUserModal
         open={addUserOpen}
         isSaving={createMutation.isPending}
-        onClose={() => setAddUserOpen(false)}
+        errorMessage={createUserError}
+        onClearError={() => createMutation.reset()}
+        onClose={() => {
+          createMutation.reset();
+          setAddUserOpen(false);
+        }}
         onSave={(payload) => createMutation.mutate(payload)}
       />
     </div>

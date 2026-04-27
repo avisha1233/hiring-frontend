@@ -9,26 +9,47 @@ const INITIAL_FORM = {
   status: "active",
 };
 
-export function AddUserModal({ open, isSaving, onClose, onSave }) {
+export function AddUserModal({
+  open,
+  isSaving,
+  errorMessage,
+  onClearError,
+  onClose,
+  onSave,
+}) {
   const [form, setForm] = useState(INITIAL_FORM);
-  const [error, setError] = useState("");
+  const [localError, setLocalError] = useState("");
 
   useEffect(() => {
     if (!open) {
       setForm(INITIAL_FORM);
-      setError("");
+      setLocalError("");
     }
   }, [open]);
+
+  const displayError = localError || errorMessage || "";
+
+  const updateForm = (updater) => {
+    if (localError) {
+      setLocalError("");
+    }
+
+    if (errorMessage && onClearError) {
+      onClearError();
+    }
+
+    setForm(updater);
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
 
     if (!form.full_name.trim() || !form.email.trim() || !form.password.trim()) {
-      setError("Name, email, and password are required.");
+      setLocalError("Name, email, and password are required.");
       return;
     }
 
-    setError("");
+    setLocalError("");
     onSave(form);
   };
 
@@ -58,17 +79,21 @@ export function AddUserModal({ open, isSaving, onClose, onSave }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
           <label className="block text-sm text-(--dash-muted)">
             Full Name
             <input
               type="text"
               value={form.full_name}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, full_name: event.target.value }))
+                updateForm((prev) => ({
+                  ...prev,
+                  full_name: event.target.value,
+                }))
               }
               className="mt-1 h-10 w-full rounded-lg border border-(--dash-border) px-3 text-(--dash-text) outline-none focus:border-(--dash-accent)"
               placeholder="Jane Cooper"
+              autoComplete="off"
             />
           </label>
 
@@ -78,10 +103,11 @@ export function AddUserModal({ open, isSaving, onClose, onSave }) {
               type="email"
               value={form.email}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, email: event.target.value }))
+                updateForm((prev) => ({ ...prev, email: event.target.value }))
               }
               className="mt-1 h-10 w-full rounded-lg border border-(--dash-border) px-3 text-(--dash-text) outline-none focus:border-(--dash-accent)"
               placeholder="jane@company.com"
+              autoComplete="off"
             />
           </label>
 
@@ -91,10 +117,14 @@ export function AddUserModal({ open, isSaving, onClose, onSave }) {
               type="password"
               value={form.password}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, password: event.target.value }))
+                updateForm((prev) => ({
+                  ...prev,
+                  password: event.target.value,
+                }))
               }
               className="mt-1 h-10 w-full rounded-lg border border-(--dash-border) px-3 text-(--dash-text) outline-none focus:border-(--dash-accent)"
               placeholder="********"
+              autoComplete="new-password"
             />
           </label>
 
@@ -104,12 +134,11 @@ export function AddUserModal({ open, isSaving, onClose, onSave }) {
               <select
                 value={form.role}
                 onChange={(event) =>
-                  setForm((prev) => ({ ...prev, role: event.target.value }))
+                  updateForm((prev) => ({ ...prev, role: event.target.value }))
                 }
                 className="mt-1 h-10 w-full rounded-lg border border-(--dash-border) px-3 text-(--dash-text) outline-none focus:border-(--dash-accent)"
               >
                 <option value="admin">Admin</option>
-                <option value="hr">HR</option>
                 <option value="company">Company</option>
                 <option value="candidate">Candidate</option>
               </select>
@@ -120,19 +149,21 @@ export function AddUserModal({ open, isSaving, onClose, onSave }) {
               <select
                 value={form.status}
                 onChange={(event) =>
-                  setForm((prev) => ({ ...prev, status: event.target.value }))
+                  updateForm((prev) => ({
+                    ...prev,
+                    status: event.target.value,
+                  }))
                 }
                 className="mt-1 h-10 w-full rounded-lg border border-(--dash-border) px-3 text-(--dash-text) outline-none focus:border-(--dash-accent)"
               >
                 <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="disabled">Disabled</option>
+                <option value="inactive">Inactive</option>
               </select>
             </label>
           </div>
 
-          {error ? (
-            <p className="m-0 text-sm text-(--dash-danger)">{error}</p>
+          {displayError ? (
+            <p className="m-0 text-sm text-(--dash-danger)">{displayError}</p>
           ) : null}
 
           <div className="pt-2 text-right">

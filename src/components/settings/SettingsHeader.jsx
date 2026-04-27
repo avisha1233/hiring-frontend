@@ -5,7 +5,7 @@ export function SettingsHeader({ onMenuClick, searchValue, onSearchChange }) {
   return (
     <header className="flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-(--dash-border) bg-(--dash-bg-elevated) px-4 py-3 sm:px-8">
       <div>
-        <h1 className="m-0 text-2xl font-semibold leading-none text-(--dash-text) sm:text-4xl">
+        <h1 className="m-0 text-lg font-semibold leading-none text-(--dash-text) sm:text-4xl">
           Settings
         </h1>
         <p className="m-0 mt-1 text-sm text-(--dash-muted)">

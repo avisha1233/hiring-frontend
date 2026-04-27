@@ -2,7 +2,7 @@ export function SettingsToggle({ label, description, checked, onChange }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-(--dash-border) pb-4 last:border-b-0 last:pb-0">
       <div>
-        <p className="m-0 text-3xl font-semibold text-(--dash-text)">{label}</p>
+        <p className="m-0 text-lg font-semibold text-(--dash-text)">{label}</p>
         <p className="m-0 mt-1 text-sm text-(--dash-muted)">{description}</p>
       </div>
 

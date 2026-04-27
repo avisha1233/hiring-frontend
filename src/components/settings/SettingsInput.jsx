@@ -9,13 +9,13 @@ export function SettingsInput({
 }) {
   return (
     <label className="flex flex-col gap-2">
-      <span className="text-xl font-semibold text-(--dash-text)">{label}</span>
+      <span className="text-lg font-semibold text-(--dash-text)">{label}</span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className={`h-12 rounded-xl border bg-(--dash-surface) px-4 text-2xl text-(--dash-text) outline-none transition placeholder:text-(--dash-muted) ${
+        className={`h-12 rounded-xl border bg-(--dash-surface) px-4 text-lg text-(--dash-text) outline-none transition placeholder:text-(--dash-muted) ${
           error ? "border-[#fca5a5]" : "border-(--dash-border)"
         }`}
       />

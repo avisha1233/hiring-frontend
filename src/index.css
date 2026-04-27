@@ -3,16 +3,14 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.99 0.005 106);
-  --foreground: oklch(0.22 0.02 265);
-  --muted-foreground: oklch(0.44 0.03 265);
-  --card: oklch(0.985 0.006 106);
-  --card-foreground: oklch(0.22 0.02 265);
-  --border: oklch(0.9 0.01 265);
-  --primary: oklch(0.38 0.13 248);
-  --primary-foreground: oklch(0.98 0.01 248);
-
-  /* Orange + Light dashboard theme tokens */
+  --background: #f9fafb;
+  --foreground: #111827;
+  --muted-foreground: #6b7280;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --border: #e5e7eb;
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
   --dash-bg: #f9fafb;
   --dash-bg-elevated: #ffffff;
   --dash-surface: #ffffff;
@@ -23,8 +21,8 @@
   --dash-accent-soft: #ffedd5;
   --dash-accent-strong: #ea580c;
   --dash-success: #16a34a;
-  --dash-danger: #dc2626;
-  --dash-warning: #f97316;
+  --dash-danger: #ef4444;
+  --dash-warning: #f59e0b;
   --dash-overlay: rgba(17, 24, 39, 0.42);
   --dash-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
 }
@@ -46,5 +44,21 @@ body {
     radial-gradient(circle at 10% 8%, #ffedd5 0, transparent 34%),
     radial-gradient(circle at 100% 0%, #fff7ed 0, transparent 26%),
     var(--dash-bg);
-  font-family: "Poppins", sans-serif;
+  font-family: "DM Sans", sans-serif;
+}
+
+.animate-fade-in {
+  animation: pageFadeIn 220ms ease-out;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

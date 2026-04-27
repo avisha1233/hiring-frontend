@@ -1,4 +1,13 @@
-﻿import { ChevronLeft, ChevronRight, Sparkles, UserRound } from "lucide-react";
+﻿import {
+  BadgeCheck,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  CircleSlash,
+  Sparkles,
+  UserRound,
+  UserRoundPlus,
+} from "lucide-react";
 
 function formatRelativeDate(input) {
   const date = new Date(input);
@@ -25,9 +34,20 @@ export function ActivityFeed({
   onPageChange,
   isLoading,
   onActivityClick,
+  period,
+  onPeriodChange,
 }) {
   const page = pagination?.page || 1;
   const totalPage = pagination?.totalPage || 1;
+
+  const renderActionIcon = (actionType) => {
+    if (actionType === "applied") return UserRoundPlus;
+    if (actionType === "shortlisted") return BadgeCheck;
+    if (actionType === "interview_scheduled") return CalendarClock;
+    if (actionType === "rejected") return CircleSlash;
+    if (actionType === "hired") return BadgeCheck;
+    return UserRound;
+  };
 
   return (
     <section className="rounded-2xl border border-(--dash-border) bg-(--dash-surface) p-6 shadow-(--dash-shadow) transition-colors duration-300 hover:border-(--dash-accent)">
@@ -43,6 +63,17 @@ export function ActivityFeed({
         </div>
 
         <div className="flex items-center gap-2">
+          <select
+            value={period}
+            onChange={(event) => onPeriodChange?.(event.target.value)}
+            className="h-9 rounded-lg border border-(--dash-border) bg-white px-2 text-sm text-(--dash-muted) outline-none focus:border-(--dash-accent)"
+            aria-label="Filter activity timeframe"
+          >
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="all">All time</option>
+          </select>
+
           <button
             type="button"
             disabled={page <= 1 || isLoading}
@@ -66,9 +97,7 @@ export function ActivityFeed({
 
       <div className="mt-5 space-y-2">
         {isLoading && (
-          <p className="m-0 text-sm text-(--dash-muted)">
-            Loading activity...
-          </p>
+          <p className="m-0 text-sm text-(--dash-muted)">Loading activity...</p>
         )}
 
         {!isLoading && items.length === 0 && (
@@ -91,17 +120,20 @@ export function ActivityFeed({
               }}
               role="button"
               tabIndex={0}
-              aria-label={`Open activity ${item.title || item.id}`}
+              aria-label={`Open activity ${item.actionType || item.id}`}
             >
               <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-(--dash-accent-soft) text-(--dash-accent)">
-                <UserRound size={18} />
+                {(() => {
+                  const ActivityIcon = renderActionIcon(item.actionType);
+                  return <ActivityIcon size={18} />;
+                })()}
               </div>
               <div>
                 <p className="m-0 text-base text-(--dash-text)">
-                  {item.title || item.message}
+                  {item.description || "Activity recorded"}
                 </p>
                 <p className="m-0 text-sm text-(--dash-muted)">
-                  {formatRelativeDate(item.created_at)}
+                  {formatRelativeDate(item.timestamp)}
                 </p>
               </div>
             </article>
@@ -117,4 +149,3 @@ export function ActivityFeed({
     </section>
   );
 }
-
