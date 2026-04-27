@@ -20,6 +20,14 @@ import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as BrowseJobsRouteImport } from './routes/browse-jobs'
 import { Route as ApplicationsRouteImport } from './routes/applications'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CompanyIndexRouteImport } from './routes/company/index'
+import { Route as CompanySubmissionsRouteImport } from './routes/company/submissions'
+import { Route as CompanySettingsRouteImport } from './routes/company/settings'
+import { Route as CompanyProposalsRouteImport } from './routes/company/proposals'
+import { Route as CompanyMessagesRouteImport } from './routes/company/messages'
+import { Route as CompanyJobsRouteImport } from './routes/company/jobs'
+import { Route as CompanyInterviewsRouteImport } from './routes/company/interviews'
+import { Route as CompanyCandidatesRouteImport } from './routes/company/candidates'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -76,6 +84,46 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompanyIndexRoute = CompanyIndexRouteImport.update({
+  id: '/company/',
+  path: '/company/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanySubmissionsRoute = CompanySubmissionsRouteImport.update({
+  id: '/company/submissions',
+  path: '/company/submissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanySettingsRoute = CompanySettingsRouteImport.update({
+  id: '/company/settings',
+  path: '/company/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyProposalsRoute = CompanyProposalsRouteImport.update({
+  id: '/company/proposals',
+  path: '/company/proposals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyMessagesRoute = CompanyMessagesRouteImport.update({
+  id: '/company/messages',
+  path: '/company/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyJobsRoute = CompanyJobsRouteImport.update({
+  id: '/company/jobs',
+  path: '/company/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyInterviewsRoute = CompanyInterviewsRouteImport.update({
+  id: '/company/interviews',
+  path: '/company/interviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyCandidatesRoute = CompanyCandidatesRouteImport.update({
+  id: '/company/candidates',
+  path: '/company/candidates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +137,14 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
+  '/company/candidates': typeof CompanyCandidatesRoute
+  '/company/interviews': typeof CompanyInterviewsRoute
+  '/company/jobs': typeof CompanyJobsRoute
+  '/company/messages': typeof CompanyMessagesRoute
+  '/company/proposals': typeof CompanyProposalsRoute
+  '/company/settings': typeof CompanySettingsRoute
+  '/company/submissions': typeof CompanySubmissionsRoute
+  '/company/': typeof CompanyIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +158,14 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
+  '/company/candidates': typeof CompanyCandidatesRoute
+  '/company/interviews': typeof CompanyInterviewsRoute
+  '/company/jobs': typeof CompanyJobsRoute
+  '/company/messages': typeof CompanyMessagesRoute
+  '/company/proposals': typeof CompanyProposalsRoute
+  '/company/settings': typeof CompanySettingsRoute
+  '/company/submissions': typeof CompanySubmissionsRoute
+  '/company': typeof CompanyIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +180,14 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
+  '/company/candidates': typeof CompanyCandidatesRoute
+  '/company/interviews': typeof CompanyInterviewsRoute
+  '/company/jobs': typeof CompanyJobsRoute
+  '/company/messages': typeof CompanyMessagesRoute
+  '/company/proposals': typeof CompanyProposalsRoute
+  '/company/settings': typeof CompanySettingsRoute
+  '/company/submissions': typeof CompanySubmissionsRoute
+  '/company/': typeof CompanyIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +203,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/users'
+    | '/company/candidates'
+    | '/company/interviews'
+    | '/company/jobs'
+    | '/company/messages'
+    | '/company/proposals'
+    | '/company/settings'
+    | '/company/submissions'
+    | '/company/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +224,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/users'
+    | '/company/candidates'
+    | '/company/interviews'
+    | '/company/jobs'
+    | '/company/messages'
+    | '/company/proposals'
+    | '/company/settings'
+    | '/company/submissions'
+    | '/company'
   id:
     | '__root__'
     | '/'
@@ -157,6 +245,14 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/users'
+    | '/company/candidates'
+    | '/company/interviews'
+    | '/company/jobs'
+    | '/company/messages'
+    | '/company/proposals'
+    | '/company/settings'
+    | '/company/submissions'
+    | '/company/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +267,14 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TasksRoute: typeof TasksRoute
   UsersRoute: typeof UsersRoute
+  CompanyCandidatesRoute: typeof CompanyCandidatesRoute
+  CompanyInterviewsRoute: typeof CompanyInterviewsRoute
+  CompanyJobsRoute: typeof CompanyJobsRoute
+  CompanyMessagesRoute: typeof CompanyMessagesRoute
+  CompanyProposalsRoute: typeof CompanyProposalsRoute
+  CompanySettingsRoute: typeof CompanySettingsRoute
+  CompanySubmissionsRoute: typeof CompanySubmissionsRoute
+  CompanyIndexRoute: typeof CompanyIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +356,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/company/': {
+      id: '/company/'
+      path: '/company'
+      fullPath: '/company/'
+      preLoaderRoute: typeof CompanyIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/submissions': {
+      id: '/company/submissions'
+      path: '/company/submissions'
+      fullPath: '/company/submissions'
+      preLoaderRoute: typeof CompanySubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/settings': {
+      id: '/company/settings'
+      path: '/company/settings'
+      fullPath: '/company/settings'
+      preLoaderRoute: typeof CompanySettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/proposals': {
+      id: '/company/proposals'
+      path: '/company/proposals'
+      fullPath: '/company/proposals'
+      preLoaderRoute: typeof CompanyProposalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/messages': {
+      id: '/company/messages'
+      path: '/company/messages'
+      fullPath: '/company/messages'
+      preLoaderRoute: typeof CompanyMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/jobs': {
+      id: '/company/jobs'
+      path: '/company/jobs'
+      fullPath: '/company/jobs'
+      preLoaderRoute: typeof CompanyJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/interviews': {
+      id: '/company/interviews'
+      path: '/company/interviews'
+      fullPath: '/company/interviews'
+      preLoaderRoute: typeof CompanyInterviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company/candidates': {
+      id: '/company/candidates'
+      path: '/company/candidates'
+      fullPath: '/company/candidates'
+      preLoaderRoute: typeof CompanyCandidatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -267,6 +427,14 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TasksRoute: TasksRoute,
   UsersRoute: UsersRoute,
+  CompanyCandidatesRoute: CompanyCandidatesRoute,
+  CompanyInterviewsRoute: CompanyInterviewsRoute,
+  CompanyJobsRoute: CompanyJobsRoute,
+  CompanyMessagesRoute: CompanyMessagesRoute,
+  CompanyProposalsRoute: CompanyProposalsRoute,
+  CompanySettingsRoute: CompanySettingsRoute,
+  CompanySubmissionsRoute: CompanySubmissionsRoute,
+  CompanyIndexRoute: CompanyIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
