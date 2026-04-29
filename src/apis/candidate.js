@@ -7,12 +7,12 @@ export const candidateApi = {
   },
 
   getApplications: async (params = {}) => {
-    const { data } = await api.get("/candidate/applications", { params });
+    const { data } = await api.get("/applications", { params });
     return data;
   },
 
   getApplicationById: async (id) => {
-    const { data } = await api.get(`/candidate/applications/${id}`);
+    const { data } = await api.get(`/applications/${id}`);
     return data;
   },
 
@@ -113,6 +113,28 @@ export const messageApi = {
       `/messages/${conversationId}/send`,
       payload,
     );
+    return data;
+  },
+};
+
+export const userSettingsApi = {
+  getProfile: async () => {
+    const { data } = await api.get("/user/profile");
+    return data;
+  },
+
+  updateProfile: async (payload) => {
+    const { data } = await api.patch("/user/profile", payload);
+    return data;
+  },
+
+  updatePassword: async (payload) => {
+    const { data } = await api.patch("/user/password", payload);
+    return data;
+  },
+
+  updateSettings: async (payload) => {
+    const { data } = await api.patch("/user/settings", payload);
     return data;
   },
 };

@@ -10,6 +10,11 @@ const __dirname = path.dirname(__filename);
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    host: "0.0.0.0",
+    port: 5174,
+    strictPort: true,
+  },
   plugins: [
     tanstackRouter({ target: "react", autoCodeSplitting: false }),
     react(),
