@@ -30,13 +30,21 @@ export function loginApi({ email, password }) {
 export function registerApi({ name, email, password }) {
   return request("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ full_name: name, email, password }),
   });
 }
 
 export function logoutApi(accessToken) {
   return request("/auth/logout", {
     method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export function getMeApi(accessToken) {
+  return request("/auth/me", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
