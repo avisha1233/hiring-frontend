@@ -1,11 +1,11 @@
-/* eslint-disable react-refresh/only-export-components */
+﻿/* eslint-disable react-refresh/only-export-components */
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { CandidateLayout } from "@/components/candidate/CandidateLayout";
-import { candidateApi } from "@/apis/candidate";
+import { candidateApi, jobsApi } from "@/apis/candidate";
 
 export const Route = createFileRoute("/tasks")({
   component: TasksPage,
@@ -26,6 +26,13 @@ function TasksPage() {
   const [newTask, setNewTask] = useState("");
   const [dueDate, setDueDate] = useState("");
 
+  const jobsQuery = useQuery({
+    queryKey: ["candidate", "tasks", "job-source"],
+    queryFn: () => jobsApi.getJobs({ page: 1, limit: 1 }),
+    retry: false,
+    staleTime: 30_000,
+  });
+
   const tasksQuery = useQuery({
     queryKey: ["candidate", "tasks", status],
     queryFn: () => candidateApi.getTasks({ status }),
@@ -34,8 +41,18 @@ function TasksPage() {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: () =>
-      candidateApi.createTask({ title: newTask.trim(), dueDate }),
+    mutationFn: async () => {
+      const jobId = jobsQuery.data?.data?.[0]?.id;
+      if (!jobId) {
+        throw new Error("No jobs are available to attach this task to.");
+      }
+
+      return candidateApi.createTask({
+        title: newTask.trim(),
+        dueDate,
+        job_id: jobId,
+      });
+    },
     onSuccess: () => {
       setNewTask("");
       setDueDate("");
@@ -53,10 +70,8 @@ function TasksPage() {
     },
   });
 
-  const rows = useMemo(
-    () => tasksQuery.data?.data || [],
-    [tasksQuery.data?.data],
-  );
+  const rows = useMemo(() => tasksQuery.data?.data || [], [tasksQuery.data?.data]);
+  const canCreateTask = Boolean(newTask.trim()) && !jobsQuery.isPending;
 
   return (
     <CandidateLayout title="Tasks" subtitle="Track your pending tasks">
@@ -90,13 +105,11 @@ function TasksPage() {
             />
             <button
               type="button"
-              onClick={() => {
-                if (!newTask.trim()) return;
-                createTaskMutation.mutate();
-              }}
-              className="rounded-lg bg-(--dash-accent) px-4 py-2 text-sm font-semibold text-white"
+              disabled={!canCreateTask || createTaskMutation.isPending}
+              onClick={() => createTaskMutation.mutate()}
+              className="rounded-lg bg-(--dash-accent) px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Add Task
+              {createTaskMutation.isPending ? "Adding..." : "Add Task"}
             </button>
           </div>
         </div>
@@ -121,28 +134,17 @@ function TasksPage() {
                   type="checkbox"
                   checked={task.status === "completed"}
                   onChange={(event) => {
-                    const nextStatus = event.target.checked
-                      ? "completed"
-                      : "todo";
+                    const nextStatus = event.target.checked ? "completed" : "todo";
                     updateTaskMutation.mutate({ id: task.id, nextStatus });
                   }}
                 />
-                <p className="m-0 flex-1 text-sm text-(--dash-text)">
-                  {task.title}
-                </p>
-                <span className="rounded-md border border-(--dash-border) bg-white px-2 py-1 text-xs text-(--dash-muted)">
-                  {task.status}
-                </span>
-                <span className="text-xs text-(--dash-muted)">
-                  Due {toDate(task.deadline)}
-                </span>
+                <p className="m-0 flex-1 text-sm text-(--dash-text)">{task.title}</p>
+                <span className="rounded-md border border-(--dash-border) bg-white px-2 py-1 text-xs text-(--dash-muted)">{task.status}</span>
+                <span className="text-xs text-(--dash-muted)">Due {toDate(task.deadline)}</span>
                 <select
                   value={task.status}
                   onChange={(event) =>
-                    updateTaskMutation.mutate({
-                      id: task.id,
-                      nextStatus: event.target.value,
-                    })
+                    updateTaskMutation.mutate({ id: task.id, nextStatus: event.target.value })
                   }
                   className="rounded-md border border-(--dash-border) bg-white px-2 py-1 text-xs text-(--dash-muted)"
                 >

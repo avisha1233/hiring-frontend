@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+﻿/* eslint-disable react-refresh/only-export-components */
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -69,6 +69,8 @@ function CandidateDashboardPage() {
     queryFn: candidateApi.getStats,
     retry: false,
     staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const applicationsQuery = useQuery({
@@ -76,6 +78,8 @@ function CandidateDashboardPage() {
     queryFn: () => candidateApi.getApplications({ limit: 3, sort: "recent" }),
     retry: false,
     staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const interviewsQuery = useQuery({
@@ -83,6 +87,8 @@ function CandidateDashboardPage() {
     queryFn: () => candidateApi.getInterviews({ upcoming: true, limit: 2 }),
     retry: false,
     staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const stats = statsQuery.data || {
@@ -245,3 +251,4 @@ function CandidateDashboardPage() {
     </CandidateLayout>
   );
 }
+
