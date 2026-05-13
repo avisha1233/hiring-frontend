@@ -27,8 +27,11 @@ export function loginApi({ email, password }) {
   });
 }
 
-export function registerApi({ name, email, password }) {
-  return request("/auth/register", {
+export function registerApi({ role, name, email, password }) {
+  const path =
+    role === "company" ? "/auth/signup/company" : "/auth/signup/candidate";
+
+  return request(path, {
     method: "POST",
     body: JSON.stringify({ full_name: name, email, password }),
   });
