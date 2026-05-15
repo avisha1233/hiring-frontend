@@ -5,6 +5,7 @@
   Outlet,
 } from "react-router-dom";
 import Login from "./pages/Login";
+import AdminLogin from "./pages/AdminLogin";
 import AdminLayout from "./components/layout/admin/AdminLayout";
 import Overview from "./pages/admin/Overview";
 import Users from "./pages/admin/Users";
@@ -22,6 +23,8 @@ import Messages from "./pages/admin/Messages";
 import Reports from "./pages/admin/Reports";
 import Settings from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
+import CandidateLayout from "./components/layout/CandidateLayout";
+import CandidateOverview from "./pages/candidate/Overview";
 import { getAuthUser } from "./lib/auth";
 
 function HomeRedirect() {
@@ -35,6 +38,14 @@ function HomeRedirect() {
 function RequireAdminRoute() {
   const user = getAuthUser();
   if (user?.role !== "admin") {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
+}
+
+function RequireCandidateRoute() {
+  const user = getAuthUser();
+  if (user?.role !== "candidate") {
     return <Navigate to="/login" replace />;
   }
   return <Outlet />;
@@ -56,6 +67,10 @@ const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginRedirect />,
+  },
+  {
+    path: "/admin/login",
+    element: <AdminLogin />,
   },
   {
     path: "/admin",
@@ -127,6 +142,25 @@ const router = createBrowserRouter([
           {
             path: "settings",
             element: <Settings />,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    path: "/candidate",
+    element: <RequireCandidateRoute />,
+    children: [
+      {
+        element: <CandidateLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/candidate/dashboard" replace />,
+          },
+          {
+            path: "dashboard",
+            element: <CandidateOverview />,
           },
         ],
       },

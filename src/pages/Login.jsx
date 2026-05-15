@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { loginApi, registerApi } from "../apis/auth";
 import { getAuthUser, saveAuthSession } from "../lib/auth";
 
@@ -151,6 +151,16 @@ export default function Login() {
             ? "Don't have an account? Register"
             : "Already have an account? Sign in"}
         </button>
+
+        <div className="mt-4 text-center text-sm text-gray-600">
+          <span>Admin user?</span>{" "}
+          <Link
+            to="/admin/login"
+            className="font-semibold text-orange-600 underline-offset-4 hover:underline"
+          >
+            Sign in here
+          </Link>
+        </div>
       </section>
     </main>
   );
