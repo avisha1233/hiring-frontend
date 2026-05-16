@@ -62,7 +62,8 @@ export function getStatusColor(status) {
     return "bg-green-100 text-green-700";
   if (["interviewing", "scheduled", "pending"].includes(s))
     return "bg-amber-100 text-amber-700";
-  if (["applied"].includes(s)) return "bg-yellow-100 text-yellow-700";
+  if (["applied"].includes(s)) return "bg-orange-100 text-orange-700";
+  if (["offered", "offer"].includes(s)) return "bg-green-100 text-green-700";
   if (["rejected", "blocked", "closed", "cancelled", "failed"].includes(s))
     return "bg-red-100 text-red-600";
   if (["draft", "inactive"].includes(s)) return "bg-gray-100 text-gray-500";

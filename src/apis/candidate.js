@@ -7,12 +7,12 @@ export const candidateApi = {
   },
 
   getApplications: async (params = {}) => {
-    const { data } = await api.get("/applications", { params });
+    const { data } = await api.get("/candidate/applications", { params });
     return data;
   },
 
   getApplicationById: async (id) => {
-    const { data } = await api.get(`/applications/${id}`);
+    const { data } = await api.get(`/candidate/applications/${id}`);
     return data;
   },
 
@@ -76,6 +76,11 @@ export const candidateApi = {
 
   markAllNotificationsRead: async () => {
     const { data } = await api.patch("/candidate/notifications/mark-all-read");
+    return data;
+  },
+
+  applyToJob: async (jobId) => {
+    const { data } = await api.post("/applications", { job_id: jobId });
     return data;
   },
 };

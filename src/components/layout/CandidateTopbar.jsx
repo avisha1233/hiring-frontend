@@ -1,5 +1,5 @@
 import { Bell, Settings, LogOut, User } from "lucide-react";
-import Avatar from "../../shared/Avatar";
+import Avatar from "../shared/Avatar";
 import { clearAuthSession } from "@/lib/auth";
 
 export default function CandidateTopbar({ onLogout }) {

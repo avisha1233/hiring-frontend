@@ -25,13 +25,22 @@ import Settings from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
 import CandidateLayout from "./components/layout/CandidateLayout";
 import CandidateOverview from "./pages/candidate/Overview";
+import MyApplications from "./pages/candidate/MyApplications";
+import CandidateMessages from "./pages/candidate/Messages";
+
+import Profile from "./pages/candidate/Profile";
 import { getAuthUser } from "./lib/auth";
+import BrowseJobs from "./pages/candidate/BrowseJobs";
 
 function HomeRedirect() {
   const user = getAuthUser();
   if (user?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }
+  if (user?.role === "candidate") {
+    return <Navigate to="/candidate/dashboard" replace />;
+  }
+
   return <Navigate to="/login" replace />;
 }
 
@@ -161,6 +170,24 @@ const router = createBrowserRouter([
           {
             path: "dashboard",
             element: <CandidateOverview />,
+          },
+
+          {
+            path: "jobs",
+            element: <BrowseJobs />,
+          },
+          {
+            path: "applications",
+            element: <MyApplications />,
+          },
+          {
+            path: "messages",
+            element: <CandidateMessages />,
+          },
+
+          {
+            path: "profile",
+            element: <Profile />,
           },
         ],
       },

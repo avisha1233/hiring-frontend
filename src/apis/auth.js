@@ -24,7 +24,7 @@ export function loginApi({ email, password }) {
   return request("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
-  });
+  }).then((res) => res?.data || res);
 }
 
 export function registerApi({ role, name, email, password }) {
@@ -34,7 +34,7 @@ export function registerApi({ role, name, email, password }) {
   return request(path, {
     method: "POST",
     body: JSON.stringify({ full_name: name, email, password }),
-  });
+  }).then((res) => res?.data || res);
 }
 
 export function logoutApi(accessToken) {
@@ -43,7 +43,7 @@ export function logoutApi(accessToken) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-  });
+  }).then((res) => res?.data || res);
 }
 
 export function getMeApi(accessToken) {
@@ -51,5 +51,5 @@ export function getMeApi(accessToken) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
-  });
+  }).then((res) => res?.data || res);
 }
