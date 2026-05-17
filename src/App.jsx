@@ -25,6 +25,7 @@ import Settings from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
 import Home from "./pages/Home";
 import CompanyLayout from "./components/layout/company/CompanyLayout";
+import CompanyOverview from "./pages/company/Overview";
 import CandidateLayout from "./components/layout/CandidateLayout";
 import CandidateOverview from "./pages/candidate/Overview";
 import MyApplications from "./pages/candidate/MyApplications";
@@ -37,9 +38,17 @@ import BrowseJobs from "./pages/candidate/BrowseJobs";
 
 function HomeRedirect() {
   const user = getAuthUser();
+
+  if (!user) return <Navigate to="/home" replace />;
+
   if (user?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }
+
+   if (user?.role === "company") {
+    return <Navigate to="/company/dashboard" replace />;
+  }
+
   if (user?.role === "candidate") {
     return <Navigate to="/candidate/dashboard" replace />;
   }
@@ -49,6 +58,10 @@ function HomeRedirect() {
 
 function RequireAdminRoute() {
   const user = getAuthUser();
+
+
+  if (!user) return <Navigate to="/login" replace />;
+
   if (user?.role !== "admin") {
     return <Navigate to="/login" replace />;
   }
@@ -58,6 +71,8 @@ function RequireAdminRoute() {
 function RequireCompanyRoute() {
   const user = getAuthUser();
 
+  if (!user) return <Navigate to="/login" replace />;
+  
   if (user?.role !== "company") {
     return <Navigate to="/login" replace />;
   }
@@ -67,6 +82,7 @@ function RequireCompanyRoute() {
 
 function RequireCandidateRoute() {
   const user = getAuthUser();
+  if (!user) return <Navigate to="/login" replace />;
   if (user?.role !== "candidate") {
     return <Navigate to="/login" replace />;
   }
