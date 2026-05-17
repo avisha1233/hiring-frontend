@@ -23,6 +23,8 @@ import Messages from "./pages/admin/Messages";
 import Reports from "./pages/admin/Reports";
 import Settings from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
+import Home from "./pages/Home";
+import CompanyLayout from "./components/layout/company/CompanyLayout";
 import CandidateLayout from "./components/layout/CandidateLayout";
 import CandidateOverview from "./pages/candidate/Overview";
 import MyApplications from "./pages/candidate/MyApplications";
@@ -31,6 +33,7 @@ import CandidateMessages from "./pages/candidate/Messages";
 import Profile from "./pages/candidate/Profile";
 import { getAuthUser } from "./lib/auth";
 import BrowseJobs from "./pages/candidate/BrowseJobs";
+
 
 function HomeRedirect() {
   const user = getAuthUser();
@@ -49,6 +52,16 @@ function RequireAdminRoute() {
   if (user?.role !== "admin") {
     return <Navigate to="/login" replace />;
   }
+  return <Outlet />;
+}
+
+function RequireCompanyRoute() {
+  const user = getAuthUser();
+
+  if (user?.role !== "company") {
+    return <Navigate to="/login" replace />;
+  }
+
   return <Outlet />;
 }
 
@@ -156,6 +169,35 @@ const router = createBrowserRouter([
       },
     ],
   },
+  {
+    path: "/home",
+    element: <Home />,
+  },
+
+   {
+    path: "/company",
+    element: <RequireCompanyRoute />,
+    children: [
+      {
+        element: <CompanyLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/company/dashboard" replace />,
+          },
+          {
+            path: "dashboard",
+            element: <CompanyOverview />,
+          },
+        ],
+      },
+      
+    ],
+  },
+  
+  
+          
+
   {
     path: "/candidate",
     element: <RequireCandidateRoute />,
