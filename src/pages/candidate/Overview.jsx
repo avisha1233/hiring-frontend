@@ -23,6 +23,13 @@ export default function Overview() {
   const user = getAuthUser();
   const userId = user?.id;
 
+  const toArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.submissions)) return value.submissions;
+    if (Array.isArray(value?.data)) return value.data;
+    return [];
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -38,10 +45,10 @@ export default function Overview() {
 
         if (!mounted) return;
 
-        setApplications(appsRes.data || appsRes || []);
-        setInterviews(interviewsRes.data || interviewsRes || []);
-        setTasks(tasksRes.data || tasksRes || []);
-        setSubmissions(subsRes.data || subsRes || []);
+        setApplications(toArray(appsRes.data || appsRes));
+        setInterviews(toArray(interviewsRes.data || interviewsRes));
+        setTasks(toArray(tasksRes.data || tasksRes));
+        setSubmissions(toArray(subsRes.data || subsRes));
       } catch (err) {
         console.error(err);
       } finally {
