@@ -26,6 +26,13 @@ import NotFound from "./pages/NotFound";
 import Home from "./pages/Home";
 import CompanyLayout from "./components/layout/company/CompanyLayout";
 import CompanyOverview from "./pages/company/Overview";
+import CompanyApplications from "./pages/company/Applications";
+import CompanyCandidates from "./pages/company/Candidates";
+import CompanyTasks from "./pages/company/Tasks";
+import CompanyInterviews from "./pages/company/Interviews";
+import CompanySubmissions from "./pages/company/Submissions";
+import CompanyMessages from "./pages/company/Messages";
+import CompanyProfile from "./pages/company/Profile";
 import CandidateLayout from "./components/layout/CandidateLayout";
 import CandidateOverview from "./pages/candidate/Overview";
 import MyApplications from "./pages/candidate/MyApplications";
@@ -218,6 +225,41 @@ const router = createBrowserRouter([
             path: "dashboard",
             element: <CompanyOverview />,
           },
+
+          {
+            path:"jobs",
+            element: <Navigate to="/company/jobs" replace />,
+          },
+          {
+            path: "applications",
+            element: <CompanyApplications />,
+          },
+          {
+            path: "candidates",
+            element: <CompanyCandidates />,
+          },
+          {
+            path: "tasks",
+            element: <CompanyTasks />,
+          },
+          {
+            path: "interviews",
+            element: <CompanyInterviews />,
+          },
+          {
+            path: "submissions",
+            element: <CompanySubmissions />,
+          },
+          {
+            path: "messages",
+            element: <CompanyMessages />,
+          },
+          {
+            path: "profile",
+            element: <CompanyProfile />,
+          },
+
+
         ],
       },
     ],
