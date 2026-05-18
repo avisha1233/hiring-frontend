@@ -275,4 +275,6 @@ export default function Overview() {
 
     </div>
   );
-}
+};
+
+export default CompanyOverview;

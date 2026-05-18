@@ -1,8 +1,35 @@
 import { Bell, Settings, LogOut, Search } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
-export default function CompanyTopbar({ title = "", userName = "", userEmail = "", userInitials = "TC", hasNotification = false, onLogout }) {
+// Map route paths to page titles — extend as you add pages
+const TITLE_MAP = {
+  "/company/overview": "Overview",
+  "/company/jobs": "Job Postings",
+  "/company/applications": "Applications",
+  "/company/candidates": "Candidates",
+  "/company/tasks": "Tasks",
+  "/company/interviews": "Interviews",
+  "/company/submissions": "Submissions",
+  "/company/messages": "Messages",
+  "/company/profile": "Company Profile",
+};
+
+export default function CompanyTopbar({
+  userName = "",
+  userEmail = "",
+  userInitials = "TC",
+  hasNotification = false,
+  onLogout,
+}) {
+  const { pathname } = useLocation();
+  const title = TITLE_MAP[pathname] ?? "Company Portal";
+
   return (
-    <header className="fixed right-0 top-0 left-80 border-b border-orange-100 bg-white px-6 py-4 shadow-sm">
+    /*
+      FIXED: was "left-80"  (320px) — sidebar is 210px wide
+      Now:        left-[210px] matches CompanySidebar inline style width: "210px"
+    */
+    <header className="fixed right-0 top-0 left-[210px] border-b border-orange-100 bg-white px-6 py-3 shadow-sm z-20">
       <div className="flex items-center justify-between">
         {/* Title */}
         <div>
@@ -19,7 +46,7 @@ export default function CompanyTopbar({ title = "", userName = "", userEmail = "
 
           {/* Bell */}
           <button className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
-            <Bell size={20} />
+            <Bell size={18} />
             {hasNotification && (
               <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500" />
             )}
@@ -27,7 +54,7 @@ export default function CompanyTopbar({ title = "", userName = "", userEmail = "
 
           {/* Settings */}
           <button className="rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
-            <Settings size={20} />
+            <Settings size={18} />
           </button>
 
           <div className="h-8 w-px bg-orange-100" />
@@ -35,8 +62,12 @@ export default function CompanyTopbar({ title = "", userName = "", userEmail = "
           {/* User info + avatar */}
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{userName || "Company Admin"}</p>
-              <p className="text-xs text-gray-500">{userEmail || "admin@hireiq.com"}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {userName || "Company Admin"}
+              </p>
+              <p className="text-xs text-gray-500">
+                {userEmail || "admin@hireiq.com"}
+              </p>
             </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-xs font-semibold text-orange-600">
               {userInitials}
@@ -49,7 +80,7 @@ export default function CompanyTopbar({ title = "", userName = "", userEmail = "
             className="rounded-lg bg-orange-50 p-2 text-orange-600 hover:bg-orange-100"
             title="Logout"
           >
-            <LogOut size={20} />
+            <LogOut size={18} />
           </button>
         </div>
       </div>
