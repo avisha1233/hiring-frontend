@@ -116,7 +116,7 @@ function Navbar() {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
           <Zap className="h-4 w-4" />
         </div>
-        <span className="text-sm font-semibold text-gray-900">HireIQ</span>
+        <span className="text-sm font-semibold text-gray-900">Smart Hiring </span>
       </div>
 
       {/* Nav links */}
@@ -147,7 +147,7 @@ function Navbar() {
           onClick={() => navigate("/register")}
           className="bg-orange-500 text-white hover:bg-orange-600"
         >
-          Get started free
+          Get started 
         </Button>
       </div>
     </nav>
@@ -177,7 +177,7 @@ function Hero() {
 
       {/* Subtitle */}
       <p className="mx-auto mb-8 max-w-lg text-sm leading-relaxed text-gray-500">
-        HireIQ connects companies with the right candidates through skill-based
+        Smart Hiring connects companies with the right candidates through skill-based
         profiles, structured hiring workflows, task assessments and seamless
         communication — all in one platform.
       </p>
@@ -347,7 +347,7 @@ function Footer() {
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500 text-white">
           <Zap className="h-3.5 w-3.5" />
         </div>
-        <span className="text-sm font-semibold text-gray-900">HireIQ</span>
+        <span className="text-sm font-semibold text-gray-900">Smart Hiring</span>
       </div>
 
       {/* Links */}
@@ -364,7 +364,7 @@ function Footer() {
 
       {/* Copyright */}
       <span className="text-xs text-gray-400">
-        © {new Date().getFullYear()} HireIQ. All rights reserved.
+        © {new Date().getFullYear()} Smart Hiring. All rights reserved.
       </span>
     </footer>
   );

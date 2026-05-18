@@ -35,7 +35,6 @@ import Profile from "./pages/candidate/Profile";
 import { getAuthUser } from "./lib/auth";
 import BrowseJobs from "./pages/candidate/BrowseJobs";
 
-
 function HomeRedirect() {
   const user = getAuthUser();
 
@@ -45,7 +44,7 @@ function HomeRedirect() {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-   if (user?.role === "company") {
+  if (user?.role === "company") {
     return <Navigate to="/company/dashboard" replace />;
   }
 
@@ -59,11 +58,10 @@ function HomeRedirect() {
 function RequireAdminRoute() {
   const user = getAuthUser();
 
-
   if (!user) return <Navigate to="/login" replace />;
 
   if (user?.role !== "admin") {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/admin/login" replace />;
   }
   return <Outlet />;
 }
@@ -72,7 +70,7 @@ function RequireCompanyRoute() {
   const user = getAuthUser();
 
   if (!user) return <Navigate to="/login" replace />;
-  
+
   if (user?.role !== "company") {
     return <Navigate to="/login" replace />;
   }
@@ -190,7 +188,22 @@ const router = createBrowserRouter([
     element: <Home />,
   },
 
-   {
+  {
+    path: "/register",
+    element: <Login />,
+  },
+
+  {
+    path: "/register/company",
+    element: <Login />,
+  },
+
+  {
+    path: "/register/candidate",
+    element: <Login />,
+  },
+
+  {
     path: "/company",
     element: <RequireCompanyRoute />,
     children: [
@@ -207,12 +220,8 @@ const router = createBrowserRouter([
           },
         ],
       },
-      
     ],
   },
-  
-  
-          
 
   {
     path: "/candidate",

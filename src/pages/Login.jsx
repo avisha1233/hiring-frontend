@@ -55,9 +55,16 @@ export default function Login() {
         user: payload?.user,
       });
 
-      navigate(payload?.user?.role === "admin" ? "/admin/dashboard" : "/", {
-        replace: true,
-      });
+      const role = payload?.user?.role;
+      
+      if (role === "admin") navigate("/admin/dashboard", { replace: true });
+      else if (role === "company")
+        navigate("/company/dashboard", { replace: true });
+      else if (role === "candidate")
+        navigate("/candidate/dashboard", { replace: true });
+      else navigate("/login", { replace: true });
+
+
     } catch (err) {
       setError(err?.message || "Authentication failed.");
     } finally {
