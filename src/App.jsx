@@ -28,9 +28,9 @@ import CompanyLayout from "./components/layout/company/CompanyLayout";
 import CompanyOverview from "./pages/company/Overview";
 import CompanyApplications from "./pages/company/Applications";
 import CompanyCandidates from "./pages/company/Candidates";
-import CompanyTasks from "./pages/company/Tasks";
+
 import CompanyInterviews from "./pages/company/Interviews";
-import CompanySubmissions from "./pages/company/Submissions";
+
 import CompanyMessages from "./pages/company/Messages";
 import CompanyProfile from "./pages/company/Profile";
 import CandidateLayout from "./components/layout/CandidateLayout";
@@ -196,7 +196,21 @@ const router = createBrowserRouter(
       element: <Home />,
     },
 
-<<<<<<< HEAD
+    {
+      path: "/register",
+      element: <Login />,
+    },
+
+    {
+      path: "/register/company",
+      element: <Login />,
+    },
+
+    {
+      path: "/register/candidate",
+      element: <Login />,
+    },
+
     {
       path: "/company",
       element: <RequireCompanyRoute />,
@@ -212,81 +226,30 @@ const router = createBrowserRouter(
               path: "dashboard",
               element: <CompanyOverview />,
             },
+            {
+  path: "applications",
+  element: <CompanyApplications />,
+},
+{
+  path: "candidates",
+  element: <CompanyCandidates />,
+},
+{
+  path: "interviews",
+  element: <CompanyInterviews />,
+},
+{
+  path: "messages",
+  element: <CompanyMessages />,
+},
+{
+  path: "profile",
+  element: <CompanyProfile />,
+},
           ],
         },
       ],
     },
-=======
-  {
-    path: "/register",
-    element: <Login />,
-  },
-
-  {
-    path: "/register/company",
-    element: <Login />,
-  },
-
-  {
-    path: "/register/candidate",
-    element: <Login />,
-  },
-
-  {
-    path: "/company",
-    element: <RequireCompanyRoute />,
-    children: [
-      {
-        element: <CompanyLayout />,
-        children: [
-          {
-            index: true,
-            element: <Navigate to="/company/dashboard" replace />,
-          },
-          {
-            path: "dashboard",
-            element: <CompanyOverview />,
-          },
-
-          {
-            path:"jobs",
-            element: <Navigate to="/company/jobs" replace />,
-          },
-          {
-            path: "applications",
-            element: <CompanyApplications />,
-          },
-          {
-            path: "candidates",
-            element: <CompanyCandidates />,
-          },
-          {
-            path: "tasks",
-            element: <CompanyTasks />,
-          },
-          {
-            path: "interviews",
-            element: <CompanyInterviews />,
-          },
-          {
-            path: "submissions",
-            element: <CompanySubmissions />,
-          },
-          {
-            path: "messages",
-            element: <CompanyMessages />,
-          },
-          {
-            path: "profile",
-            element: <CompanyProfile />,
-          },
-
-
-        ],
-      },
-    ],
-  },
->>>>>>> cd4b66d73995af089e087abcfd602ae124cb9b40
 
     {
       path: "/candidate",
