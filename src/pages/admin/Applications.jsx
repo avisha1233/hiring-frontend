@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Trash2, X, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
 import SearchInput from "../../components/shared/SearchInput";
 import FilterTabs from "../../components/shared/FilterTabs";
@@ -28,6 +28,29 @@ const STATUSES = [
   { value: "shortlisted", label: "Shortlisted" },
 ];
 
+function getStatusMeta(status) {
+  const normalized = String(status || "").toLowerCase();
+  const meta = {
+    pending: {
+      label: "Pending",
+      className: "border border-orange-200 bg-orange-50 text-orange-700",
+    },
+    accepted: {
+      label: "Accepted",
+      className: "border border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+    rejected: {
+      label: "Rejected",
+      className: "border border-red-200 bg-red-50 text-red-700",
+    },
+    shortlisted: {
+      label: "Shortlisted",
+      className: "border border-emerald-200 bg-emerald-50 text-emerald-700",
+    },
+  };
+  return meta[normalized] || meta.pending;
+}
+
 export default function Applications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +64,11 @@ export default function Applications() {
     application: null,
   });
   const [statusUpdating, setStatusUpdating] = useState(null);
+  const [selectedApplicationId, setSelectedApplicationId] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(null);
+  const [selectedApplicationDetail, setSelectedApplicationDetail] =
+    useState(null);
 
   const fetchApplications = async () => {
     try {
@@ -63,6 +91,27 @@ export default function Applications() {
   useEffect(() => {
     fetchApplications();
   }, [debouncedSearch, statusFilter, page]);
+
+  const handleViewDetails = async (application) => {
+    try {
+      setDetailError(null);
+      setDetailLoading(true);
+      setSelectedApplicationId(application.id);
+      const res = await applicationService.getApplicationById(application.id);
+      setSelectedApplicationDetail(res.data || res);
+    } catch (err) {
+      setDetailError(err.message || "Failed to load application details");
+      toast.error("Failed to load application details");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedApplicationId(null);
+    setSelectedApplicationDetail(null);
+    setDetailError(null);
+  };
 
   const handleStatusChange = async (application, newStatus) => {
     try {
@@ -198,14 +247,18 @@ export default function Applications() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <button className="text-gray-400 hover:text-orange-600">
+                      <button
+                        onClick={() => handleViewDetails(app)}
+                        className="text-gray-400 hover:text-orange-600 transition"
+                        title="View details"
+                      >
                         <Eye size={18} />
                       </button>
                       <button
                         onClick={() =>
                           setDeleteConfirm({ open: true, application: app })
                         }
-                        className="text-gray-400 hover:text-red-600"
+                        className="text-gray-400 hover:text-red-600 transition"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -226,6 +279,148 @@ export default function Applications() {
           total={applications.length * 2}
           onPageChange={goToPage}
         />
+      )}
+
+      {/* Application Details Drawer */}
+      {selectedApplicationId && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50">
+          <div className="w-full animate-in slide-in-from-right-full bg-white shadow-xl sm:max-w-md">
+            {/* Header */}
+            <div className="border-b border-gray-200 p-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Application Details
+              </h2>
+              <button
+                onClick={handleCloseDetail}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-y-auto max-h-[calc(100vh-120px)] p-4">
+              {detailLoading ? (
+                <div className="space-y-4">
+                  <div className="h-6 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+                </div>
+              ) : detailError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {detailError}
+                </div>
+              ) : selectedApplicationDetail ? (
+                <div className="space-y-4">
+                  {/* Main Info */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      Job Position
+                    </h3>
+                    <p className="text-base font-medium text-gray-900">
+                      {selectedApplicationDetail.job_title ||
+                        selectedApplicationDetail.jobTitle ||
+                        "N/A"}
+                    </p>
+                  </div>
+
+                  {/* Candidate Info */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      Candidate
+                    </h3>
+                    <p className="font-medium text-gray-900">
+                      {selectedApplicationDetail.candidate_name || "N/A"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {selectedApplicationDetail.candidate_email || "N/A"}
+                    </p>
+                  </div>
+
+                  {/* Company */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      Company
+                    </h3>
+                    <p className="text-sm text-gray-700">
+                      {selectedApplicationDetail.company_name ||
+                        selectedApplicationDetail.companyName ||
+                        "N/A"}
+                    </p>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      Status
+                    </h3>
+                    <span
+                      className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${getStatusMeta(selectedApplicationDetail.status).className}`}
+                    >
+                      {getStatusMeta(selectedApplicationDetail.status).label}
+                    </span>
+                  </div>
+
+                  {/* Application ID */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      Application ID
+                    </h3>
+                    <p className="text-sm text-gray-700">
+                      {selectedApplicationDetail.id || "N/A"}
+                    </p>
+                  </div>
+
+                  {/* Dates */}
+                  <div className="pt-2 border-t border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      Dates
+                    </h3>
+                    <div className="space-y-2 text-xs text-gray-600">
+                      <div>
+                        <span className="font-medium">Applied:</span>{" "}
+                        {formatDate(selectedApplicationDetail.created_at) ||
+                          "N/A"}
+                      </div>
+                      <div>
+                        <span className="font-medium">Updated:</span>{" "}
+                        {formatDate(selectedApplicationDetail.updated_at) ||
+                          "N/A"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Fields */}
+                  {(selectedApplicationDetail.experience_required ||
+                    selectedApplicationDetail.salary_range) && (
+                    <div className="pt-2 border-t border-gray-200">
+                      {selectedApplicationDetail.experience_required && (
+                        <div className="mb-2">
+                          <h3 className="text-xs font-semibold text-gray-900 mb-1">
+                            Experience Required
+                          </h3>
+                          <p className="text-sm text-gray-700">
+                            {selectedApplicationDetail.experience_required}
+                          </p>
+                        </div>
+                      )}
+                      {selectedApplicationDetail.salary_range && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-gray-900 mb-1">
+                            Salary Range
+                          </h3>
+                          <p className="text-sm text-gray-700">
+                            {selectedApplicationDetail.salary_range}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modals */}

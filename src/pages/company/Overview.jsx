@@ -18,12 +18,12 @@ import {
 } from "lucide-react";
 
 export default function Overview() {
-  const [loading, setLoading]       = useState(true);
-  const [metrics, setMetrics]       = useState(null);
-  const [jobs, setJobs]             = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState(null);
+  const [jobs, setJobs] = useState([]);
   const [interviews, setInterviews] = useState([]);
-  const [funnel, setFunnel]         = useState([]);
-  const [weekly, setWeekly]         = useState([]);
+  const [funnel, setFunnel] = useState([]);
+  const [weekly, setWeekly] = useState([]);
 
   // normalise whatever shape the API returns into a plain array
   const toArray = (value) => {
@@ -69,14 +69,17 @@ export default function Overview() {
   }, []);
 
   // ── derived numbers — fall back to 0 if API returns nothing ──────────────
-  const activeJobs   = metrics?.active_jobs       ?? jobs.filter((j) => j.status === "open").length;
-  const totalApps    = metrics?.total_applications ?? 0;
-  const interviewing = metrics?.interviews         ?? interviews.length;
-  const hires        = metrics?.hires              ?? 0;
+  const activeJobs =
+    metrics?.active_jobs ?? jobs.filter((j) => j.status === "open").length;
+  const totalApps = metrics?.total_applications ?? 0;
+  const interviewing = metrics?.interviews ?? interviews.length;
+  const hires = metrics?.hires ?? 0;
 
   // upcoming interviews sorted soonest-first
   const upcomingInterviews = interviews
-    .filter((i) => i.status === "scheduled" || new Date(i.scheduled_at) > new Date())
+    .filter(
+      (i) => i.status === "scheduled" || new Date(i.scheduled_at) > new Date(),
+    )
     .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
   const nextInterview = upcomingInterviews[0];
@@ -100,14 +103,9 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-
       {/* ── 4 metric cards ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Active Jobs"
-          value={activeJobs}
-          icon={Briefcase}
-        />
+        <MetricCard title="Active Jobs" value={activeJobs} icon={Briefcase} />
         <MetricCard
           title="Total Applications"
           value={totalApps}
@@ -118,16 +116,11 @@ export default function Overview() {
           value={interviewing}
           icon={CalendarDays}
         />
-        <MetricCard
-          title="Hires"
-          value={hires}
-          icon={UserCheck}
-        />
+        <MetricCard title="Hires" value={hires} icon={UserCheck} />
       </div>
 
       {/* ── 3-column middle row ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-
         {/* hiring funnel */}
         <div className="rounded-xl border border-orange-100 bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-600">Hiring Funnel</h3>
@@ -136,7 +129,10 @@ export default function Overview() {
               <p className="text-sm text-gray-500">No data yet</p>
             )}
             {funnel.map((stage) => (
-              <div key={stage.stage || stage.status} className="flex items-center justify-between">
+              <div
+                key={stage.stage || stage.status}
+                className="flex items-center justify-between"
+              >
                 <div className="flex items-center gap-3">
                   <StatusBadge status={stage.stage || stage.status} />
                   <p className="text-sm text-gray-700 capitalize">
@@ -199,7 +195,8 @@ export default function Overview() {
                     {job.title}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {job.location || "—"} · {job.is_remote ? "Remote" : "On-site"}
+                    {job.location || "—"} ·{" "}
+                    {job.is_remote ? "Remote" : "On-site"}
                   </p>
                 </div>
                 <div className="text-orange-600">
@@ -209,14 +206,12 @@ export default function Overview() {
             ))}
           </div>
         </div>
-
       </div>
 
       {/* ── weekly applications + recent interviews activity ── */}
       <div className="rounded-xl border border-orange-100 bg-white p-6 shadow-sm">
         <h3 className="text-sm font-medium text-gray-600">Recent Activity</h3>
         <div className="mt-4 space-y-3">
-
           {weekly.length === 0 && interviews.length === 0 && (
             <EmptyState
               title="No recent activity"
@@ -269,12 +264,8 @@ export default function Overview() {
               <CalendarDays className="text-orange-600" size={18} />
             </div>
           ))}
-
         </div>
       </div>
-
     </div>
   );
-};
-
-export default CompanyOverview;
+}

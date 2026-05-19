@@ -34,12 +34,20 @@ export default function MyApplications() {
     setError(null);
     try {
       const params = {
-        candidate_id: userId,
         status: statusFilter !== "all" ? statusFilter : undefined,
       };
-      const res = await candidateApi.getApplications(params);
-      const data = res?.data?.data || res?.data || res || [];
-      setApplications(data || []);
+      const response = await candidateApi.getApplications(params);
+
+      // Debug: verify payload shape and records returned by API.
+      console.log("[MyApplications] getApplications response:", response);
+
+      const data = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      setApplications(data);
     } catch (err) {
       setError(err.message || "Failed to load applications");
     } finally {
@@ -50,6 +58,24 @@ export default function MyApplications() {
   useEffect(() => {
     if (!userId) return;
     fetchApplications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, statusFilter]);
+
+  useEffect(() => {
+    const onApplicationCreated = () => {
+      fetchApplications();
+    };
+
+    window.addEventListener(
+      "candidate:application-created",
+      onApplicationCreated,
+    );
+    return () => {
+      window.removeEventListener(
+        "candidate:application-created",
+        onApplicationCreated,
+      );
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, statusFilter]);
 
@@ -70,7 +96,7 @@ export default function MyApplications() {
       render: (row) => (
         <div>
           <div className="font-medium text-gray-900">
-            {row.job_title || row.job?.title}
+            {row.jobTitle || row.job_title || row.job?.title || "-"}
           </div>
           <div className="text-xs text-gray-500">
             {row.job?.location || row.location || ""}
@@ -81,12 +107,13 @@ export default function MyApplications() {
     {
       key: "company",
       label: "Company",
-      render: (row) => row.company_name || row.job?.company?.name || "-",
+      render: (row) =>
+        row.companyName || row.company_name || row.job?.company?.name || "-",
     },
     {
       key: "applied_on",
       label: "Applied On",
-      render: (row) => formatDate(row.created_at),
+      render: (row) => formatDate(row.applied_at || row.created_at),
     },
     {
       key: "status",
@@ -113,7 +140,7 @@ export default function MyApplications() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/candidate/applications/${row.id}`);
+              navigate(`/applications/${row.id}`);
             }}
             className="rounded-md border border-orange-200 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-orange-50"
           >

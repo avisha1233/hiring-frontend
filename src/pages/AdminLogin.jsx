@@ -33,6 +33,7 @@ export default function AdminLogin() {
 
       if (payload?.user?.role !== "admin") {
         setError("This page is reserved for admin accounts.");
+        setLoading(false);
         return;
       }
 

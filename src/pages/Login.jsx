@@ -49,6 +49,10 @@ export default function Login() {
         password: form.password,
       });
 
+ 
+
+console.log(payload);
+
       saveAuthSession({
         accessToken: payload?.accessToken,
         refreshToken: payload?.refreshToken,

@@ -1,7 +1,16 @@
+import {useState, useEffect} from "react";
 import { Bell, Settings, LogOut, User } from "lucide-react";
 import Avatar from "../../shared/Avatar";
+import { clearAuthSession } from "@/lib/auth";
 
 export default function AdminTopbar({ onLogout }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("authUser"));
+    setUser(storedUser);
+  }, []);
+
   return (
     <header className="fixed right-0 top-0 left-80 border-b border-orange-100 bg-white px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -24,10 +33,10 @@ export default function AdminTopbar({ onLogout }) {
 
           <div className="flex items-center gap-3">
             <div>
-              <p className="text-sm font-medium text-gray-900">Admin User</p>
-              <p className="text-xs text-gray-500">admin@hireiq.com</p>
+              <p className="text-sm font-medium text-gray-900">{user?.name || "Admin"}</p>
+              <p className="text-xs text-gray-500">{user?.email || "admin"}</p>
             </div>
-            <Avatar name="Admin" size="md" />
+            <Avatar name={user?.name || "Admin"} size="md" />
           </div>
 
           <button

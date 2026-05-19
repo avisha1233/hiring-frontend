@@ -310,12 +310,12 @@ function CTA() {
       </h2>
       <p className="mx-auto mb-8 max-w-md text-sm leading-relaxed text-orange-100">
         Join hundreds of companies and thousands of candidates already building
-        careers on HireIQ.
+        careers on Smart Hiring.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Button
           onClick={() => navigate("/register/company")}
-          className="bg-white text-orange-600 hover:bg-orange-50"
+          className="bg-white text-orange-600 hover:bg-orange-500"
         >
           <Building2 className="mr-2 h-4 w-4" />
           Register your company
@@ -323,7 +323,7 @@ function CTA() {
         <Button
           variant="outline"
           onClick={() => navigate("/register/candidate")}
-          className="border-orange-300 text-white hover:bg-orange-600 hover:text-white"
+          className=" bg-white text-orange-600 hover:bg-orange-50"
         >
           <User className="mr-2 h-4 w-4" />
           Create candidate profile
