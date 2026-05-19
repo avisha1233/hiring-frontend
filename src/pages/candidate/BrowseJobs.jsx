@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { MapPin, DollarSign, Briefcase, Zap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { MapPin, DollarSign, Zap } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import SearchInput from "../../components/shared/SearchInput";
 import FilterTabs from "../../components/shared/FilterTabs";
@@ -11,6 +12,7 @@ import Pagination from "../../components/shared/Pagination";
 import { useDebounce, usePagination } from "../../hooks";
 import { jobsApi } from "../../apis/candidate";
 import { candidateApi } from "../../apis/candidate";
+import { getCompanies } from "../../apis/companies";
 
 const STATUS_TABS = [
   { value: "all", label: "All Jobs" },
@@ -20,10 +22,95 @@ const STATUS_TABS = [
 
 const LEVELS = [
   { value: "all", label: "All Levels" },
-  { value: "entry", label: "Entry Level" },
+  { value: "junior", label: "Entry Level" },
   { value: "mid", label: "Mid Level" },
   { value: "senior", label: "Senior" },
 ];
+
+function formatMoney(value) {
+  if (value === undefined || value === null || value === "") return null;
+
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) return String(value);
+
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
+    numericValue,
+  );
+}
+
+function formatSalary(job) {
+  const minSalary = job.min_salary;
+  const maxSalary = job.max_salary;
+  const currency = job.currency || "NPR";
+
+  const normalizedMin = formatMoney(minSalary);
+  const normalizedMax = formatMoney(maxSalary);
+
+  if (normalizedMin && normalizedMax) {
+    return `${normalizedMin} - ${normalizedMax}${currency ? ` ${currency}` : ""}`;
+  }
+
+  if (normalizedMin) {
+    return `${normalizedMin}${currency ? ` ${currency}` : ""}`;
+  }
+
+  if (normalizedMax) {
+    return `${normalizedMax}${currency ? ` ${currency}` : ""}`;
+  }
+
+  return "-";
+}
+
+function formatWorkType(job) {
+  const explicitType = job.work_type || job.job_type || job.type;
+  if (explicitType) return String(explicitType);
+
+  if (typeof job.is_remote === "boolean") {
+    return job.is_remote ? "Remote" : "On-site";
+  }
+
+  return "-";
+}
+
+function formatExperience(job) {
+  const level = job.experience_level || job.level;
+  const requiredYears = job.required_experience ?? job.experience_years;
+
+  if (level) {
+    return String(level)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  if (
+    requiredYears !== undefined &&
+    requiredYears !== null &&
+    requiredYears !== ""
+  ) {
+    return `${requiredYears}+ yrs`;
+  }
+
+  return "-";
+}
+
+function normalizeJob(job, companyName) {
+  const nestedCompanyName = job.company?.name || job.company?.company_name;
+  const experienceLevelValue = job.experience_level || job.level || "";
+
+  return {
+    ...job,
+    companyName:
+      nestedCompanyName ||
+      job.company_name ||
+      job.companyName ||
+      companyName ||
+      "-",
+    experienceLevelValue,
+    salaryLabel: formatSalary(job),
+    workTypeLabel: formatWorkType(job),
+    experienceLabel: formatExperience(job),
+  };
+}
 
 export default function BrowseJobs() {
   const [jobs, setJobs] = useState([]);
@@ -36,6 +123,27 @@ export default function BrowseJobs() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [applyingId, setApplyingId] = useState(null);
   const { page, pageSize, goToPage } = usePagination();
+
+  const companiesQuery = useQuery({
+    queryKey: ["candidate", "companies"],
+    queryFn: async () => {
+      const response = await getCompanies({ page: 1, limit: 200 });
+      return response?.data || response || [];
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const companyMap = useMemo(() => {
+    const rows = companiesQuery.data?.data || [];
+    const map = new Map();
+
+    rows.forEach((company) => {
+      map.set(String(company.id), company.name);
+    });
+
+    return map;
+  }, [companiesQuery.data]);
 
   const fetchData = async () => {
     try {
@@ -69,7 +177,25 @@ export default function BrowseJobs() {
   const handleApply = async (jobId) => {
     try {
       setApplyingId(jobId);
-      await candidateApi.applyToJob(jobId);
+      const created = await candidateApi.applyToJob(jobId);
+
+      setApplications((prev) => {
+        if (prev.some((app) => Number(app.job_id) === Number(jobId))) {
+          return prev;
+        }
+
+        return [
+          {
+            id: created?.id || `optimistic-${jobId}`,
+            job_id: Number(jobId),
+            status: created?.status || "applied",
+            applied_at: created?.applied_at || new Date().toISOString(),
+          },
+          ...prev,
+        ];
+      });
+
+      window.dispatchEvent(new Event("candidate:application-created"));
       toast.success("Application submitted successfully");
       await fetchData();
     } catch (err) {
@@ -83,8 +209,17 @@ export default function BrowseJobs() {
     return applications.some((app) => app.job_id === jobId);
   };
 
-  const filteredJobs = jobs.filter((job) => {
-    if (levelFilter !== "all" && job.level !== levelFilter) return false;
+  const displayJobs = useMemo(
+    () =>
+      jobs.map((job) =>
+        normalizeJob(job, companyMap.get(String(job.company_id))),
+      ),
+    [jobs, companyMap],
+  );
+
+  const filteredJobs = displayJobs.filter((job) => {
+    if (levelFilter !== "all" && job.experienceLevelValue !== levelFilter)
+      return false;
     return true;
   });
 
@@ -190,7 +325,7 @@ export default function BrowseJobs() {
                       <p className="font-medium text-gray-900">{job.title}</p>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {job.company?.name || "-"}
+                      {job.companyName}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
@@ -200,21 +335,19 @@ export default function BrowseJobs() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-block rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">
-                        {job.level || "-"}
+                        {job.experienceLabel}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <DollarSign size={14} className="text-gray-400" />
-                        {job.salary_min && job.salary_max
-                          ? `${job.salary_min}K - ${job.salary_max}K`
-                          : "-"}
+                        {job.salaryLabel}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
-                        <Zap size={14} className="text-gray-400" />
-                        {job.remote_type || "-"}
+                        
+                        {job.workTypeLabel}
                       </div>
                     </td>
                     <td className="px-4 py-3">

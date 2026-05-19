@@ -1,8 +1,18 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, Settings, LogOut, User } from "lucide-react";
 import Avatar from "../shared/Avatar";
 import { clearAuthSession } from "@/lib/auth";
 
 export default function CandidateTopbar({ onLogout }) {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("authUser"));
+    setUser(storedUser);
+  }, []);
   return (
     <header className="fixed right-0 top-0 left-80 border-b border-orange-100 bg-white px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -12,14 +22,31 @@ export default function CandidateTopbar({ onLogout }) {
           </h2>
           <p className="text-xs text-gray-500">Welcome back</p>
         </div>
+        {/* right side */}
+        <div className="flex items-center gap-3">
 
-        <div className="flex items-center gap-4">
-          <button className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
-            <Bell size={20} />
-            <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500" />
-          </button>
+        <div
+          className="relative"
+          onMouseEnter={() => setShowNotifications(true)}
+          onMouseLeave={() => setShowNotifications(false)}
+        >
+          
+            <button className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
+              <Bell size={20} />
+              <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500" />
+            </button>
 
-          <button className="rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-64 rounded-md border bg-white shadow-lg p-3 z-50">
+                <p className="text-sm text-gray-600">No new notifications</p>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => navigate("/settings")}
+            className="rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100"
+          >
             <Settings size={20} />
           </button>
 
@@ -27,10 +54,15 @@ export default function CandidateTopbar({ onLogout }) {
 
           <div className="flex items-center gap-3">
             <div>
-              <p className="text-sm font-medium text-gray-900">Candidate</p>
-              <p className="text-xs text-gray-500">you@hireiq.com</p>
+              <p className="text-sm font-medium text-gray-900">
+                {user?.name || "Candidate"}
+              </p>
+
+              <p className="text-xs text-gray-500">
+                {user?.email || "email@example.com"}
+              </p>
             </div>
-            <Avatar name="Candidate" size="md" />
+            <Avatar name={user?.name || "Candidate"} size="md" />
           </div>
 
           <button

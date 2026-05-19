@@ -21,11 +21,12 @@ import Notifications from "./pages/admin/Notifications";
 import Files from "./pages/admin/Files";
 import Messages from "./pages/admin/Messages";
 import Reports from "./pages/admin/Reports";
-import Settings from "./pages/admin/Settings";
+import AdminSettings from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
 import Home from "./pages/Home";
 import CompanyLayout from "./components/layout/company/CompanyLayout";
 import CompanyOverview from "./pages/company/Overview";
+<<<<<<< HEAD
 import CompanyApplications from "./pages/company/Applications";
 import CompanyCandidates from "./pages/company/Candidates";
 
@@ -33,12 +34,18 @@ import CompanyInterviews from "./pages/company/Interviews";
 
 import CompanyMessages from "./pages/company/Messages";
 import CompanyProfile from "./pages/company/Profile";
+=======
+
+>>>>>>> cb9de6f45d55bca070f79b3c24dded15579d43e0
 import CandidateLayout from "./components/layout/CandidateLayout";
 import CandidateOverview from "./pages/candidate/Overview";
 import MyApplications from "./pages/candidate/MyApplications";
+import CandidateInterviews from "./pages/candidate/Interview";
 import CandidateMessages from "./pages/candidate/Messages";
-
+import Notification from "./pages/candidate/Notification";
 import Profile from "./pages/candidate/Profile";
+import CandidateSettings from "./pages/candidate/Setting";
+
 import { getAuthUser } from "./lib/auth";
 import BrowseJobs from "./pages/candidate/BrowseJobs";
 
@@ -185,7 +192,7 @@ const router = createBrowserRouter(
             },
             {
               path: "settings",
-              element: <Settings />,
+              element: <AdminSettings />,
             },
           ],
         },
@@ -195,6 +202,7 @@ const router = createBrowserRouter(
       path: "/home",
       element: <Home />,
     },
+<<<<<<< HEAD
 
     {
       path: "/register",
@@ -211,6 +219,8 @@ const router = createBrowserRouter(
       element: <Login />,
     },
 
+=======
+>>>>>>> cb9de6f45d55bca070f79b3c24dded15579d43e0
     {
       path: "/company",
       element: <RequireCompanyRoute />,
@@ -250,6 +260,44 @@ const router = createBrowserRouter(
         },
       ],
     },
+<<<<<<< HEAD
+=======
+
+    {
+      path: "/register",
+      element: <Login />,
+    },
+
+    {
+      path: "/register/company",
+      element: <Login />,
+    },
+
+    {
+      path: "/register/candidate",
+      element: <Login />,
+    },
+
+    {
+      path: "/company",
+      element: <RequireCompanyRoute />,
+      children: [
+        {
+          element: <CompanyLayout />,
+          children: [
+            {
+              index: true,
+              element: <Navigate to="/company/dashboard" replace />,
+            },
+            {
+              path: "dashboard",
+              element: <CompanyOverview />,
+            },
+          ],
+        },
+      ],
+    },
+>>>>>>> cb9de6f45d55bca070f79b3c24dded15579d43e0
 
     {
       path: "/candidate",
@@ -275,14 +323,29 @@ const router = createBrowserRouter(
               path: "applications",
               element: <MyApplications />,
             },
+
+            {
+              path: "interviews",
+              element: <CandidateInterviews />,
+            },
             {
               path: "messages",
               element: <CandidateMessages />,
             },
 
             {
+              path: "notifications",
+              element: <Notification />,
+            },
+
+            {
               path: "profile",
               element: <Profile />,
+            },
+
+            {
+              path: "settings",
+              element: <CandidateSettings />,
             },
           ],
         },

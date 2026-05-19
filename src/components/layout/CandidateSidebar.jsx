@@ -29,7 +29,7 @@ export default function CandidateSidebar() {
   return (
     <aside className="fixed left-0 top-0 h-screen w-80 overflow-y-auto bg-orange-600 text-orange-100">
       <div className="sticky top-0 border-b border-orange-500 bg-orange-600 px-6 py-6">
-        <h1 className="text-2xl font-bold text-white">HireIQ</h1>
+        <h1 className="text-2xl font-bold text-white">Smart Hiring</h1>
         <p className="mt-1 text-xs text-orange-200">Candidate Dashboard</p>
       </div>
 

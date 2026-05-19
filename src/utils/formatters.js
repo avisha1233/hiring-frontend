@@ -19,7 +19,7 @@ export function formatDateTime(date) {
   });
 }
 
-export function formatCurrency(amount, currency = "USD") {
+export function formatCurrency(amount, currency = "NPR") {
   if (amount === null || amount === undefined) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
