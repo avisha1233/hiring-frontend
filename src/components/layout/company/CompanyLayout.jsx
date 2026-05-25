@@ -13,9 +13,9 @@ export default function CompanyLayout() {
   return (
     <div className="min-h-screen bg-orange-50">
       <CompanySidebar />
-      <CompanyTopbar title="Overview" onLogout={handleLogout} />
+      <CompanyTopbar onLogout={handleLogout} />
 
-      <main className="ml-[210px] mt-[56px] p-6">
+      <main className="ml-80 mt-20 p-6">
         <div className="mx-auto max-w-7xl">
           <Outlet />
         </div>

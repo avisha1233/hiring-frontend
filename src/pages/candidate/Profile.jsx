@@ -60,6 +60,7 @@ export default function Profile() {
     {saving ? "Saving..." : "Save changes"}
   </button>
 </div>
+</div>
         
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px,1fr]">
           <ProfileSidebar
@@ -79,7 +80,7 @@ export default function Profile() {
             <CertificationsSection items={certItems} onUpdate={setCertItems} />
           </div>
         </div>
-      </div>
+      
     </form>
   );
 }

@@ -15,20 +15,20 @@ import { api } from "../../services/api";
 
 // ── filter tabs — same shape as candidate Applications ────────────────────────
 const TABS = [
-  { value: "all",          label: "All"          },
-  { value: "applied",      label: "Applied"      },
+  { value: "all", label: "All" },
+  { value: "applied", label: "Applied" },
   { value: "interviewing", label: "Interviewing" },
-  { value: "offered",      label: "Offered"      },
-  { value: "rejected",     label: "Rejected"     },
+  { value: "offered", label: "Offered" },
+  { value: "rejected", label: "Rejected" },
 ];
 
 export default function Applications() {
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [companyId, setCompanyId]       = useState(null);
-  const navigate                        = useNavigate();
+  const [companyId, setCompanyId] = useState(null);
+  const navigate = useNavigate();
 
   const user = getAuthUser();
 
@@ -36,9 +36,9 @@ export default function Applications() {
   useEffect(() => {
     async function resolveCompany() {
       try {
-        const res     = await getCompanyProfile();
+        const res = await getCompanyProfile();
         const profile = res?.data || res || {};
-        const id      = profile?.id || profile?.company_id || user?.company_id;
+        const id = profile?.id || profile?.company_id || user?.company_id;
         setCompanyId(Number(id));
       } catch {
         setError("Could not load company profile");
@@ -59,7 +59,7 @@ export default function Applications() {
         // only send status param when a real filter is selected
         ...(statusFilter !== "all" && { status: statusFilter }),
       };
-      const res  = await api.get("/applications", { params });
+      const res = await api.get("/applications", { params });
       const data = res?.data?.data || res?.data || res || [];
       setApplications(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -139,7 +139,9 @@ export default function Applications() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/company/candidates/${row.candidate_id}`);
+              navigate(`/company/candidates/${row.candidate_id}`, {
+                state: { candidate: row.candidate },
+              });
             }}
             className="rounded-md border border-orange-200 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-orange-50"
           >
@@ -167,7 +169,6 @@ export default function Applications() {
   // ── render — identical structure to candidate Applications ────────────────
   return (
     <div className="space-y-4">
-
       {/* page title */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
@@ -207,7 +208,6 @@ export default function Applications() {
           empty="No applications found"
         />
       )}
-
     </div>
   );
 }

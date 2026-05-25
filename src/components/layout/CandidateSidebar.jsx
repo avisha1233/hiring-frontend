@@ -35,7 +35,7 @@ export default function CandidateSidebar() {
 
       <nav className="space-y-6 px-4 py-6">
         <div>
-          <div className="mt-3 space-y-1">
+          <div className="mt-3 space-y-1">  
             {navItems.map(({ icon: Icon, label, to }) => (
               <NavLink
                 key={to}

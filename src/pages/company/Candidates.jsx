@@ -12,35 +12,99 @@ import { useDebounce, usePagination } from "../../hooks";
 import { getCompanyProfile } from "@/apis/company";
 import { api } from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 // ── experience level filter tabs — same shape as BrowseJobs STATUS_TABS ──────
 const EXPERIENCE_TABS = [
-  { value: "all",    label: "All"        },
-  { value: "0-1",    label: "0–1 yrs"   },
-  { value: "1-3",    label: "1–3 yrs"   },
-  { value: "3-5",    label: "3–5 yrs"   },
-  { value: "5+",     label: "5+ yrs"    },
+  { value: "all", label: "All" },
+  { value: "0-1", label: "0–1 yrs" },
+  { value: "1-3", label: "1–3 yrs" },
+  { value: "3-5", label: "3–5 yrs" },
+  { value: "5+", label: "5+ yrs" },
 ];
 
 // ── availability filter — mirrors the level <select> in BrowseJobs ────────────
 const NOTICE_OPTIONS = [
-  { value: "all",  label: "Any notice period" },
-  { value: "0",    label: "Immediate"          },
-  { value: "30",   label: "≤ 30 days"          },
-  { value: "60",   label: "≤ 60 days"          },
-  { value: "90",   label: "≤ 90 days"          },
+  { value: "all", label: "Any notice period" },
+  { value: "0", label: "Immediate" },
+  { value: "30", label: "≤ 30 days" },
+  { value: "60", label: "≤ 60 days" },
+  { value: "90", label: "≤ 90 days" },
 ];
 
+// ── resolve name from any API shape ──────────────────────────────────────────
+function resolveName(c) {
+  return (
+    c?.user?.full_name ||
+    c?.user?.name ||
+    c?.full_name ||
+    c?.name ||
+    c?.candidate?.full_name ||
+    c?.candidate?.name ||
+    null // will show avatar initials fallback below
+  );
+}
+
+// ── resolve email ─────────────────────────────────────────────────────────────
+function resolveEmail(c) {
+  return c?.user?.email || c?.email || c?.candidate?.email || "";
+}
+
+// ── resolve skills from any API shape ────────────────────────────────────────
+function resolveSkills(c) {
+  const raw = c?.skills || c?.candidate_skills || c?.user?.skills || [];
+
+  return raw
+    .slice(0, 4)
+    .map((s) => {
+      if (typeof s === "string") return s;
+      return s?.skill?.name || s?.name || s?.skill || s?.title || null;
+    })
+    .filter(Boolean);
+}
+
+function safeStr(value, fallback = "") {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  if (typeof value === "object") {
+    return value.city && value.country
+      ? `${value.city}, ${value.country}`
+      : value.city || value.country || value.name || value.label || fallback;
+  }
+  return fallback;
+}
+
+// ── initials avatar ───────────────────────────────────────────────────────────
+function Initials({ name, id }) {
+  const display = name || `C${id}`;
+  const letters = display
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-semibold text-orange-700">
+      {letters}
+    </div>
+  );
+}
+
 export default function Candidates() {
-  const [candidates, setCandidates]   = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
-  const [search, setSearch]           = useState("");
-  const debouncedSearch               = useDebounce(search, 300);
-  const [expFilter, setExpFilter]     = useState("all");
+  const location = useLocation();
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState(
+    new URLSearchParams(location.search).get("search") || "",
+  );
+  const debouncedSearch = useDebounce(search, 300);
+  const [expFilter, setExpFilter] = useState("all");
   const [noticeFilter, setNoticeFilter] = useState("all");
-  const { page, pageSize, goToPage }  = usePagination();
-  const navigate                      = useNavigate();
+  const { page, pageSize, goToPage } = usePagination();
+  const navigate = useNavigate();
 
   // ── fetch candidates from the real API ─────────────────────────────────────
   const fetchData = async () => {
@@ -54,7 +118,7 @@ export default function Candidates() {
         limit: pageSize,
       };
 
-      const res  = await api.get("/candidates", { params });
+      const res = await api.get("/candidates", { params });
       const data = res?.data?.data || res?.data || res || [];
       setCandidates(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -70,37 +134,36 @@ export default function Candidates() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, page]);
 
+  useEffect(() => {
+    const querySearch =
+      new URLSearchParams(location.search).get("search") || "";
+    setSearch(querySearch);
+  }, [location.search]);
+
   // ── client-side experience + notice period filtering ───────────────────────
   const filteredCandidates = candidates.filter((c) => {
     // experience band filter
     if (expFilter !== "all") {
       const exp = Number(c.experience ?? 0);
-      if (expFilter === "0-1"  && !(exp >= 0 && exp <  1)) return false;
-      if (expFilter === "1-3"  && !(exp >= 1 && exp <  3)) return false;
-      if (expFilter === "3-5"  && !(exp >= 3 && exp <  5)) return false;
-      if (expFilter === "5+"   && !(exp >= 5))              return false;
+      if (expFilter === "0-1" && !(exp >= 0 && exp < 1)) return false;
+      if (expFilter === "1-3" && !(exp >= 1 && exp < 3)) return false;
+      if (expFilter === "3-5" && !(exp >= 3 && exp < 5)) return false;
+      if (expFilter === "5+" && !(exp >= 5)) return false;
     }
 
     // notice period filter
     if (noticeFilter !== "all") {
       const np = Number(c.notice_period_days ?? 999);
-      if (noticeFilter === "0"  && np !== 0)   return false;
-      if (noticeFilter === "30" && np > 30)    return false;
-      if (noticeFilter === "60" && np > 60)    return false;
-      if (noticeFilter === "90" && np > 90)    return false;
+      if (noticeFilter === "0" && np !== 0) return false;
+      if (noticeFilter === "30" && np > 30) return false;
+      if (noticeFilter === "60" && np > 60) return false;
+      if (noticeFilter === "90" && np > 90) return false;
     }
 
     return true;
   });
 
   // ── resolve skill tags from whatever shape the API returns ─────────────────
-  function getSkills(candidate) {
-    // API might return candidate.skills as array of strings or objects
-    const raw = candidate.skills || candidate.candidate_skills || [];
-    return raw.slice(0, 4).map((s) =>
-      typeof s === "string" ? s : s?.skill?.name || s?.name || "Skill"
-    );
-  }
 
   // ── error state — same as BrowseJobs ──────────────────────────────────────
   if (error) {
@@ -115,7 +178,6 @@ export default function Candidates() {
 
   return (
     <div className="space-y-4">
-
       {/* ── page header — identical structure to BrowseJobs ── */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
@@ -163,7 +225,6 @@ export default function Candidates() {
       ) : (
         <div className="overflow-x-auto rounded-lg border border-orange-100 bg-white shadow-sm">
           <table className="w-full">
-
             {/* thead — same classes as BrowseJobs */}
             <thead className="border-b border-orange-100 bg-orange-50">
               <tr>
@@ -191,20 +252,23 @@ export default function Candidates() {
             {/* tbody — same row classes as BrowseJobs */}
             <tbody>
               {filteredCandidates.map((candidate) => {
-                const name     = candidate.user?.full_name
-                  || candidate.full_name
-                  || candidate.name
-                  || `Candidate #${candidate.id}`;
+                const name =
+                  resolveName(candidate) ?? `Candidate #${candidate.id}`;
 
-                const email    = candidate.user?.email || candidate.email || "";
-                const exp      = candidate.experience ?? 0;
-                const location = candidate.location || "-";
-                const notice   = candidate.notice_period_days != null
-                  ? candidate.notice_period_days === 0
-                    ? "Immediate"
-                    : `${candidate.notice_period_days} days`
-                  : "-";
-                const skills   = getSkills(candidate);
+                //  FIX 2: use resolveEmail()
+                const email = resolveEmail(candidate);
+
+                const exp = candidate.experience ?? 0;
+                const loc = candidate.location || "Not specified";
+                const notice =
+                  candidate.notice_period_days != null
+                    ? candidate.notice_period_days === 0
+                      ? "Immediate"
+                      : `${candidate.notice_period_days} days`
+                    : "-";
+
+                //  FIX 3: use resolveSkills() instead of undefined getSkills()
+                const skills = resolveSkills(candidate);
 
                 return (
                   <tr
@@ -216,7 +280,12 @@ export default function Candidates() {
                       <div className="flex items-center gap-2">
                         {/* initials avatar — mirrors how candidate pages show people */}
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-semibold text-orange-700">
-                          {name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
+                          {name
+                            .split(" ")
+                            .map((w) => w[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">{name}</p>
@@ -273,7 +342,9 @@ export default function Candidates() {
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() =>
-                          navigate(`/company/candidates/${candidate.id}`)
+                          navigate(`/company/candidates/${candidate.id}`, {
+                            state: { candidate },
+                          })
                         }
                         className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-600"
                       >
@@ -297,7 +368,6 @@ export default function Candidates() {
           onPageChange={goToPage}
         />
       )}
-
     </div>
   );
 }

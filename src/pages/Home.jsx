@@ -10,7 +10,6 @@ import {
   Building2,
   User,
   ShieldCheck,
-  Zap,
   ChevronRight,
 } from "lucide-react";
 
@@ -114,7 +113,7 @@ function Navbar() {
       {/* Logo */}
       <div className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
-          <Zap className="h-4 w-4" />
+          
         </div>
         <span className="text-sm font-semibold text-gray-900">Smart Hiring </span>
       </div>
@@ -161,11 +160,7 @@ function Hero() {
 
   return (
     <section className="border-b border-orange-100 bg-[radial-gradient(circle_at_top,_#fff7ed_0,_#fff_60%,_#fff_100%)] px-8 py-16 text-center">
-      {/* Badge */}
-      <span className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700">
-        <Zap className="h-3 w-3" />
-        Smart hiring made simple
-      </span>
+      
 
       {/* Title */}
       <h1 className="mb-3 text-4xl font-semibold leading-tight text-gray-900">
@@ -314,8 +309,9 @@ function CTA() {
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <Button
+          variant="outline"
           onClick={() => navigate("/register/company")}
-          className="bg-white text-orange-600 hover:bg-orange-500"
+          className="bg-white text-orange-600 hover:bg-orange-50"
         >
           <Building2 className="mr-2 h-4 w-4" />
           Register your company
@@ -345,7 +341,7 @@ function Footer() {
       {/* Logo */}
       <div className="flex items-center gap-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500 text-white">
-          <Zap className="h-3.5 w-3.5" />
+      
         </div>
         <span className="text-sm font-semibold text-gray-900">Smart Hiring</span>
       </div>

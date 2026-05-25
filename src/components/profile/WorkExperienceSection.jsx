@@ -87,12 +87,12 @@ export default function WorkExperienceSection({ items, onUpdate }) {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Job title</span>
               <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                placeholder="e.g. Frontend Developer" className={inputClass} />
+                 className={inputClass} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Company</span>
               <input value={form.company} onChange={(e) => setForm((p) => ({ ...p, company: e.target.value }))}
-                placeholder="e.g. Acme Corp" className={inputClass} />
+                 className={inputClass} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Type</span>
@@ -106,7 +106,7 @@ export default function WorkExperienceSection({ items, onUpdate }) {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Location</span>
               <input value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
-                placeholder="e.g. Remote" className={inputClass} />
+                 className={inputClass} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Start date</span>

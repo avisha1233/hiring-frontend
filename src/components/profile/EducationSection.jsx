@@ -87,22 +87,22 @@ export default function EducationSection({ items, onUpdate }) {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Degree</span>
               <input value={form.degree} onChange={(e) => setForm((p) => ({ ...p, degree: e.target.value }))}
-                placeholder="e.g. B.Sc Computer Science" className={inputClass} />
+                 className={inputClass} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Institution</span>
               <input value={form.institution} onChange={(e) => setForm((p) => ({ ...p, institution: e.target.value }))}
-                placeholder="e.g. State University" className={inputClass} />
+                 className={inputClass} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Field of study</span>
               <input value={form.field} onChange={(e) => setForm((p) => ({ ...p, field: e.target.value }))}
-                placeholder="e.g. Software Engineering" className={inputClass} />
+                 className={inputClass} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Grade / GPA</span>
               <input value={form.grade} onChange={(e) => setForm((p) => ({ ...p, grade: e.target.value }))}
-                placeholder="e.g. 3.8 / 4.0" className={inputClass} />
+                 className={inputClass} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Start date</span>
@@ -131,7 +131,7 @@ export default function EducationSection({ items, onUpdate }) {
             <span className="text-xs text-gray-500">Activities / description</span>
             <textarea value={form.description} rows={2}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-              placeholder="Coursework, clubs, thesis..."
+              
               className="w-full rounded-lg border border-orange-100 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100 resize-none" />
           </label>
 

@@ -1,9 +1,10 @@
+import { useEffect, useState } from "react";
 import { Bell, Settings, LogOut, Search } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import Avatar from "../../shared/Avatar";
 
-// Map route paths to page titles — extend as you add pages
 const TITLE_MAP = {
-  "/company/overview": "Overview",
+  "/company/dashboard": "Overview",
   "/company/jobs": "Job Postings",
   "/company/applications": "Applications",
   "/company/candidates": "Candidates",
@@ -14,37 +15,81 @@ const TITLE_MAP = {
   "/company/profile": "Company Profile",
 };
 
-export default function CompanyTopbar({
-  userName = "",
-  userEmail = "",
-  userInitials = "TC",
-  hasNotification = false,
-  onLogout,
-}) {
+const SEARCH_TARGETS = {
+  "/company/dashboard": "/company/candidates",
+  "/company/applications": "/company/candidates",
+  "/company/candidates": "/company/candidates",
+  "/company/jobs": "/company/jobs",
+  "/company/tasks": "/company/tasks",
+  "/company/submissions": "/company/submissions",
+};
+
+// fix — removed userName and userEmail from props
+// they were conflicting with the const declarations below
+export default function CompanyTopbar({ hasNotification = false, onLogout }) {
+  const navigate = useNavigate();
   const { pathname } = useLocation();
-  const title = TITLE_MAP[pathname] ?? "Company Portal";
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const raw =
+      localStorage.getItem("authUser") || localStorage.getItem("user");
+    if (raw) {
+      try {
+        setUser(JSON.parse(raw));
+      } catch {
+        setUser(null);
+      }
+    }
+  }, []);
+
+  const title = TITLE_MAP[pathname] ?? "Company Dashboard";
+
+  // these are now declared only once — no conflict
+  const userName = user?.full_name || user?.name || "User";
+  const userEmail = user?.email || "";
+
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  const handleSearch = () => {
+    const query = window.prompt("Search company data");
+    const searchTerm = query?.trim();
+    if (!searchTerm) return;
+    const targetPath = SEARCH_TARGETS[pathname] || "/company/candidates";
+    navigate(`${targetPath}?search=${encodeURIComponent(searchTerm)}`);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("authUser");
+    localStorage.removeItem("token");
+    if (onLogout) onLogout();
+    navigate("/login");
+  };
 
   return (
-    /*
-      FIXED: was "left-80"  (320px) — sidebar is 210px wide
-      Now:        left-[210px] matches CompanySidebar inline style width: "210px"
-    */
-    <header className="fixed right-0 top-0 left-[210px] border-b border-orange-100 bg-white px-6 py-3 shadow-sm z-20">
+    <header className="fixed right-0 top-0 left-80 border-b border-orange-100 bg-white px-6 py-4 shadow-sm z-20">
       <div className="flex items-center justify-between">
-        {/* Title */}
         <div>
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          <p className="text-xs text-gray-500">Company Portal</p>
+          <p className="text-xs text-gray-500">Company Dashboard</p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="flex items-center gap-2 rounded-lg border border-orange-100 bg-orange-50 px-3 py-2 text-xs text-gray-400">
-            <Search size={14} className="text-gray-400" />
-            Search…
-          </div>
+          <button
+            type="button"
+            onClick={handleSearch}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-medium text-orange-700 transition hover:bg-orange-100"
+          >
+            <Search size={16} className="text-orange-600" />
+            Search
+          </button>
 
-          {/* Bell */}
           <button className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
             <Bell size={18} />
             {hasNotification && (
@@ -52,31 +97,25 @@ export default function CompanyTopbar({
             )}
           </button>
 
-          {/* Settings */}
-          <button className="rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
+          <button
+            onClick={() => navigate("/company/profile")}
+            className="rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100"
+          >
             <Settings size={18} />
           </button>
 
           <div className="h-8 w-px bg-orange-100" />
 
-          {/* User info + avatar */}
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">
-                {userName || "Company Admin"}
-              </p>
-              <p className="text-xs text-gray-500">
-                {userEmail || "admin@hireiq.com"}
-              </p>
+              <p className="text-sm font-medium text-gray-900">{userName}</p>
+              <p className="text-xs text-gray-500">{userEmail}</p>
             </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-xs font-semibold text-orange-600">
-              {userInitials}
-            </div>
+            <Avatar name={initials} size="md" />
           </div>
 
-          {/* Logout */}
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className="rounded-lg bg-orange-50 p-2 text-orange-600 hover:bg-orange-100"
             title="Logout"
           >

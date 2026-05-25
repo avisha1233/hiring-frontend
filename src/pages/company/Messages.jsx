@@ -10,7 +10,7 @@ import { getAuthUser } from "../../lib/auth";
 import { timeAgo, truncate } from "../../utils/formatters";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers — identical to candidate Messages, untouched
+// Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 function unwrapObject(payload) {
@@ -68,7 +68,7 @@ function buildPreview(message, currentUserId) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Skeletons — identical to candidate Messages, untouched
+// Skeletons
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ConversationSkeleton() {
@@ -109,20 +109,11 @@ function MessageSkeleton() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
-// Only things that changed from candidate Messages:
-//   candidateId  →  companyId
-//   candidateApi.getProfile()  →  getCompanyProfile()
-//   conversations filtered by company_id instead of candidate_id
-//   sidebar fetches candidate name per conversation (not company name)
-//   sidebar header label "Company messages" instead of "Candidate messages"
-//   chat header badge "Company chat" instead of "Candidate chat"
-//   empty state copy updated for company context
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Messages() {
   const authUser = getAuthUser();
 
-  // changed: companyId instead of candidateId
   const [companyId, setCompanyId]                       = useState(null);
   const [conversations, setConversations]               = useState([]);
   const [conversationMeta, setConversationMeta]         = useState({});
@@ -137,15 +128,46 @@ export default function Messages() {
   const [messageError, setMessageError]                 = useState("");
   const bottomRef                                       = useRef(null);
 
+  // ── modal state ────────────────────────────────────────────────────────────
+  const [showNewConversationModal, setShowNewConversationModal] = useState(false);
+  const [allCandidates, setAllCandidates]                       = useState([]);    // full list loaded on mount
+  const [candidatesLoading, setCandidatesLoading]               = useState(false);
+  const [filterQuery, setFilterQuery]                           = useState("");    // local filter, no API call
+  // ──────────────────────────────────────────────────────────────────────────
+
   const activeConversation = conversations.find(
-    (conversation) => Number(conversation.id) === Number(activeConversationId),
+    (c) => Number(c.id) === Number(activeConversationId),
   );
 
   const activeSummary = activeConversation
     ? conversationMeta[activeConversation.id] || {}
     : {};
 
-  // unchanged
+  // filtered list — just client-side string match, instant
+  const filteredCandidates = allCandidates.filter((c) => {
+    const q = filterQuery.toLowerCase();
+    return (
+      (c.full_name || c.name || "").toLowerCase().includes(q) ||
+      (c.email || "").toLowerCase().includes(q)
+    );
+  });
+
+  // ── fetch ALL candidates once on mount ────────────────────────────────────
+  useEffect(() => {
+    async function loadAllCandidates() {
+      setCandidatesLoading(true);
+      try {
+        const res = await api.get("/users", { params: { role: "candidate" } });
+        setAllCandidates(getConversationList(res.data));
+      } catch {
+        setAllCandidates([]);
+      } finally {
+        setCandidatesLoading(false);
+      }
+    }
+    loadAllCandidates();
+  }, []);
+
   const resolveSenderName = (senderId) => {
     const numericSenderId = Number(senderId);
     if (Number(authUser?.id) === numericSenderId) {
@@ -154,47 +176,36 @@ export default function Messages() {
     return senderNames[numericSenderId] || `User ${senderId}`;
   };
 
-  // unchanged
   const hydrateSenderNames = async (messageList) => {
     const uniqueSenderIds = Array.from(
       new Set(
         messageList
-          .map((message) => Number(message.sender_id))
-          .filter(
-            (senderId) =>
-              Number.isFinite(senderId) && senderId !== Number(authUser?.id),
-          ),
+          .map((m) => Number(m.sender_id))
+          .filter((id) => Number.isFinite(id) && id !== Number(authUser?.id)),
       ),
     );
-
-    const missingSenderIds = uniqueSenderIds.filter(
-      (senderId) => !senderNames[senderId],
-    );
-
-    if (missingSenderIds.length === 0) return;
+    const missingIds = uniqueSenderIds.filter((id) => !senderNames[id]);
+    if (missingIds.length === 0) return;
 
     const results = await Promise.allSettled(
-      missingSenderIds.map((senderId) => api.get(`/users/${senderId}`)),
+      missingIds.map((id) => api.get(`/users/${id}`)),
     );
-
     const resolved = {};
     results.forEach((result, index) => {
-      const senderId = missingSenderIds[index];
+      const id = missingIds[index];
       if (result.status === "fulfilled") {
         const user = unwrapObject(result.value.data);
-        resolved[senderId] =
-          user?.full_name || user?.name || user?.email || `User ${senderId}`;
+        resolved[id] = user?.full_name || user?.name || user?.email || `User ${id}`;
       } else {
-        resolved[senderId] = `User ${senderId}`;
+        resolved[id] = `User ${id}`;
       }
     });
-
     if (Object.keys(resolved).length > 0) {
-      setSenderNames((previous) => ({ ...previous, ...resolved }));
+      setSenderNames((prev) => ({ ...prev, ...resolved }));
     }
   };
 
-  // ── boot: load company profile → conversations → per-conv candidate names ─
+  // ── boot: load company profile → conversations ────────────────────────────
   useEffect(() => {
     if (!authUser?.id) {
       setBootLoading(false);
@@ -207,49 +218,38 @@ export default function Messages() {
     async function loadConversations() {
       setBootLoading(true);
       setError("");
-
       try {
-        // changed: getCompanyProfile() instead of candidateApi.getProfile()
-        const profile            = await getCompanyProfile();
-        const company            = unwrapObject(profile);
-        const resolvedCompanyId  = Number(
+        const profile           = await getCompanyProfile();
+        const company           = unwrapObject(profile);
+        const resolvedCompanyId = Number(
           company?.id || company?.company_id || authUser?.company_id,
         );
-
         if (!resolvedCompanyId) throw new Error("Company profile not found.");
         if (cancelled) return;
 
         setCompanyId(resolvedCompanyId);
 
-        // changed: filter by company_id instead of candidate_id
         const conversationsResponse = await api.get("/conversations", {
           params: { company_id: resolvedCompanyId },
         });
-
-        const conversationList = getConversationList(
-          conversationsResponse.data,
-        );
-
+        const conversationList = getConversationList(conversationsResponse.data);
         if (cancelled) return;
         setConversations(conversationList);
 
-        // changed: fetch candidate name per conversation (not company name)
         const summaries = await Promise.all(
           conversationList.map(async (conversation) => {
-            const [candidateResult, latestMessageResult] =
-              await Promise.allSettled([
-                api.get(`/users/${conversation.candidate_id}`),
-                api.get("/messages", {
-                  params: {
-                    conversation_id: conversation.id,
-                    limit: 1,
-                    sort: "created_at",
-                    sortDirection: "DESC",
-                  },
-                }),
-              ]);
+            const [candidateResult, latestMessageResult] = await Promise.allSettled([
+              api.get(`/users/${conversation.candidate_id}`),
+              api.get("/messages", {
+                params: {
+                  conversation_id: conversation.id,
+                  limit: 1,
+                  sort: "created_at",
+                  sortDirection: "DESC",
+                },
+              }),
+            ]);
 
-            // changed: resolve candidate name instead of company name
             const candidate =
               candidateResult.status === "fulfilled"
                 ? unwrapObject(candidateResult.value.data)
@@ -263,15 +263,13 @@ export default function Messages() {
             return [
               conversation.id,
               {
-                // changed: candidateName instead of companyName
                 candidateName:
                   candidate?.full_name ||
                   candidate?.name ||
                   `Candidate ${conversation.candidate_id}`,
                 candidateAvatar: candidate?.avatar_url || "",
                 preview: buildPreview(latestMessage, authUser?.id),
-                previewAt:
-                  latestMessage?.created_at || conversation.created_at || null,
+                previewAt: latestMessage?.created_at || conversation.created_at || null,
                 latestMessage,
               },
             ];
@@ -279,28 +277,16 @@ export default function Messages() {
         );
 
         if (cancelled) return;
-
         const nextMeta = {};
-        summaries.forEach(([conversationId, summary]) => {
-          nextMeta[conversationId] = summary;
-        });
+        summaries.forEach(([id, summary]) => { nextMeta[id] = summary; });
         setConversationMeta(nextMeta);
 
-        setActiveConversationId((previous) => {
-          if (
-            previous &&
-            conversationList.some(
-              (conversation) => Number(conversation.id) === Number(previous),
-            )
-          ) {
-            return previous;
-          }
+        setActiveConversationId((prev) => {
+          if (prev && conversationList.some((c) => Number(c.id) === Number(prev))) return prev;
           return conversationList[0]?.id || null;
         });
       } catch (loadError) {
-        if (!cancelled) {
-          setError(loadError?.message || "Failed to load conversations.");
-        }
+        if (!cancelled) setError(loadError?.message || "Failed to load conversations.");
       } finally {
         if (!cancelled) setBootLoading(false);
       }
@@ -310,63 +296,41 @@ export default function Messages() {
     return () => { cancelled = true; };
   }, [authUser?.id]);
 
-  // ── load messages when active conversation changes — unchanged ────────────
+  // ── load messages when active conversation changes ────────────────────────
   useEffect(() => {
-    if (!activeConversationId) {
-      setMessages([]);
-      setMessageError("");
-      return;
-    }
+    if (!activeConversationId) { setMessages([]); setMessageError(""); return; }
 
     let cancelled = false;
 
     async function loadMessages() {
       setMessagesLoading(true);
       setMessageError("");
-
       try {
         const response = await api.get("/messages", {
           params: { conversation_id: activeConversationId },
         });
-
         const messageList = getMessageList(response.data).sort(
-          (left, right) =>
-            new Date(left.created_at || 0) - new Date(right.created_at || 0),
+          (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
         );
-
         if (cancelled) return;
         setMessages(messageList);
 
         const unreadIds = messageList
-          .filter(
-            (message) =>
-              !message.is_read &&
-              Number(message.sender_id) !== Number(authUser?.id),
-          )
-          .map((message) => message.id);
+          .filter((m) => !m.is_read && Number(m.sender_id) !== Number(authUser?.id))
+          .map((m) => m.id);
 
         if (unreadIds.length > 0) {
           await Promise.allSettled(
-            unreadIds.map((messageId) =>
-              api.patch(`/messages/${messageId}`, { is_read: true }),
-            ),
+            unreadIds.map((id) => api.patch(`/messages/${id}`, { is_read: true })),
           );
           if (cancelled) return;
-          setMessages((previous) =>
-            previous.map((message) =>
-              unreadIds.includes(message.id)
-                ? { ...message, is_read: true }
-                : message,
-            ),
+          setMessages((prev) =>
+            prev.map((m) => unreadIds.includes(m.id) ? { ...m, is_read: true } : m),
           );
         }
-
         await hydrateSenderNames(messageList);
       } catch (loadError) {
-        if (!cancelled) {
-          setMessages([]);
-          setMessageError(loadError?.message || "Failed to load messages.");
-        }
+        if (!cancelled) { setMessages([]); setMessageError(loadError?.message || "Failed to load messages."); }
       } finally {
         if (!cancelled) setMessagesLoading(false);
       }
@@ -376,17 +340,15 @@ export default function Messages() {
     return () => { cancelled = true; };
   }, [activeConversationId, authUser?.id]);
 
-  // unchanged
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, activeConversationId, messagesLoading]);
 
-  // unchanged
   const updateActivePreview = (message) => {
-    setConversationMeta((previous) => ({
-      ...previous,
+    setConversationMeta((prev) => ({
+      ...prev,
       [activeConversationId]: {
-        ...(previous[activeConversationId] || activeSummary),
+        ...(prev[activeConversationId] || activeSummary),
         preview: buildPreview(message, authUser?.id),
         previewAt: message?.created_at || new Date().toISOString(),
         latestMessage: message,
@@ -394,11 +356,9 @@ export default function Messages() {
     }));
   };
 
-  // unchanged — send uses authUser.id as sender_id
   const handleSend = async () => {
     const content = composer.trim();
     if (!content || !activeConversationId || !companyId) return;
-
     setSending(true);
     try {
       const response = await api.post("/messages", {
@@ -408,12 +368,11 @@ export default function Messages() {
         content,
         is_read:         false,
       });
-
       const createdMessage = unwrapObject(response.data);
       setComposer("");
-      setMessages((previous) => [...previous, createdMessage]);
-      setSenderNames((previous) => ({
-        ...previous,
+      setMessages((prev) => [...prev, createdMessage]);
+      setSenderNames((prev) => ({
+        ...prev,
         [Number(authUser?.id)]: authUser?.full_name || authUser?.name || "You",
       }));
       updateActivePreview(createdMessage);
@@ -424,14 +383,111 @@ export default function Messages() {
     }
   };
 
-  // unchanged
   const handleComposerKeyDown = (event) => {
     if (event.key !== "Enter") return;
     event.preventDefault();
     handleSend();
   };
 
-  // ── boot loading — unchanged layout ──────────────────────────────────────
+  // ── handler: candidate clicked in modal ──────────────────────────────────
+  const handleSelectCandidate = async (candidate) => {
+    try {
+      const res = await api.post("/conversations", {
+        company_id:   companyId,
+        candidate_id: candidate.id,
+      });
+      const newConv = unwrapObject(res.data);
+      setConversations((prev) => {
+        if (prev.some((c) => Number(c.id) === Number(newConv.id))) return prev;
+        return [newConv, ...prev];
+      });
+      setActiveConversationId(newConv.id);
+      setShowNewConversationModal(false);
+      setFilterQuery("");
+    } catch {
+      // optionally show error
+    }
+  };
+
+  // ── New Conversation Modal (shared, reused in both empty + main render) ───
+  const NewConversationModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">Select a Candidate</h2>
+          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
+            {allCandidates.length} candidates
+          </span>
+        </div>
+
+        {/* filter input — client side, no API call */}
+        <input
+          type="text"
+          placeholder="Filter by name or email..."
+          className="w-full rounded-xl border border-orange-200 px-4 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+          value={filterQuery}
+          onChange={(e) => setFilterQuery(e.target.value)}
+          autoFocus
+        />
+
+        {/* candidate list */}
+        <div className="mt-3 max-h-72 overflow-y-auto space-y-2 pr-1">
+          {candidatesLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={20} className="animate-spin text-orange-400" />
+              <span className="ml-2 text-sm text-gray-400">Loading candidates...</span>
+            </div>
+          )}
+
+          {!candidatesLoading && filteredCandidates.length === 0 && (
+            <p className="py-6 text-center text-sm text-gray-400">
+              {filterQuery ? "No candidates match your filter." : "No candidates found."}
+            </p>
+          )}
+
+          {!candidatesLoading && filteredCandidates.map((candidate) => {
+            // highlight if already has a conversation
+            const alreadyExists = conversations.some(
+              (c) => Number(c.candidate_id) === Number(candidate.id),
+            );
+
+            return (
+              <button
+                key={candidate.id}
+                type="button"
+                onClick={() => handleSelectCandidate(candidate)}
+                className="flex w-full items-center gap-3 rounded-xl border border-orange-100 p-3 text-left transition hover:border-orange-300 hover:bg-orange-50"
+              >
+                <Avatar name={candidate.full_name || candidate.name} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-gray-900">
+                    {candidate.full_name || candidate.name}
+                  </p>
+                  <p className="truncate text-xs text-gray-500">{candidate.email}</p>
+                </div>
+                {alreadyExists && (
+                  <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                    Active
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => { setShowNewConversationModal(false); setFilterQuery(""); }}
+          className="mt-4 w-full rounded-xl border border-orange-200 py-2 text-sm text-gray-600 transition hover:bg-orange-50"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── boot loading ──────────────────────────────────────────────────────────
   if (bootLoading) {
     return (
       <div className="space-y-4">
@@ -453,47 +509,55 @@ export default function Messages() {
 
   if (error) {
     return (
-      <EmptyState
-        title="Unable to load messages"
-        message={error}
-        icon={MessageCircle}
-      />
+      <EmptyState title="Unable to load messages" message={error} icon={MessageCircle} />
     );
   }
 
   if (conversations.length === 0) {
     return (
       <div className="space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          {/* changed: company-facing copy */}
-          <p className="text-sm text-gray-600">
-            Keep conversations with candidates in one place.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+            <p className="text-sm text-gray-600">Keep conversations with candidates in one place.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNewConversationModal(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+          >
+            <MessageCircle size={16} /> New Conversation
+          </button>
         </div>
         <EmptyState
           title="No conversations yet"
           message="Conversations with candidates will appear here."
           icon={MessageCircle}
         />
+        {showNewConversationModal && <NewConversationModal />}
       </div>
     );
   }
 
-  // ── main render — structure identical to candidate Messages ───────────────
+  // ── main render ───────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          {/* changed: company-facing copy */}
-          <p className="text-sm text-gray-600">
-            Keep conversations with candidates in one place.
-          </p>
+          <p className="text-sm text-gray-600">Keep conversations with candidates in one place.</p>
         </div>
-        <div className="rounded-full border border-orange-100 bg-white px-4 py-2 text-xs font-medium text-orange-700 shadow-sm">
-          {conversations.length} active conversation
-          {conversations.length === 1 ? "" : "s"}
+        <div className="flex items-center gap-3">
+          <div className="rounded-full border border-orange-100 bg-white px-4 py-2 text-xs font-medium text-orange-700 shadow-sm">
+            {conversations.length} active conversation{conversations.length === 1 ? "" : "s"}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNewConversationModal(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+          >
+            <MessageCircle size={16} /> New Conversation
+          </button>
         </div>
       </div>
 
@@ -503,7 +567,6 @@ export default function Messages() {
         <aside className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
           <div className="border-b border-orange-100 bg-orange-50 px-4 py-3">
             <p className="text-sm font-semibold text-gray-900">Conversations</p>
-            {/* changed: show companyId, not candidateId */}
             <p className="text-xs text-gray-600">
               {companyId ? `Company #${companyId}` : "Company messages"}
             </p>
@@ -513,8 +576,7 @@ export default function Messages() {
             <div className="space-y-2">
               {conversations.map((conversation) => {
                 const summary  = conversationMeta[conversation.id] || {};
-                const isActive =
-                  Number(conversation.id) === Number(activeConversationId);
+                const isActive = Number(conversation.id) === Number(activeConversationId);
 
                 return (
                   <button
@@ -527,50 +589,26 @@ export default function Messages() {
                         : "border-orange-100 bg-white hover:border-orange-200 hover:bg-orange-50"
                     }`}
                   >
-                    {/* changed: Avatar uses candidateName */}
                     <Avatar
-                      name={
-                        summary.candidateName ||
-                        `Candidate ${conversation.candidate_id}`
-                      }
+                      name={summary.candidateName || `Candidate ${conversation.candidate_id}`}
                       size="md"
                       className={isActive ? "ring-2 ring-white" : ""}
                     />
-
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          {/* changed: show candidateName */}
-                          <p
-                            className={`truncate text-sm font-semibold ${
-                              isActive ? "text-white" : "text-gray-900"
-                            }`}
-                          >
-                            {summary.candidateName ||
-                              `Candidate ${conversation.candidate_id}`}
+                          <p className={`truncate text-sm font-semibold ${isActive ? "text-white" : "text-gray-900"}`}>
+                            {summary.candidateName || `Candidate ${conversation.candidate_id}`}
                           </p>
-                          <p
-                            className={`mt-0.5 line-clamp-1 text-xs ${
-                              isActive ? "text-orange-50" : "text-gray-500"
-                            }`}
-                          >
+                          <p className={`mt-0.5 line-clamp-1 text-xs ${isActive ? "text-orange-50" : "text-gray-500"}`}>
                             {summary.preview || "No messages yet"}
                           </p>
                         </div>
-                        <span
-                          className={`shrink-0 text-[11px] ${
-                            isActive ? "text-orange-50" : "text-gray-400"
-                          }`}
-                        >
+                        <span className={`shrink-0 text-[11px] ${isActive ? "text-orange-50" : "text-gray-400"}`}>
                           {summary.previewAt ? timeAgo(summary.previewAt) : "-"}
                         </span>
                       </div>
-
-                      <div
-                        className={`mt-2 flex items-center gap-2 text-[11px] ${
-                          isActive ? "text-orange-50" : "text-gray-500"
-                        }`}
-                      >
+                      <div className={`mt-2 flex items-center gap-2 text-[11px] ${isActive ? "text-orange-50" : "text-gray-500"}`}>
                         <Clock size={12} />
                         <span>
                           {summary.latestMessage?.created_at
@@ -583,16 +621,6 @@ export default function Messages() {
                 );
               })}
             </div>
-
-            {conversations.length === 0 ? (
-              <div className="py-8">
-                <EmptyState
-                  title="No conversations"
-                  message="You do not have any chats yet."
-                  icon={MessageCircle}
-                />
-              </div>
-            ) : null}
           </div>
         </aside>
 
@@ -600,19 +628,13 @@ export default function Messages() {
         <div className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-orange-100 bg-gradient-to-r from-orange-50 to-white px-5 py-4">
             <div className="flex items-center gap-3">
-              {/* changed: Avatar uses candidateName */}
               <Avatar
-                name={
-                  activeSummary.candidateName ||
-                  `Candidate ${activeConversation?.candidate_id}`
-                }
+                name={activeSummary.candidateName || `Candidate ${activeConversation?.candidate_id}`}
                 size="md"
               />
               <div>
-                {/* changed: show candidateName in header */}
                 <p className="text-sm font-semibold text-gray-900">
-                  {activeSummary.candidateName ||
-                    `Candidate ${activeConversation?.candidate_id}`}
+                  {activeSummary.candidateName || `Candidate ${activeConversation?.candidate_id}`}
                 </p>
                 <p className="text-xs text-gray-500">
                   {activeSummary.latestMessage?.created_at
@@ -621,7 +643,6 @@ export default function Messages() {
                 </p>
               </div>
             </div>
-            {/* changed: badge label */}
             <div className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
               Company chat
             </div>
@@ -633,11 +654,7 @@ export default function Messages() {
                 <MessageSkeleton />
               ) : messageError ? (
                 <div className="flex h-full items-center justify-center">
-                  <EmptyState
-                    title="Unable to load chat"
-                    message={messageError}
-                    icon={MessageCircle}
-                  />
+                  <EmptyState title="Unable to load chat" message={messageError} icon={MessageCircle} />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex h-full items-center justify-center">
@@ -650,39 +667,21 @@ export default function Messages() {
               ) : (
                 <div className="space-y-4">
                   {messages.map((message) => {
-                    // company (authUser) messages → right, orange
-                    // candidate messages → left, white
-                    const isMine =
-                      Number(message.sender_id) === Number(authUser?.id);
+                    const isMine    = Number(message.sender_id) === Number(authUser?.id);
                     const senderName = resolveSenderName(message.sender_id);
-
                     return (
-                      <div
-                        key={message.id}
-                        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[78%] ${isMine ? "items-end" : "items-start"}`}
-                        >
-                          <div
-                            className={`rounded-3xl px-4 py-3 shadow-sm ${
-                              isMine
-                                ? "bg-orange-500 text-white"                         // company = orange, right
-                                : "border border-orange-100 bg-white text-gray-800" // candidate = white, left
-                            }`}
-                          >
-                            <p className="whitespace-pre-wrap text-sm leading-6">
-                              {message.content}
-                            </p>
+                      <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[78%] ${isMine ? "items-end" : "items-start"}`}>
+                          <div className={`rounded-3xl px-4 py-3 shadow-sm ${
+                            isMine
+                              ? "bg-orange-500 text-white"
+                              : "border border-orange-100 bg-white text-gray-800"
+                          }`}>
+                            <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
                           </div>
-
-                          <div
-                            className={`mt-1 flex items-center gap-2 text-[11px] ${
-                              isMine
-                                ? "justify-end text-orange-700"
-                                : "text-gray-500"
-                            }`}
-                          >
+                          <div className={`mt-1 flex items-center gap-2 text-[11px] ${
+                            isMine ? "justify-end text-orange-700" : "text-gray-500"
+                          }`}>
                             <span className="font-semibold">{senderName}</span>
                             <span>•</span>
                             <span>{formatMessageTime(message.created_at)}</span>
@@ -696,16 +695,15 @@ export default function Messages() {
               <div ref={bottomRef} />
             </div>
 
-            {/* composer — unchanged */}
+            {/* composer */}
             <div className="border-t border-orange-100 bg-white px-4 py-4">
               {messageError && !messagesLoading ? (
                 <p className="mb-3 text-xs text-red-600">{messageError}</p>
               ) : null}
-
               <div className="flex items-end gap-3 rounded-2xl border border-orange-100 bg-orange-50 p-3">
                 <textarea
                   value={composer}
-                  onChange={(event) => setComposer(event.target.value)}
+                  onChange={(e) => setComposer(e.target.value)}
                   onKeyDown={handleComposerKeyDown}
                   placeholder="Type your message and press Enter"
                   rows={2}
@@ -717,11 +715,7 @@ export default function Messages() {
                   disabled={sending || !composer.trim() || !activeConversationId}
                   className="inline-flex h-12 items-center gap-2 rounded-xl bg-orange-500 px-4 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {sending ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Send size={16} />
-                  )}
+                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                   Send
                 </button>
               </div>
@@ -730,6 +724,10 @@ export default function Messages() {
         </div>
 
       </section>
+
+      {/* ── New Conversation Modal ── */}
+      {showNewConversationModal && <NewConversationModal />}
+
     </div>
   );
 }
