@@ -40,6 +40,7 @@ import CompanyProfile from "./pages/company/Profile";
 import CandidateLayout from "./components/layout/CandidateLayout";
 import CandidateOverview from "./pages/candidate/Overview";
 import MyApplications from "./pages/candidate/MyApplications";
+import ApplicationDetail from "./pages/candidate/ApplicationDetail";
 import CandidateInterviews from "./pages/candidate/Interview";
 import CandidateMessages from "./pages/candidate/Messages";
 import Notification from "./pages/candidate/Notification";
@@ -234,7 +235,7 @@ const router = createBrowserRouter(
               path: "candidates/:id",
               element: <CandidateProfile />,
             },
-            
+
             {
               path: "tasks",
               element: <CompanyTasks />,
@@ -298,6 +299,10 @@ const router = createBrowserRouter(
             {
               path: "applications",
               element: <MyApplications />,
+            },
+            {
+              path: "applications/:id",
+              element: <ApplicationDetail />,
             },
 
             {

@@ -80,8 +80,27 @@ export const candidateApi = {
   },
 
   applyToJob: async (jobId) => {
-    const { data } = await api.post("/applications", { job_id: jobId });
-    return data;
+    const normalizedJobId = Number(jobId);
+
+    if (!Number.isInteger(normalizedJobId) || normalizedJobId < 1) {
+      throw new Error("Invalid job ID");
+    }
+
+    try {
+      const { data } = await api.post("/applications", {
+        job_id: normalizedJobId,
+      });
+      return data;
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to apply for job";
+      const normalizedError = new Error(message);
+      normalizedError.status = error?.response?.status;
+      normalizedError.payload = error?.response?.data || null;
+      throw normalizedError;
+    }
   },
 };
 

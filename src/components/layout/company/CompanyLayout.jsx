@@ -11,7 +11,7 @@ export default function CompanyLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-orange-50">
+    <div className="min-h-screen bg-white-100">
       <CompanySidebar />
       <CompanyTopbar onLogout={handleLogout} />
 

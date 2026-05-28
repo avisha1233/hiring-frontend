@@ -41,6 +41,54 @@ function getMessageList(payload) {
   return [];
 }
 
+function getPagedRows(response) {
+  const payload = response?.data?.data || response?.data || {};
+  const rows = payload?.data || payload?.rows || [];
+  const totalPage = Number(payload?.totalPage || payload?.total_page || 1);
+
+  return {
+    rows: Array.isArray(rows) ? rows : [],
+    totalPage: Number.isFinite(totalPage) && totalPage > 0 ? totalPage : 1,
+  };
+}
+
+function getCandidateName(candidate) {
+  return (
+    candidate?.full_name ||
+    candidate?.name ||
+    candidate?.user?.full_name ||
+    candidate?.user?.name ||
+    null
+  );
+}
+
+function getCandidateEmail(candidate) {
+  return candidate?.email || candidate?.user?.email || "";
+}
+
+async function loadAllCompanyCandidates() {
+  let page = 1;
+  let totalPage = 1;
+  const rows = [];
+
+  while (page <= totalPage) {
+    const response = await api.get("/company/candidates", {
+      params: { page, limit: 100 },
+    });
+    const pageData = getPagedRows(response);
+    rows.push(...pageData.rows);
+    totalPage = pageData.totalPage;
+
+    if (pageData.rows.length === 0) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return rows;
+}
+
 function formatMessageTime(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -114,25 +162,26 @@ function MessageSkeleton() {
 export default function Messages() {
   const authUser = getAuthUser();
 
-  const [companyId, setCompanyId]                       = useState(null);
-  const [conversations, setConversations]               = useState([]);
-  const [conversationMeta, setConversationMeta]         = useState({});
+  const [companyId, setCompanyId] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [conversationMeta, setConversationMeta] = useState({});
   const [activeConversationId, setActiveConversationId] = useState(null);
-  const [messages, setMessages]                         = useState([]);
-  const [senderNames, setSenderNames]                   = useState({});
-  const [composer, setComposer]                         = useState("");
-  const [bootLoading, setBootLoading]                   = useState(true);
-  const [messagesLoading, setMessagesLoading]           = useState(false);
-  const [sending, setSending]                           = useState(false);
-  const [error, setError]                               = useState("");
-  const [messageError, setMessageError]                 = useState("");
-  const bottomRef                                       = useRef(null);
+  const [messages, setMessages] = useState([]);
+  const [senderNames, setSenderNames] = useState({});
+  const [composer, setComposer] = useState("");
+  const [bootLoading, setBootLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [messageError, setMessageError] = useState("");
+  const bottomRef = useRef(null);
 
   // ── modal state ────────────────────────────────────────────────────────────
-  const [showNewConversationModal, setShowNewConversationModal] = useState(false);
-  const [allCandidates, setAllCandidates]                       = useState([]);    // full list loaded on mount
-  const [candidatesLoading, setCandidatesLoading]               = useState(false);
-  const [filterQuery, setFilterQuery]                           = useState("");    // local filter, no API call
+  const [showNewConversationModal, setShowNewConversationModal] =
+    useState(false);
+  const [allCandidates, setAllCandidates] = useState([]); // full list loaded on mount
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [filterQuery, setFilterQuery] = useState(""); // local filter, no API call
   // ──────────────────────────────────────────────────────────────────────────
 
   const activeConversation = conversations.find(
@@ -152,27 +201,24 @@ export default function Messages() {
     );
   });
 
-  // ── fetch ALL candidates once on mount ────────────────────────────────────
-  useEffect(() => {
-    async function loadAllCandidates() {
-      setCandidatesLoading(true);
-      try {
-        const res = await api.get("/users", { params: { role: "candidate" } });
-        setAllCandidates(getConversationList(res.data));
-      } catch {
-        setAllCandidates([]);
-      } finally {
-        setCandidatesLoading(false);
-      }
-    }
-    loadAllCandidates();
-  }, []);
-
   const resolveSenderName = (senderId) => {
     const numericSenderId = Number(senderId);
     if (Number(authUser?.id) === numericSenderId) {
       return authUser?.full_name || authUser?.name || "You";
     }
+
+    const candidate = allCandidates.find(
+      (row) => Number(row?.user_id || row?.user?.id) === numericSenderId,
+    );
+
+    if (candidate) {
+      return (
+        getCandidateName(candidate) ||
+        getCandidateEmail(candidate) ||
+        `User ${senderId}`
+      );
+    }
+
     return senderNames[numericSenderId] || `User ${senderId}`;
   };
 
@@ -187,19 +233,21 @@ export default function Messages() {
     const missingIds = uniqueSenderIds.filter((id) => !senderNames[id]);
     if (missingIds.length === 0) return;
 
-    const results = await Promise.allSettled(
-      missingIds.map((id) => api.get(`/users/${id}`)),
-    );
     const resolved = {};
-    results.forEach((result, index) => {
-      const id = missingIds[index];
-      if (result.status === "fulfilled") {
-        const user = unwrapObject(result.value.data);
-        resolved[id] = user?.full_name || user?.name || user?.email || `User ${id}`;
+    missingIds.forEach((id) => {
+      const candidate = allCandidates.find(
+        (row) => Number(row?.user_id || row?.user?.id) === id,
+      );
+      if (candidate) {
+        resolved[id] =
+          getCandidateName(candidate) ||
+          getCandidateEmail(candidate) ||
+          `User ${id}`;
       } else {
         resolved[id] = `User ${id}`;
       }
     });
+
     if (Object.keys(resolved).length > 0) {
       setSenderNames((prev) => ({ ...prev, ...resolved }));
     }
@@ -219,8 +267,8 @@ export default function Messages() {
       setBootLoading(true);
       setError("");
       try {
-        const profile           = await getCompanyProfile();
-        const company           = unwrapObject(profile);
+        const profile = await getCompanyProfile();
+        const company = unwrapObject(profile);
         const resolvedCompanyId = Number(
           company?.id || company?.company_id || authUser?.company_id,
         );
@@ -229,17 +277,31 @@ export default function Messages() {
 
         setCompanyId(resolvedCompanyId);
 
+        setCandidatesLoading(true);
+        const loadedCandidates = await loadAllCompanyCandidates();
+        if (cancelled) return;
+        setAllCandidates(loadedCandidates);
+        setCandidatesLoading(false);
+
         const conversationsResponse = await api.get("/conversations", {
           params: { company_id: resolvedCompanyId },
         });
-        const conversationList = getConversationList(conversationsResponse.data);
+        const conversationList = getConversationList(
+          conversationsResponse.data,
+        );
         if (cancelled) return;
         setConversations(conversationList);
 
+        const candidateById = new Map(
+          loadedCandidates.map((candidate) => [
+            Number(candidate.id),
+            candidate,
+          ]),
+        );
+
         const summaries = await Promise.all(
           conversationList.map(async (conversation) => {
-            const [candidateResult, latestMessageResult] = await Promise.allSettled([
-              api.get(`/users/${conversation.candidate_id}`),
+            const [latestMessageResult] = await Promise.allSettled([
               api.get("/messages", {
                 params: {
                   conversation_id: conversation.id,
@@ -251,9 +313,7 @@ export default function Messages() {
             ]);
 
             const candidate =
-              candidateResult.status === "fulfilled"
-                ? unwrapObject(candidateResult.value.data)
-                : {};
+              candidateById.get(Number(conversation.candidate_id)) || {};
             const latestMessages =
               latestMessageResult.status === "fulfilled"
                 ? getMessageList(latestMessageResult.value.data)
@@ -264,12 +324,13 @@ export default function Messages() {
               conversation.id,
               {
                 candidateName:
-                  candidate?.full_name ||
-                  candidate?.name ||
+                  getCandidateName(candidate) ||
                   `Candidate ${conversation.candidate_id}`,
-                candidateAvatar: candidate?.avatar_url || "",
+                candidateAvatar:
+                  candidate?.avatar_url || candidate?.user?.avatar_url || "",
                 preview: buildPreview(latestMessage, authUser?.id),
-                previewAt: latestMessage?.created_at || conversation.created_at || null,
+                previewAt:
+                  latestMessage?.created_at || conversation.created_at || null,
                 latestMessage,
               },
             ];
@@ -278,27 +339,41 @@ export default function Messages() {
 
         if (cancelled) return;
         const nextMeta = {};
-        summaries.forEach(([id, summary]) => { nextMeta[id] = summary; });
+        summaries.forEach(([id, summary]) => {
+          nextMeta[id] = summary;
+        });
         setConversationMeta(nextMeta);
 
         setActiveConversationId((prev) => {
-          if (prev && conversationList.some((c) => Number(c.id) === Number(prev))) return prev;
+          if (
+            prev &&
+            conversationList.some((c) => Number(c.id) === Number(prev))
+          )
+            return prev;
           return conversationList[0]?.id || null;
         });
       } catch (loadError) {
-        if (!cancelled) setError(loadError?.message || "Failed to load conversations.");
+        if (!cancelled)
+          setError(loadError?.message || "Failed to load conversations.");
       } finally {
+        if (!cancelled) setCandidatesLoading(false);
         if (!cancelled) setBootLoading(false);
       }
     }
 
     loadConversations();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [authUser?.id]);
 
   // ── load messages when active conversation changes ────────────────────────
   useEffect(() => {
-    if (!activeConversationId) { setMessages([]); setMessageError(""); return; }
+    if (!activeConversationId) {
+      setMessages([]);
+      setMessageError("");
+      return;
+    }
 
     let cancelled = false;
 
@@ -316,28 +391,39 @@ export default function Messages() {
         setMessages(messageList);
 
         const unreadIds = messageList
-          .filter((m) => !m.is_read && Number(m.sender_id) !== Number(authUser?.id))
+          .filter(
+            (m) => !m.is_read && Number(m.sender_id) !== Number(authUser?.id),
+          )
           .map((m) => m.id);
 
         if (unreadIds.length > 0) {
           await Promise.allSettled(
-            unreadIds.map((id) => api.patch(`/messages/${id}`, { is_read: true })),
+            unreadIds.map((id) =>
+              api.patch(`/messages/${id}`, { is_read: true }),
+            ),
           );
           if (cancelled) return;
           setMessages((prev) =>
-            prev.map((m) => unreadIds.includes(m.id) ? { ...m, is_read: true } : m),
+            prev.map((m) =>
+              unreadIds.includes(m.id) ? { ...m, is_read: true } : m,
+            ),
           );
         }
         await hydrateSenderNames(messageList);
       } catch (loadError) {
-        if (!cancelled) { setMessages([]); setMessageError(loadError?.message || "Failed to load messages."); }
+        if (!cancelled) {
+          setMessages([]);
+          setMessageError(loadError?.message || "Failed to load messages.");
+        }
       } finally {
         if (!cancelled) setMessagesLoading(false);
       }
     }
 
     loadMessages();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [activeConversationId, authUser?.id]);
 
   useEffect(() => {
@@ -363,10 +449,10 @@ export default function Messages() {
     try {
       const response = await api.post("/messages", {
         conversation_id: activeConversationId,
-        sender_id:       authUser?.id,
-        message_type:    "text",
+        sender_id: authUser?.id,
+        message_type: "text",
         content,
-        is_read:         false,
+        is_read: false,
       });
       const createdMessage = unwrapObject(response.data);
       setComposer("");
@@ -393,7 +479,7 @@ export default function Messages() {
   const handleSelectCandidate = async (candidate) => {
     try {
       const res = await api.post("/conversations", {
-        company_id:   companyId,
+        company_id: companyId,
         candidate_id: candidate.id,
       });
       const newConv = unwrapObject(res.data);
@@ -413,9 +499,10 @@ export default function Messages() {
   const NewConversationModal = () => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Select a Candidate</h2>
+          <h2 className="text-lg font-bold text-gray-900">
+            Select a Candidate
+          </h2>
           <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
             {allCandidates.length} candidates
           </span>
@@ -436,49 +523,62 @@ export default function Messages() {
           {candidatesLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 size={20} className="animate-spin text-orange-400" />
-              <span className="ml-2 text-sm text-gray-400">Loading candidates...</span>
+              <span className="ml-2 text-sm text-gray-400">
+                Loading candidates...
+              </span>
             </div>
           )}
 
           {!candidatesLoading && filteredCandidates.length === 0 && (
             <p className="py-6 text-center text-sm text-gray-400">
-              {filterQuery ? "No candidates match your filter." : "No candidates found."}
+              {filterQuery
+                ? "No candidates match your filter."
+                : "No candidates found."}
             </p>
           )}
 
-          {!candidatesLoading && filteredCandidates.map((candidate) => {
-            // highlight if already has a conversation
-            const alreadyExists = conversations.some(
-              (c) => Number(c.candidate_id) === Number(candidate.id),
-            );
+          {!candidatesLoading &&
+            filteredCandidates.map((candidate) => {
+              // highlight if already has a conversation
+              const alreadyExists = conversations.some(
+                (c) => Number(c.candidate_id) === Number(candidate.id),
+              );
 
-            return (
-              <button
-                key={candidate.id}
-                type="button"
-                onClick={() => handleSelectCandidate(candidate)}
-                className="flex w-full items-center gap-3 rounded-xl border border-orange-100 p-3 text-left transition hover:border-orange-300 hover:bg-orange-50"
-              >
-                <Avatar name={candidate.full_name || candidate.name} size="md" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-gray-900">
-                    {candidate.full_name || candidate.name}
-                  </p>
-                  <p className="truncate text-xs text-gray-500">{candidate.email}</p>
-                </div>
-                {alreadyExists && (
-                  <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
-                    Active
-                  </span>
-                )}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  onClick={() => handleSelectCandidate(candidate)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-orange-100 p-3 text-left transition hover:border-orange-300 hover:bg-orange-50"
+                >
+                  <Avatar
+                    name={candidate.full_name || candidate.name}
+                    size="md"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-gray-900">
+                      {getCandidateName(candidate)}
+                    </p>
+                    <p className="truncate text-xs text-gray-500">
+                      {getCandidateEmail(candidate)}
+                    </p>
+                  </div>
+                  {alreadyExists && (
+                    <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                      Active
+                    </span>
+                  )}
+                </button>
+              );
+            })}
         </div>
 
         <button
           type="button"
-          onClick={() => { setShowNewConversationModal(false); setFilterQuery(""); }}
+          onClick={() => {
+            setShowNewConversationModal(false);
+            setFilterQuery("");
+          }}
           className="mt-4 w-full rounded-xl border border-orange-200 py-2 text-sm text-gray-600 transition hover:bg-orange-50"
         >
           Cancel
@@ -509,7 +609,11 @@ export default function Messages() {
 
   if (error) {
     return (
-      <EmptyState title="Unable to load messages" message={error} icon={MessageCircle} />
+      <EmptyState
+        title="Unable to load messages"
+        message={error}
+        icon={MessageCircle}
+      />
     );
   }
 
@@ -519,7 +623,9 @@ export default function Messages() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-            <p className="text-sm text-gray-600">Keep conversations with candidates in one place.</p>
+            <p className="text-sm text-gray-600">
+              Keep conversations with candidates in one place.
+            </p>
           </div>
           <button
             type="button"
@@ -545,11 +651,14 @@ export default function Messages() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          <p className="text-sm text-gray-600">Keep conversations with candidates in one place.</p>
+          <p className="text-sm text-gray-600">
+            Keep conversations with candidates in one place.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="rounded-full border border-orange-100 bg-white px-4 py-2 text-xs font-medium text-orange-700 shadow-sm">
-            {conversations.length} active conversation{conversations.length === 1 ? "" : "s"}
+            {conversations.length} active conversation
+            {conversations.length === 1 ? "" : "s"}
           </div>
           <button
             type="button"
@@ -562,7 +671,6 @@ export default function Messages() {
       </div>
 
       <section className="grid gap-4 xl:grid-cols-[360px,1fr]">
-
         {/* ── left panel: conversation list ── */}
         <aside className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
           <div className="border-b border-orange-100 bg-orange-50 px-4 py-3">
@@ -575,8 +683,9 @@ export default function Messages() {
           <div className="max-h-[calc(100vh-12rem)] overflow-y-auto p-3">
             <div className="space-y-2">
               {conversations.map((conversation) => {
-                const summary  = conversationMeta[conversation.id] || {};
-                const isActive = Number(conversation.id) === Number(activeConversationId);
+                const summary = conversationMeta[conversation.id] || {};
+                const isActive =
+                  Number(conversation.id) === Number(activeConversationId);
 
                 return (
                   <button
@@ -590,25 +699,37 @@ export default function Messages() {
                     }`}
                   >
                     <Avatar
-                      name={summary.candidateName || `Candidate ${conversation.candidate_id}`}
+                      name={
+                        summary.candidateName ||
+                        `Candidate ${conversation.candidate_id}`
+                      }
                       size="md"
                       className={isActive ? "ring-2 ring-white" : ""}
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className={`truncate text-sm font-semibold ${isActive ? "text-white" : "text-gray-900"}`}>
-                            {summary.candidateName || `Candidate ${conversation.candidate_id}`}
+                          <p
+                            className={`truncate text-sm font-semibold ${isActive ? "text-white" : "text-gray-900"}`}
+                          >
+                            {summary.candidateName ||
+                              `Candidate ${conversation.candidate_id}`}
                           </p>
-                          <p className={`mt-0.5 line-clamp-1 text-xs ${isActive ? "text-orange-50" : "text-gray-500"}`}>
+                          <p
+                            className={`mt-0.5 line-clamp-1 text-xs ${isActive ? "text-orange-50" : "text-gray-500"}`}
+                          >
                             {summary.preview || "No messages yet"}
                           </p>
                         </div>
-                        <span className={`shrink-0 text-[11px] ${isActive ? "text-orange-50" : "text-gray-400"}`}>
+                        <span
+                          className={`shrink-0 text-[11px] ${isActive ? "text-orange-50" : "text-gray-400"}`}
+                        >
                           {summary.previewAt ? timeAgo(summary.previewAt) : "-"}
                         </span>
                       </div>
-                      <div className={`mt-2 flex items-center gap-2 text-[11px] ${isActive ? "text-orange-50" : "text-gray-500"}`}>
+                      <div
+                        className={`mt-2 flex items-center gap-2 text-[11px] ${isActive ? "text-orange-50" : "text-gray-500"}`}
+                      >
                         <Clock size={12} />
                         <span>
                           {summary.latestMessage?.created_at
@@ -629,12 +750,16 @@ export default function Messages() {
           <div className="flex items-center justify-between border-b border-orange-100 bg-gradient-to-r from-orange-50 to-white px-5 py-4">
             <div className="flex items-center gap-3">
               <Avatar
-                name={activeSummary.candidateName || `Candidate ${activeConversation?.candidate_id}`}
+                name={
+                  activeSummary.candidateName ||
+                  `Candidate ${activeConversation?.candidate_id}`
+                }
                 size="md"
               />
               <div>
                 <p className="text-sm font-semibold text-gray-900">
-                  {activeSummary.candidateName || `Candidate ${activeConversation?.candidate_id}`}
+                  {activeSummary.candidateName ||
+                    `Candidate ${activeConversation?.candidate_id}`}
                 </p>
                 <p className="text-xs text-gray-500">
                   {activeSummary.latestMessage?.created_at
@@ -654,7 +779,11 @@ export default function Messages() {
                 <MessageSkeleton />
               ) : messageError ? (
                 <div className="flex h-full items-center justify-center">
-                  <EmptyState title="Unable to load chat" message={messageError} icon={MessageCircle} />
+                  <EmptyState
+                    title="Unable to load chat"
+                    message={messageError}
+                    icon={MessageCircle}
+                  />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex h-full items-center justify-center">
@@ -667,21 +796,35 @@ export default function Messages() {
               ) : (
                 <div className="space-y-4">
                   {messages.map((message) => {
-                    const isMine    = Number(message.sender_id) === Number(authUser?.id);
+                    const isMine =
+                      Number(message.sender_id) === Number(authUser?.id);
                     const senderName = resolveSenderName(message.sender_id);
                     return (
-                      <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[78%] ${isMine ? "items-end" : "items-start"}`}>
-                          <div className={`rounded-3xl px-4 py-3 shadow-sm ${
-                            isMine
-                              ? "bg-orange-500 text-white"
-                              : "border border-orange-100 bg-white text-gray-800"
-                          }`}>
-                            <p className="whitespace-pre-wrap text-sm leading-6">{message.content}</p>
+                      <div
+                        key={message.id}
+                        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[78%] ${isMine ? "items-end" : "items-start"}`}
+                        >
+                          <div
+                            className={`rounded-3xl px-4 py-3 shadow-sm ${
+                              isMine
+                                ? "bg-orange-500 text-white"
+                                : "border border-orange-100 bg-white text-gray-800"
+                            }`}
+                          >
+                            <p className="whitespace-pre-wrap text-sm leading-6">
+                              {message.content}
+                            </p>
                           </div>
-                          <div className={`mt-1 flex items-center gap-2 text-[11px] ${
-                            isMine ? "justify-end text-orange-700" : "text-gray-500"
-                          }`}>
+                          <div
+                            className={`mt-1 flex items-center gap-2 text-[11px] ${
+                              isMine
+                                ? "justify-end text-orange-700"
+                                : "text-gray-500"
+                            }`}
+                          >
                             <span className="font-semibold">{senderName}</span>
                             <span>•</span>
                             <span>{formatMessageTime(message.created_at)}</span>
@@ -712,22 +855,26 @@ export default function Messages() {
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={sending || !composer.trim() || !activeConversationId}
+                  disabled={
+                    sending || !composer.trim() || !activeConversationId
+                  }
                   className="inline-flex h-12 items-center gap-2 rounded-xl bg-orange-500 px-4 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {sending ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Send size={16} />
+                  )}
                   Send
                 </button>
               </div>
             </div>
           </div>
         </div>
-
       </section>
 
       {/* ── New Conversation Modal ── */}
       {showNewConversationModal && <NewConversationModal />}
-
     </div>
   );
 }

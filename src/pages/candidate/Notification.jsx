@@ -8,6 +8,7 @@ import {
   Star,
 } from "lucide-react";
 import { api } from "../../services/api";
+import { getAuthUser } from "../../lib/auth";
 
 // figure out which icon to show based on notification type
 function getIcon(type) {
@@ -179,15 +180,15 @@ export default function Notifications() {
   const [error, setError] = useState(null);
   const [markingAll, setMarkingAll] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const candidateId = user?.id;
+  const user = getAuthUser();
+  const candidateId = user?.id ?? user?.user_id ?? user?._id;
 
   async function loadNotifications() {
     setLoading(true);
     setError(null);
     try {
       const res = await api.get(`/notifications?user_id=${candidateId}`);
-      setNotifications(res.data || []);
+      setNotifications(res.data?.data || []);
     } catch (err) {
       setError("Could not load notifications. Please try again.");
     } finally {
@@ -196,7 +197,13 @@ export default function Notifications() {
   }
 
   useEffect(() => {
-    if (candidateId) loadNotifications();
+    if (!candidateId) {
+      setLoading(false);
+      setError("Could not determine your account ID. Please sign in again.");
+      return;
+    }
+
+    loadNotifications();
   }, [candidateId]);
 
   async function markOneRead(id) {

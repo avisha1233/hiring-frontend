@@ -326,7 +326,7 @@ export default function Candidates() {
                     <td className="px-4 py-3 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <MapPin size={14} className="text-gray-400" />
-                        {location}
+                        {loc}
                       </div>
                     </td>
 

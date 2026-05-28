@@ -22,6 +22,15 @@ const TABS = [
   { value: "rejected", label: "Rejected" },
 ];
 
+const resolveCandidateName = (row) =>
+  [row.candidate?.first_name, row.candidate?.last_name]
+    .filter(Boolean)
+    .join(" ") ||
+  row.candidate?.name ||
+  row.candidate?.full_name ||
+  row.candidate_name ||
+  `Candidate #${row.candidate_id}`;
+
 export default function Applications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -93,10 +102,7 @@ export default function Applications() {
       render: (row) => (
         <div>
           <div className="font-medium text-gray-900">
-            {row.candidate?.full_name ||
-              row.candidate?.name ||
-              row.candidate_name ||
-              `Candidate #${row.candidate_id}`}
+            {resolveCandidateName(row)}
           </div>
           <div className="text-xs text-gray-500">
             {row.candidate?.email || ""}
@@ -121,7 +127,7 @@ export default function Applications() {
     {
       key: "applied_on",
       label: "Applied On",
-      render: (row) => formatDate(row.created_at),
+      render: (row) => formatDate(row.applied_at || row.created_at),
     },
     {
       key: "status",

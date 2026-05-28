@@ -44,7 +44,7 @@ export default function CandidateTopbar({ onLogout }) {
           </div>
 
           <button
-            onClick={() => navigate("/settings")}
+            onClick={() => navigate("/candidate/settings")}
             className="rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100"
           >
             <Settings size={20} />

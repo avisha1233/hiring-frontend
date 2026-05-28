@@ -81,10 +81,15 @@ function resolveBio(c) {
   return raw ? safeStr(raw) : null;
 }
 
-function normalizeListResponse(response) {
-  return (
-    response?.data?.data?.data || response?.data?.data || response?.data || []
-  );
+function normalizePagedCandidates(response) {
+  const payload = response?.data?.data || response?.data || {};
+  const rows = payload?.data || payload?.rows || [];
+  const totalPage = Number(payload?.totalPage || payload?.total_page || 1);
+
+  return {
+    rows: Array.isArray(rows) ? rows : [],
+    totalPage: Number.isFinite(totalPage) && totalPage > 0 ? totalPage : 1,
+  };
 }
 
 export default function CandidateProfile() {
@@ -107,24 +112,31 @@ export default function CandidateProfile() {
         return;
       }
 
-      const companyRes = await api.get("/company/candidates", {
-        params: { page: 1, limit: 100 },
-      });
-      const companyCandidates = normalizeListResponse(companyRes);
-      const matchedCandidate = Array.isArray(companyCandidates)
-        ? companyCandidates.find(
-            (candidate) => String(candidate?.id) === String(id),
-          )
-        : null;
+      let page = 1;
+      let totalPage = 1;
 
-      if (matchedCandidate) {
-        setCandidate(matchedCandidate);
-        return;
+      while (page <= totalPage) {
+        const companyRes = await api.get("/company/candidates", {
+          params: { page, limit: 100 },
+        });
+
+        const { rows, totalPage: reportedTotalPage } =
+          normalizePagedCandidates(companyRes);
+        totalPage = reportedTotalPage;
+
+        const matchedCandidate = rows.find(
+          (candidate) => String(candidate?.id) === String(id),
+        );
+
+        if (matchedCandidate) {
+          setCandidate(matchedCandidate);
+          return;
+        }
+
+        page += 1;
       }
 
-      const res = await api.get(`/candidates/${id}`);
-      const data = res?.data?.data || res?.data || res;
-      setCandidate(data);
+      setError("Candidate profile is no longer available");
     } catch (err) {
       console.error(err);
       setError(err.message || "Failed to load candidate profile");
