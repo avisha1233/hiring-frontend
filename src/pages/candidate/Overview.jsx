@@ -3,29 +3,20 @@ import MetricCard from "../../components/shared/MetricCard";
 import StatusBadge from "../../components/shared/StatusBadge";
 import EmptyState from "../../components/shared/EmptyState";
 import { candidateApi } from "@/apis/candidate";
-import { api } from "@/services/api";
 import { getAuthUser } from "@/lib/auth";
-import {
-  Users,
-  CalendarDays,
-  CheckSquare,
-  FileText,
-  Clock,
-} from "lucide-react";
+import { Users, CalendarDays, FileText, Clock } from "lucide-react";
 
 export default function Overview() {
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState([]);
   const [interviews, setInterviews] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
 
   const user = getAuthUser();
   const userId = user?.id;
 
   const toArray = (value) => {
     if (Array.isArray(value)) return value;
-    if (Array.isArray(value?.submissions)) return value.submissions;
     if (Array.isArray(value?.data)) return value.data;
     return [];
   };
@@ -36,11 +27,10 @@ export default function Overview() {
     async function load() {
       setLoading(true);
       try {
-        const [appsRes, interviewsRes, tasksRes, subsRes] = await Promise.all([
+        const [appsRes, interviewsRes, tasksRes] = await Promise.all([
           candidateApi.getApplications({ candidate_id: userId }),
           candidateApi.getInterviews({ candidate_id: userId }),
           candidateApi.getTasks({ candidate_id: userId }),
-          api.get(`/submissions`, { params: { user_id: userId } }),
         ]);
 
         if (!mounted) return;
@@ -48,7 +38,6 @@ export default function Overview() {
         setApplications(toArray(appsRes.data || appsRes));
         setInterviews(toArray(interviewsRes.data || interviewsRes));
         setTasks(toArray(tasksRes.data || tasksRes));
-        setSubmissions(toArray(subsRes.data || subsRes));
       } catch (err) {
         console.error(err);
       } finally {
@@ -67,8 +56,9 @@ export default function Overview() {
   const upcomingInterviews = interviews.filter(
     (i) => new Date(i.date) > new Date(),
   );
-  const pendingTasks = tasks.filter((t) => t.status !== "done");
-  const totalSubmissions = submissions.length;
+  const pendingTasks = tasks.filter((task) =>
+    ["todo", "in_progress"].includes(String(task.status || "").toLowerCase()),
+  );
 
   // pipeline grouping by status
   const pipeline = applications.reduce((acc, app) => {
@@ -106,26 +96,26 @@ export default function Overview() {
           value={upcomingInterviews.length}
           icon={CalendarDays}
         />
-        <MetricCard
-          title="Pending Tasks"
-          value={pendingTasks.length}
-          icon={CheckSquare}
-        />
-        <MetricCard title="Submissions" value={totalSubmissions} icon={Users} />
+        <MetricCard title="Profile Views" value={0} icon={Users} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-orange-100 bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-600">Pipeline</h3>
+          <h3 className="text-sm font-medium text-gray-600">
+            Application Pipeline
+          </h3>
           <div className="mt-4 space-y-2">
             {Object.keys(pipeline).length === 0 && (
-              <p className="text-sm text-gray-500">No applications yet</p>
+              <EmptyState
+                title="No applications yet"
+                message="Your application stages will appear here"
+              />
             )}
             {Object.entries(pipeline).map(([status, count]) => (
               <div key={status} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <StatusBadge status={status} />
-                  <p className="text-sm text-gray-700">{status}</p>
+                  <p className="text-sm text-gray-700 capitalize">{status}</p>
                 </div>
                 <p className="text-sm font-semibold text-gray-900">{count}</p>
               </div>
@@ -144,9 +134,6 @@ export default function Overview() {
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
                     {new Date(nextInterview.date).toLocaleString()}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {nextInterview.location || ""}
                   </p>
                 </div>
                 <div className="text-orange-600">
@@ -168,14 +155,16 @@ export default function Overview() {
             {pendingTasks.length === 0 && (
               <p className="text-sm text-gray-500">No pending tasks</p>
             )}
-            {pendingTasks.slice(0, 5).map((t) => (
-              <div key={t.id} className="flex items-center justify-between">
+            {pendingTasks.slice(0, 5).map((task) => (
+              <div key={task.id} className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{t.title}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {task.title}
+                  </p>
                   <p className="text-xs text-gray-500">
                     Due:{" "}
-                    {t.due_date
-                      ? new Date(t.due_date).toLocaleDateString()
+                    {task.deadline
+                      ? new Date(task.deadline).toLocaleDateString()
                       : "—"}
                   </p>
                 </div>
@@ -191,14 +180,12 @@ export default function Overview() {
       <div className="rounded-xl border border-orange-100 bg-white p-6 shadow-sm">
         <h3 className="text-sm font-medium text-gray-600">Recent Activity</h3>
         <div className="mt-4 space-y-3">
-          {applications.length === 0 &&
-            submissions.length === 0 &&
-            interviews.length === 0 && (
-              <EmptyState
-                title="No recent activity"
-                message="You haven't taken any actions yet"
-              />
-            )}
+          {applications.length === 0 && interviews.length === 0 && (
+            <EmptyState
+              title="No recent activity"
+              message="You haven't taken any actions yet"
+            />
+          )}
 
           {applications.slice(0, 5).map((a) => (
             <div
@@ -216,23 +203,6 @@ export default function Overview() {
                 </p>
               </div>
               <StatusBadge status={a.status} />
-            </div>
-          ))}
-
-          {submissions.slice(0, 5).map((s) => (
-            <div
-              key={`sub-${s.id}`}
-              className="flex items-center justify-between"
-            >
-              <div>
-                <p className="text-sm text-gray-800">
-                  Submitted {s.type || "file"}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {new Date(s.created_at).toLocaleString()}
-                </p>
-              </div>
-              <FileText className="text-orange-600" />
             </div>
           ))}
 

@@ -16,7 +16,6 @@ import Jobs from "./pages/admin/Jobs";
 import Skills from "./pages/admin/Skills";
 import Applications from "./pages/admin/Applications";
 import Interviews from "./pages/admin/Interviews";
-import Submissions from "./pages/admin/Submissions";
 import Notifications from "./pages/admin/Notifications";
 import Files from "./pages/admin/Files";
 import Messages from "./pages/admin/Messages";
@@ -31,9 +30,7 @@ import CompanyJobs from "./pages/company/Jobs";
 import CompanyApplications from "./pages/company/Applications";
 import CompanyCandidates from "./pages/company/Candidates";
 import CandidateProfile from "./pages/company/CandidateProfile";
-import CompanyTasks from "./pages/company/Tasks";
 import CompanyInterviews from "./pages/company/Interviews";
-import CompanySubmissions from "./pages/company/Submissions";
 import CompanyMessages from "./pages/company/Messages";
 import CompanyProfile from "./pages/company/Profile";
 
@@ -172,10 +169,6 @@ const router = createBrowserRouter(
               element: <Interviews />,
             },
             {
-              path: "submissions",
-              element: <Submissions />,
-            },
-            {
               path: "notifications",
               element: <Notifications />,
             },
@@ -235,18 +228,9 @@ const router = createBrowserRouter(
               path: "candidates/:id",
               element: <CandidateProfile />,
             },
-
-            {
-              path: "tasks",
-              element: <CompanyTasks />,
-            },
             {
               path: "interviews",
               element: <CompanyInterviews />,
-            },
-            {
-              path: "submissions",
-              element: <CompanySubmissions />,
             },
             {
               path: "messages",

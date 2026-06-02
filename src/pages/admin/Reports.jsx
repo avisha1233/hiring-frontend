@@ -52,7 +52,13 @@ export default function Reports() {
       const res = await reportService.getReport(activeTab, params);
       setData(res.data);
     } catch (err) {
-      setError(err.message);
+
+  const status = err.response?.status?? err?.status;
+      if (status === 403 || err.message?.includes("404")) {
+        setData(null);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

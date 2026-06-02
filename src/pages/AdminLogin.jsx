@@ -31,7 +31,7 @@ export default function AdminLogin() {
         password: form.password,
       });
 
-      const data = payload?.data || payload || {};
+       const data = payload?.data || payload || {};
 
       if (data?.user?.role !== "admin") {
         setError("This page is reserved for admin accounts.");

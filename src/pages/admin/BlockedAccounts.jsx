@@ -38,10 +38,15 @@ export default function BlockedAccounts() {
   const fetchBlockedAccounts = async () => {
     try {
       setLoading(true);
+      setError(null);
       const [usersRes, companiesRes] = await Promise.all([
-        userService.getUsers({ status: "blocked" }),
-        companyService.getCompanies({ status: "blocked" }),
+        userService.getUsers(),
+        companyService.getCompanies(),
       ]);
+
+      const allUsers = usersRes?.data?.data || usersRes?.data || [];
+      const allCompanies = companiesRes?.data?.data || companiesRes?.data || [];
+ 
 
       const accounts = [
         ...(usersRes.data.data || []).map((u) => ({ ...u, type: "user" })),

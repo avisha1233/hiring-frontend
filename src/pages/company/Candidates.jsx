@@ -1,7 +1,7 @@
 // src/pages/company/Candidates.jsx
 
 import { useState, useEffect } from "react";
-import { MapPin, Briefcase, Clock, User } from "lucide-react";
+import { MapPin, Briefcase, Clock } from "lucide-react";
 import SearchInput from "../../components/shared/SearchInput";
 import FilterTabs from "../../components/shared/FilterTabs";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
@@ -9,76 +9,78 @@ import ErrorState from "../../components/shared/ErrorState";
 import EmptyState from "../../components/shared/EmptyState";
 import Pagination from "../../components/shared/Pagination";
 import { useDebounce, usePagination } from "../../hooks";
-import { getCompanyProfile } from "@/apis/company";
-import { api } from "../../services/api";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../api/axios"; // ← the axios instance that all other pages use
 
-// ── experience level filter tabs — same shape as BrowseJobs STATUS_TABS ──────
 const EXPERIENCE_TABS = [
-  { value: "all", label: "All" },
-  { value: "0-1", label: "0–1 yrs" },
-  { value: "1-3", label: "1–3 yrs" },
-  { value: "3-5", label: "3–5 yrs" },
-  { value: "5+", label: "5+ yrs" },
+  { value: "all",  label: "All"      },
+  { value: "0-1",  label: "0–1 yrs"  },
+  { value: "1-3",  label: "1–3 yrs"  },
+  { value: "3-5",  label: "3–5 yrs"  },
+  { value: "5+",   label: "5+ yrs"   },
 ];
 
-// ── availability filter — mirrors the level <select> in BrowseJobs ────────────
 const NOTICE_OPTIONS = [
   { value: "all", label: "Any notice period" },
-  { value: "0", label: "Immediate" },
-  { value: "30", label: "≤ 30 days" },
-  { value: "60", label: "≤ 60 days" },
-  { value: "90", label: "≤ 90 days" },
+  { value: "0",   label: "Immediate"          },
+  { value: "30",  label: "≤ 30 days"          },
+  { value: "60",  label: "≤ 60 days"          },
+  { value: "90",  label: "≤ 90 days"          },
 ];
 
-// ── resolve name from any API shape ──────────────────────────────────────────
-function resolveName(c) {
-  return (
-    c?.user?.full_name ||
-    c?.user?.name ||
-    c?.full_name ||
-    c?.name ||
-    c?.candidate?.full_name ||
-    c?.candidate?.name ||
-    null // will show avatar initials fallback below
-  );
+// ── name: the candidate row has user_id but the user object may or may not
+//    be included depending on which endpoint we hit.
+//    we pass the userMap (loaded separately) as a fallback.
+function resolveName(c, userMap = {}) {
+  // best case: user object already included in the candidate row
+  const fromUser =
+    c?.user?.full_name || c?.user?.name ||
+    c?.full_name       || c?.name       ||
+    c?.candidate?.full_name || c?.candidate?.name;
+
+  if (fromUser) return fromUser;
+
+  // fallback: look up in the users map by user_id
+  const user = userMap[c?.user_id];
+  return user?.full_name || user?.name || null;
 }
 
-// ── resolve email ─────────────────────────────────────────────────────────────
-function resolveEmail(c) {
-  return c?.user?.email || c?.email || c?.candidate?.email || "";
+function resolveEmail(c, userMap = {}) {
+  const fromUser = c?.user?.email || c?.email || c?.candidate?.email;
+  if (fromUser) return fromUser;
+  const user = userMap[c?.user_id];
+  return user?.email || "";
 }
 
-// ── resolve skills from any API shape ────────────────────────────────────────
+// skills: /company/candidates returns CandidateSkills where each item has
+// a nested Skill object → { skill_id, level, Skill: { name } }
+// but we also handle flat string arrays and other shapes just in case
 function resolveSkills(c) {
-  const raw = c?.skills || c?.candidate_skills || c?.user?.skills || [];
+  const raw =
+    c?.CandidateSkills ||   // /company/candidates shape
+    c?.candidate_skills ||  // alternative key
+    c?.skills ||            // flat array shape
+    c?.user?.skills ||
+    [];
 
   return raw
     .slice(0, 4)
     .map((s) => {
       if (typeof s === "string") return s;
-      return s?.skill?.name || s?.name || s?.skill || s?.title || null;
+      // { Skill: { name: "React" }, level: "advanced" }
+      if (s?.Skill?.name) return s.Skill.name;
+      // { skill: { name: "React" } }
+      if (s?.skill?.name) return s.skill.name;
+      // { name: "React" }
+      if (s?.name) return s.name;
+      return null;
     })
     .filter(Boolean);
 }
 
-function safeStr(value, fallback = "") {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
-  if (typeof value === "object") {
-    return value.city && value.country
-      ? `${value.city}, ${value.country}`
-      : value.city || value.country || value.name || value.label || fallback;
-  }
-  return fallback;
-}
-
-// ── initials avatar ───────────────────────────────────────────────────────────
-function Initials({ name, id }) {
-  const display = name || `C${id}`;
-  const letters = display
+// small initials avatar — same style as rest of app
+function InitialsAvatar({ name }) {
+  const letters = (name || "?")
     .split(" ")
     .map((w) => w[0])
     .join("")
@@ -93,79 +95,102 @@ function Initials({ name, id }) {
 }
 
 export default function Candidates() {
-  const location = useLocation();
-  const [candidates, setCandidates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState(
-    new URLSearchParams(location.search).get("search") || "",
-  );
-  const debouncedSearch = useDebounce(search, 300);
-  const [expFilter, setExpFilter] = useState("all");
-  const [noticeFilter, setNoticeFilter] = useState("all");
-  const { page, pageSize, goToPage } = usePagination();
-  const navigate = useNavigate();
+  const location  = useLocation();
+  const navigate  = useNavigate();
 
-  // ── fetch candidates from the real API ─────────────────────────────────────
-  const fetchData = async () => {
+  const [candidates, setCandidates] = useState([]);
+  const [userMap, setUserMap]       = useState({}); // id → user object
+  const [total, setTotal]           = useState(0);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(null);
+  const [expFilter, setExpFilter]   = useState("all");
+  const [noticeFilter, setNoticeFilter] = useState("all");
+
+  const [search, setSearch] = useState(
+    new URLSearchParams(location.search).get("search") || ""
+  );
+  const debouncedSearch   = useDebounce(search, 300);
+  const { page, pageSize, goToPage } = usePagination();
+
+  // sync search from URL query string (e.g. from global search bar)
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get("search") || "";
+    setSearch(q);
+  }, [location.search]);
+
+  async function fetchData() {
     try {
       setLoading(true);
       setError(null);
 
-      const params = {
-        search: debouncedSearch || undefined,
-        page,
-        limit: pageSize,
-      };
+      // use /company/candidates — this endpoint includes CandidateSkills
+      // and returns candidates that have applied to this company's jobs
+      const res = await api.get("/company/candidates", {
+        params: {
+          search: debouncedSearch || undefined,
+          page,
+          limit: pageSize,
+        },
+      });
 
-      const res = await api.get("/candidates", { params });
-      const data = res?.data?.data || res?.data || res || [];
-      setCandidates(Array.isArray(data) ? data : []);
+      // response shape: { data: { data: [...], totalPage: N, total: N } }
+      const body  = res?.data?.data || res?.data || {};
+      const rows  = Array.isArray(body?.data)  ? body.data
+                  : Array.isArray(body?.rows)  ? body.rows
+                  : Array.isArray(body)        ? body
+                  : [];
+      const count = Number(body?.total || body?.totalCount || rows.length || 0);
+
+      setCandidates(rows);
+      setTotal(count);
+
+      // load users separately to fill in names that aren't in the candidate row
+      // (same pattern the admin Candidates page uses)
+      try {
+        const usersRes = await api.get("/users", { params: { limit: 500 } });
+        const userRows = usersRes?.data?.data?.data ||
+                         usersRes?.data?.data      ||
+                         usersRes?.data            || [];
+        const map = {};
+        if (Array.isArray(userRows)) {
+          userRows.forEach((u) => { map[u.id] = u; });
+        }
+        setUserMap(map);
+      } catch {
+        // non-fatal — names will still show if the candidate row includes user data
+      }
+
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to load candidates");
+      console.error("[Candidates]", err);
+      setError(err?.response?.data?.message || err.message || "Failed to load candidates");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, page]);
 
-  useEffect(() => {
-    const querySearch =
-      new URLSearchParams(location.search).get("search") || "";
-    setSearch(querySearch);
-  }, [location.search]);
-
-  // ── client-side experience + notice period filtering ───────────────────────
-  const filteredCandidates = candidates.filter((c) => {
-    // experience band filter
+  // client-side experience + notice period filter
+  const shown = candidates.filter((c) => {
     if (expFilter !== "all") {
       const exp = Number(c.experience ?? 0);
-      if (expFilter === "0-1" && !(exp >= 0 && exp < 1)) return false;
-      if (expFilter === "1-3" && !(exp >= 1 && exp < 3)) return false;
-      if (expFilter === "3-5" && !(exp >= 3 && exp < 5)) return false;
-      if (expFilter === "5+" && !(exp >= 5)) return false;
+      if (expFilter === "0-1" && !(exp >= 0 && exp < 1))  return false;
+      if (expFilter === "1-3" && !(exp >= 1 && exp < 3))  return false;
+      if (expFilter === "3-5" && !(exp >= 3 && exp < 5))  return false;
+      if (expFilter === "5+"  && !(exp >= 5))              return false;
     }
-
-    // notice period filter
     if (noticeFilter !== "all") {
       const np = Number(c.notice_period_days ?? 999);
-      if (noticeFilter === "0" && np !== 0) return false;
-      if (noticeFilter === "30" && np > 30) return false;
-      if (noticeFilter === "60" && np > 60) return false;
-      if (noticeFilter === "90" && np > 90) return false;
+      if (noticeFilter === "0"  && np !== 0)  return false;
+      if (noticeFilter === "30" && np > 30)   return false;
+      if (noticeFilter === "60" && np > 60)   return false;
+      if (noticeFilter === "90" && np > 90)   return false;
     }
-
     return true;
   });
 
-  // ── resolve skill tags from whatever shape the API returns ─────────────────
-
-  // ── error state — same as BrowseJobs ──────────────────────────────────────
   if (error) {
     return (
       <ErrorState
@@ -178,15 +203,13 @@ export default function Candidates() {
 
   return (
     <div className="space-y-4">
-      {/* ── page header — identical structure to BrowseJobs ── */}
+
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
-        <p className="text-sm text-gray-600">
-          Browse and discover available candidates
-        </p>
+        <p className="text-sm text-gray-600">Browse and discover available candidates</p>
       </div>
 
-      {/* ── search + notice period select — mirrors BrowseJobs filter bar ── */}
+      {/* search bar + notice period filter */}
       <div className="flex flex-wrap gap-4 rounded-lg border border-orange-100 bg-white p-4">
         <SearchInput
           value={search}
@@ -200,98 +223,53 @@ export default function Candidates() {
           className="rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
         >
           {NOTICE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
+            <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       </div>
 
-      {/* ── experience tabs — mirrors STATUS_TABS in BrowseJobs ── */}
-      <FilterTabs
-        tabs={EXPERIENCE_TABS}
-        active={expFilter}
-        onChange={setExpFilter}
-      />
+      {/* experience tabs */}
+      <FilterTabs tabs={EXPERIENCE_TABS} active={expFilter} onChange={setExpFilter} />
 
-      {/* ── table / loading / empty states — identical pattern ── */}
+      {/* table */}
       {loading ? (
         <LoadingSkeleton rows={5} columns={6} />
-      ) : filteredCandidates.length === 0 ? (
-        <EmptyState
-          title="No candidates found"
-          message="Try adjusting your search or filters"
-        />
+      ) : shown.length === 0 ? (
+        <EmptyState title="No candidates found" message="Try adjusting your search or filters" />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-orange-100 bg-white shadow-sm">
           <table className="w-full">
-            {/* thead — same classes as BrowseJobs */}
             <thead className="border-b border-orange-100 bg-orange-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Name
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Experience
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Skills
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Location
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Notice Period
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                  Action
-                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Experience</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Skills</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Location</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Notice Period</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Action</th>
               </tr>
             </thead>
-
-            {/* tbody — same row classes as BrowseJobs */}
             <tbody>
-              {filteredCandidates.map((candidate) => {
-                const name =
-                  resolveName(candidate) ?? `Candidate #${candidate.id}`;
-
-                //  FIX 2: use resolveEmail()
-                const email = resolveEmail(candidate);
-
-                const exp = candidate.experience ?? 0;
-                const loc = candidate.location || "Not specified";
-                const notice =
-                  candidate.notice_period_days != null
-                    ? candidate.notice_period_days === 0
-                      ? "Immediate"
-                      : `${candidate.notice_period_days} days`
-                    : "-";
-
-                //  FIX 3: use resolveSkills() instead of undefined getSkills()
-                const skills = resolveSkills(candidate);
+              {shown.map((c) => {
+                const name   = resolveName(c, userMap) ?? `Candidate #${c.id}`;
+                const email  = resolveEmail(c, userMap);
+                const skills = resolveSkills(c);
+                const exp    = Number(c.experience ?? 0);
+                const loc    = c.location || "Not specified";
+                const notice = c.notice_period_days != null
+                  ? c.notice_period_days === 0 ? "Immediate" : `${c.notice_period_days} days`
+                  : "–";
 
                 return (
-                  <tr
-                    key={candidate.id}
-                    className="border-b border-orange-50 hover:bg-orange-50"
-                  >
+                  <tr key={c.id} className="border-b border-orange-50 hover:bg-orange-50">
+
                     {/* name + email */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {/* initials avatar — mirrors how candidate pages show people */}
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-semibold text-orange-700">
-                          {name
-                            .split(" ")
-                            .map((w) => w[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </div>
+                        <InitialsAvatar name={name} />
                         <div>
                           <p className="font-medium text-gray-900">{name}</p>
-                          {email && (
-                            <p className="text-xs text-gray-500">{email}</p>
-                          )}
+                          {email && <p className="text-xs text-gray-500">{email}</p>}
                         </div>
                       </div>
                     </td>
@@ -304,7 +282,7 @@ export default function Candidates() {
                       </div>
                     </td>
 
-                    {/* skills tags — same pill style as job level in BrowseJobs */}
+                    {/* skills */}
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {skills.length === 0 ? (
@@ -338,19 +316,18 @@ export default function Candidates() {
                       </div>
                     </td>
 
-                    {/* action — View Profile button, same alignment as BrowseJobs */}
+                    {/* action */}
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() =>
-                          navigate(`/company/candidates/${candidate.id}`, {
-                            state: { candidate },
-                          })
+                          navigate(`/company/candidates/${c.id}`, { state: { candidate: c } })
                         }
                         className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-orange-600"
                       >
                         View Profile
                       </button>
                     </td>
+
                   </tr>
                 );
               })}
@@ -359,15 +336,15 @@ export default function Candidates() {
         </div>
       )}
 
-      {/* ── pagination — identical to BrowseJobs ── */}
-      {!loading && filteredCandidates.length > 0 && (
+      {!loading && shown.length > 0 && (
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={filteredCandidates.length * 2}
+          total={total || shown.length}
           onPageChange={goToPage}
         />
       )}
+
     </div>
   );
 }

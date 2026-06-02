@@ -41,8 +41,8 @@ const HOW_IT_WORKS = [
   },
   {
     step: 4,
-    title: "Tasks are assigned and reviewed",
-    desc: "Companies assign practical tasks to shortlisted candidates. Candidates submit their work and receive scores and feedback.",
+    title: "Hiring stays collaborative",
+    desc: "Companies and candidates stay aligned with clear steps, feedback, and interview updates inside the platform.",
   },
   {
     step: 5,
@@ -83,7 +83,7 @@ const FEATURES = [
     bg: "bg-violet-50",
     iconColor: "text-violet-600",
     title: "Task assessments",
-    desc: "Assign practical work tasks before interviews. Review submissions, give scores and send feedback all inside the platform.",
+    desc: "Keep candidate communication, screening, and interview scheduling in one place.",
   },
   {
     icon: MessageSquare,
@@ -112,10 +112,10 @@ function Navbar() {
     <nav className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b border-orange-100 bg-white px-8">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
-          
-        </div>
-        <span className="text-sm font-semibold text-gray-900">Smart Hiring </span>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white"></div>
+        <span className="text-sm font-semibold text-gray-900">
+          Smart Hiring{" "}
+        </span>
       </div>
 
       {/* Nav links */}
@@ -146,7 +146,7 @@ function Navbar() {
           onClick={() => navigate("/register")}
           className="bg-orange-500 text-white hover:bg-orange-600"
         >
-          Get started 
+          Get started
         </Button>
       </div>
     </nav>
@@ -160,21 +160,18 @@ function Hero() {
 
   return (
     <section className="border-b border-orange-100 bg-[radial-gradient(circle_at_top,_#fff7ed_0,_#fff_60%,_#fff_100%)] px-8 py-16 text-center">
-      
-
       {/* Title */}
       <h1 className="mb-3 text-4xl font-semibold leading-tight text-gray-900">
         The smarter way to
         <br />
-        hire and get{" "}
-        <span className="text-orange-500">hired.</span>
+        hire and get <span className="text-orange-500">hired.</span>
       </h1>
 
       {/* Subtitle */}
       <p className="mx-auto mb-8 max-w-lg text-sm leading-relaxed text-gray-500">
-        Smart Hiring connects companies with the right candidates through skill-based
-        profiles, structured hiring workflows, task assessments and seamless
-        communication — all in one platform.
+        Smart Hiring connects companies with the right candidates through
+        skill-based profiles, structured hiring workflows, task assessments and
+        seamless communication — all in one platform.
       </p>
 
       {/* Buttons */}
@@ -340,10 +337,10 @@ function Footer() {
     >
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500 text-white">
-      
-        </div>
-        <span className="text-sm font-semibold text-gray-900">Smart Hiring</span>
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500 text-white"></div>
+        <span className="text-sm font-semibold text-gray-900">
+          Smart Hiring
+        </span>
       </div>
 
       {/* Links */}

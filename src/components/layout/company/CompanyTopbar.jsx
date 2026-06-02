@@ -8,9 +8,7 @@ const TITLE_MAP = {
   "/company/jobs": "Job Postings",
   "/company/applications": "Applications",
   "/company/candidates": "Candidates",
-  "/company/tasks": "Tasks",
   "/company/interviews": "Interviews",
-  "/company/submissions": "Submissions",
   "/company/messages": "Messages",
   "/company/profile": "Company Profile",
 };
@@ -20,8 +18,6 @@ const SEARCH_TARGETS = {
   "/company/applications": "/company/candidates",
   "/company/candidates": "/company/candidates",
   "/company/jobs": "/company/jobs",
-  "/company/tasks": "/company/tasks",
-  "/company/submissions": "/company/submissions",
 };
 
 // fix — removed userName and userEmail from props

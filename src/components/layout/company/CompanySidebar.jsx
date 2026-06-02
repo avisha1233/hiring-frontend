@@ -4,9 +4,7 @@ import {
   Briefcase,
   FileText,
   Users,
-  CheckSquare,
   CalendarDays,
-  Upload,
   MessageSquare,
   Settings,
 } from "lucide-react";
@@ -17,9 +15,7 @@ export default function CompanySidebar() {
     { label: "Job Postings", icon: Briefcase, to: "/company/jobs" },
     { label: "Applications", icon: FileText, to: "/company/applications" },
     { label: "Candidates", icon: Users, to: "/company/candidates" },
-    { label: "Tasks", icon: CheckSquare, to: "/company/tasks" },
     { label: "Interviews", icon: CalendarDays, to: "/company/interviews" },
-    { label: "Submissions", icon: Upload, to: "/company/submissions" },
     { label: "Messages", icon: MessageSquare, to: "/company/messages" },
     { label: "Company Profile", icon: Settings, to: "/company/profile" },
   ];

@@ -112,6 +112,13 @@ function normalizeJob(job, companyName) {
   };
 }
 
+function normalizeRows(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.data?.data)) return value.data.data;
+  return [];
+}
+
 export default function BrowseJobs() {
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
@@ -128,14 +135,14 @@ export default function BrowseJobs() {
     queryKey: ["candidate", "companies"],
     queryFn: async () => {
       const response = await getCompanies({ page: 1, limit: 200 });
-      return response?.data || response || [];
+      return response?.data?.data || response?.data || response || [];
     },
     staleTime: 60_000,
     retry: false,
   });
 
   const companyMap = useMemo(() => {
-    const rows = companiesQuery.data?.data || [];
+    const rows = normalizeRows(companiesQuery.data);
     const map = new Map();
 
     rows.forEach((company) => {
@@ -346,7 +353,6 @@ export default function BrowseJobs() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
-                        
                         {job.workTypeLabel}
                       </div>
                     </td>
