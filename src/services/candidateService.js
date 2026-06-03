@@ -1,10 +1,11 @@
-import api from '../api/axios';
+import api from "../api/axios";
 
-export const getCandidates = (params) => api.get('/candidates', { params });
+export const getCandidates = (params) => api.get("/candidates", { params });
 export const getCandidateById = (id) => api.get(`/candidates/${id}`);
-export const updateCandidate = (id, data) => api.patch(`/candidates/${id}`, data);
+export const updateCandidate = (id, data) =>
+  api.patch(`/candidates/${id}`, data);
 export const deleteCandidate = (id) => api.delete(`/candidates/${id}`);
 export const blockCandidate = (userId, reason) =>
-  api.patch(`/users/${userId}`, { status: 'blocked', block_reason: reason });
+  api.patch(`/users/${userId}`, { status: "inactive", block_reason: reason });
 export const unblockCandidate = (userId) =>
-  api.patch(`/users/${userId}`, { status: 'active' });
+  api.patch(`/users/${userId}`, { status: "active" });

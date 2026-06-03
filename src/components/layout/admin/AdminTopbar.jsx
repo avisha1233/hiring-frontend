@@ -1,10 +1,12 @@
-import {useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import { Bell, Settings, LogOut, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Avatar from "../../shared/Avatar";
 import { clearAuthSession } from "@/lib/auth";
 
 export default function AdminTopbar({ onLogout }) {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("authUser"));
@@ -20,12 +22,20 @@ export default function AdminTopbar({ onLogout }) {
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
+          <button
+            onClick={() => navigate("/admin/notifications")}
+            className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100"
+            title="Notifications"
+          >
             <Bell size={20} />
             <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500" />
           </button>
 
-          <button className="rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
+          <button
+            onClick={() => navigate("/admin/settings")}
+            className="rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100"
+            title="Settings"
+          >
             <Settings size={20} />
           </button>
 
@@ -33,7 +43,9 @@ export default function AdminTopbar({ onLogout }) {
 
           <div className="flex items-center gap-3">
             <div>
-              <p className="text-sm font-medium text-gray-900">{user?.name || "Admin"}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {user?.name || "Admin"}
+              </p>
               <p className="text-xs text-gray-500">{user?.email || "admin"}</p>
             </div>
             <Avatar name={user?.name || "Admin"} size="md" />

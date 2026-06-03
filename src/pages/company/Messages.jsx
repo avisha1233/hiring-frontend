@@ -30,6 +30,7 @@ function toObject(res) {
   return {};
 }
 
+
 // ─── candidate name ────────────────────────────────────────────────────────
 // /candidates        → { id, full_name, user_id, ... }       (full_name at top level)
 // /company/candidates → { id, user_id, user: { full_name } } (name inside user object)
@@ -75,12 +76,15 @@ async function fetchAllCandidates() {
       params: { page, limit: 100 },
     });
 
-    // axiosApi returns axios response — body is at res.data
-    const body  = res?.data?.data || res?.data || {};
-    const rows  = body?.data || body?.rows || [];
-    const total = Number(body?.totalPage || body?.total_page || 1);
+    // Backend returns: { data: [...], total, totalPage, currentPage, perPage }
+    // axiosApi wraps that in res.data, so:
+    //   res.data           = { data: [...], totalPage: N, ... }
+    //   res.data.data      = the actual candidate array
+    const body  = res?.data || {};
+    const rows  = Array.isArray(body?.data) ? body.data : [];
+    const total = Number(body?.totalPage ?? body?.total_page ?? 1);
 
-    if (Array.isArray(rows)) all.push(...rows);
+    if (rows.length) all.push(...rows);
     lastPage = Number.isFinite(total) && total > 0 ? total : 1;
     if (!rows.length) break;
     page++;
@@ -474,12 +478,7 @@ export default function Messages() {
   // ── start a new conversation ────────────────────────────────────────────
   async function startConversation(candidate) {
     try {
-      const jobId = jobs[0]?.id;
-      if (!jobId) {
-        alert("Please create a job posting first before starting a conversation.");
-        setShowModal(false);
-        return;
-      }
+      const jobId = jobs[0]?.id || null;
 
       const res  = await axiosApi.post("/conversations", {
         job_id:       jobId,

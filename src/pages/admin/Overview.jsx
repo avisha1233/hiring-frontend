@@ -363,11 +363,15 @@ export default function Overview() {
         <p className="mb-4 text-sm font-medium text-gray-900">
           Recent activity
         </p>
-        <div className="divide-y divide-orange-50">
-          {data.activities.slice(0, 15).map((activity, idx) => (
-            <ActivityRow key={idx} activity={activity} />
-          ))}
-        </div>
+        {data.activities.length === 0 ? (
+          <p className="text-sm text-gray-500">No recent activity yet.</p>
+        ) : (
+          <div className="divide-y divide-orange-50">
+            {data.activities.slice(0, 15).map((activity, idx) => (
+              <ActivityRow key={idx} activity={activity} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -393,19 +397,23 @@ function BarRow({ label, value, pct, color }) {
 }
 
 function ActivityRow({ activity }) {
-  // activity shape: { user_name, action, created_at }
-  // action is a plain string e.g. "was hired by TechCorp for Frontend Developer"
+  const actorName =
+    activity.user_name ||
+    activity.candidateName ||
+    activity.companyName ||
+    "System";
+  const actionText =
+    activity.action || activity.description || "Activity recorded";
+  const timestamp = activity.created_at || activity.timestamp;
+
   return (
     <div className="flex items-center gap-3 py-2.5">
-      <Avatar name={activity.user_name} />
+      <Avatar name={actorName} />
       <div className="min-w-0 flex-1">
         <p className="text-[13px] text-gray-800 leading-snug">
-          <span className="font-medium">{activity.user_name}</span>{" "}
-          {activity.action}
+          <span className="font-medium">{actorName}</span> {actionText}
         </p>
-        <p className="mt-0.5 text-[11px] text-gray-400">
-          {timeAgo(activity.created_at)}
-        </p>
+        <p className="mt-0.5 text-[11px] text-gray-400">{timeAgo(timestamp)}</p>
       </div>
     </div>
   );
