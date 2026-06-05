@@ -10,7 +10,6 @@ export default function Overview() {
   const [loading, setLoading] = useState(true);
   const [applications, setApplications] = useState([]);
   const [interviews, setInterviews] = useState([]);
-  const [tasks, setTasks] = useState([]);
 
   const user = getAuthUser();
   const userId = user?.id;
@@ -27,17 +26,15 @@ export default function Overview() {
     async function load() {
       setLoading(true);
       try {
-        const [appsRes, interviewsRes, tasksRes] = await Promise.all([
+        const [appsRes, interviewsRes] = await Promise.all([
           candidateApi.getApplications({ candidate_id: userId }),
           candidateApi.getInterviews({ candidate_id: userId }),
-          candidateApi.getTasks({ candidate_id: userId }),
         ]);
 
         if (!mounted) return;
 
         setApplications(toArray(appsRes.data || appsRes));
         setInterviews(toArray(interviewsRes.data || interviewsRes));
-        setTasks(toArray(tasksRes.data || tasksRes));
       } catch (err) {
         console.error(err);
       } finally {
@@ -54,10 +51,7 @@ export default function Overview() {
 
   const totalApplications = applications.length;
   const upcomingInterviews = interviews.filter(
-    (i) => new Date(i.date) > new Date(),
-  );
-  const pendingTasks = tasks.filter((task) =>
-    ["todo", "in_progress"].includes(String(task.status || "").toLowerCase()),
+    (i) => new Date(i.scheduled_at) > new Date(),
   );
 
   // pipeline grouping by status
@@ -67,14 +61,13 @@ export default function Overview() {
   }, {});
 
   const nextInterview = upcomingInterviews.sort(
-    (a, b) => new Date(a.date) - new Date(b.date),
+    (a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at),
   )[0];
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-orange-100 bg-white p-5 shadow-sm h-28 animate-pulse" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-xl border border-orange-100 bg-white p-5 shadow-sm h-28 animate-pulse" />
           <div className="rounded-xl border border-orange-100 bg-white p-5 shadow-sm h-28 animate-pulse" />
           <div className="rounded-xl border border-orange-100 bg-white p-5 shadow-sm h-28 animate-pulse" />
@@ -85,7 +78,7 @@ export default function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard
           title="Applications"
           value={totalApplications}
@@ -99,7 +92,7 @@ export default function Overview() {
         <MetricCard title="Profile Views" value={0} icon={Users} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-orange-100 bg-white p-6 shadow-sm">
           <h3 className="text-sm font-medium text-gray-600">
             Application Pipeline
@@ -133,7 +126,7 @@ export default function Overview() {
                     {nextInterview.title || "Interview"}
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
-                    {new Date(nextInterview.date).toLocaleString()}
+                    {new Date(nextInterview.scheduled_at).toLocaleString()}
                   </p>
                 </div>
                 <div className="text-orange-600">
@@ -146,33 +139,6 @@ export default function Overview() {
                 message="You're all clear for now"
               />
             )}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-orange-100 bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-600">Pending Tasks</h3>
-          <div className="mt-4 space-y-3">
-            {pendingTasks.length === 0 && (
-              <p className="text-sm text-gray-500">No pending tasks</p>
-            )}
-            {pendingTasks.slice(0, 5).map((task) => (
-              <div key={task.id} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {task.title}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Due:{" "}
-                    {task.deadline
-                      ? new Date(task.deadline).toLocaleDateString()
-                      : "—"}
-                  </p>
-                </div>
-                <div className="text-orange-600">
-                  <Clock size={18} />
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -216,7 +182,7 @@ export default function Overview() {
                   {i.title || "Interview"}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {new Date(i.date).toLocaleString()}
+                  {new Date(i.scheduled_at).toLocaleString()}
                 </p>
               </div>
               <CalendarDays className="text-orange-600" />

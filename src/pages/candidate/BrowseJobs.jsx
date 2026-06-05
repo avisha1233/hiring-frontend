@@ -280,7 +280,7 @@ export default function BrowseJobs() {
 
       {/* Table */}
       {loading ? (
-        <LoadingSkeleton rows={5} columns={6} />
+        <LoadingSkeleton rows={5} columns={9} />
       ) : filteredJobs.length === 0 ? (
         <EmptyState
           title="No jobs found"
@@ -308,6 +308,9 @@ export default function BrowseJobs() {
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                   Remote
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                  Match
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                   Status
@@ -355,6 +358,20 @@ export default function BrowseJobs() {
                       <div className="flex items-center gap-1">
                         {job.workTypeLabel}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {job.match_score !== undefined && job.match_score !== null ? (
+                        <span className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${
+                          job.match_score >= 85 ? 'bg-emerald-100 text-emerald-800' :
+                          job.match_score >= 70 ? 'bg-blue-100 text-blue-800' :
+                          job.match_score >= 50 ? 'bg-orange-100 text-orange-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {job.match_score}% Match
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={job.status}>

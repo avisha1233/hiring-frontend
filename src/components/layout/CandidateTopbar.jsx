@@ -24,24 +24,13 @@ export default function CandidateTopbar({ onLogout }) {
         </div>
         {/* right side */}
         <div className="flex items-center gap-3">
-
-        <div
-          className="relative"
-          onMouseEnter={() => setShowNotifications(true)}
-          onMouseLeave={() => setShowNotifications(false)}
-        >
-          
-            <button className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
-              <Bell size={20} />
-              <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500" />
-            </button>
-
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-64 rounded-md border bg-white shadow-lg p-3 z-50">
-                <p className="text-sm text-gray-600">No new notifications</p>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => navigate("/candidate/notifications")}
+            className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100"
+          >
+            <Bell size={20} />
+            <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500" />
+          </button>
 
           <button
             onClick={() => navigate("/candidate/settings")}
