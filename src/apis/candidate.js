@@ -102,6 +102,45 @@ export const candidateApi = {
       throw normalizedError;
     }
   },
+
+  getWork: async () => {
+    return { data: [] };
+  },
+  addWork: async (payload) => {
+    return { data: { id: Date.now(), ...payload } };
+  },
+  updateWork: async (id, payload) => {
+    return { data: { id, ...payload } };
+  },
+  deleteWork: async (id) => {
+    return { success: true };
+  },
+
+  getEdu: async () => {
+    return { data: [] };
+  },
+  addEdu: async (payload) => {
+    return { data: { id: Date.now(), ...payload } };
+  },
+  updateEdu: async (id, payload) => {
+    return { data: { id, ...payload } };
+  },
+  deleteEdu: async (id) => {
+    return { success: true };
+  },
+
+  getCerts: async () => {
+    return { data: [] };
+  },
+  addCert: async (payload) => {
+    return { data: { id: Date.now(), ...payload } };
+  },
+  updateCert: async (id, payload) => {
+    return { data: { id, ...payload } };
+  },
+  deleteCert: async (id) => {
+    return { success: true };
+  },
 };
 
 export const jobsApi = {

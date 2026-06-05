@@ -231,9 +231,8 @@ export default function Candidates() {
       {/* experience tabs */}
       <FilterTabs tabs={EXPERIENCE_TABS} active={expFilter} onChange={setExpFilter} />
 
-      {/* table */}
       {loading ? (
-        <LoadingSkeleton rows={5} columns={6} />
+        <LoadingSkeleton rows={5} columns={7} />
       ) : shown.length === 0 ? (
         <EmptyState title="No candidates found" message="Try adjusting your search or filters" />
       ) : (
@@ -242,6 +241,7 @@ export default function Candidates() {
             <thead className="border-b border-orange-100 bg-orange-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Match Score</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Experience</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Skills</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Location</th>
@@ -272,6 +272,50 @@ export default function Candidates() {
                           {email && <p className="text-xs text-gray-500">{email}</p>}
                         </div>
                       </div>
+                    </td>
+
+                    {/* match score */}
+                    <td className="px-4 py-3 text-sm">
+                      {c.match_score !== undefined && c.match_score !== null ? (
+                        <div className="group relative inline-flex items-center">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            c.match_score >= 85 ? 'bg-emerald-100 text-emerald-800' :
+                            c.match_score >= 70 ? 'bg-blue-100 text-blue-800' :
+                            c.match_score >= 50 ? 'bg-orange-100 text-orange-800' :
+                            'bg-rose-100 text-rose-800'
+                          }`}>
+                            {c.match_score}% Match
+                          </span>
+                          
+                          {/* Breakdown Tooltip */}
+                          {c.match_breakdown && (
+                            <div className="invisible absolute bottom-full left-1/2 z-10 mb-2 w-48 -translate-x-1/2 rounded bg-gray-900 p-3 text-xs text-white opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                              <p className="font-semibold border-b border-gray-700 pb-1 mb-2">Score Breakdown</p>
+                              <div className="space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Skills Fit:</span>
+                                  <span className="font-medium">{c.match_breakdown.skillScore}%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Experience:</span>
+                                  <span className="font-medium">{c.match_breakdown.experienceScore}%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Location:</span>
+                                  <span className="font-medium">{c.match_breakdown.locationScore}%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Notice Period:</span>
+                                  <span className="font-medium">{c.match_breakdown.noticePeriodScore}%</span>
+                                </div>
+                              </div>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
                     </td>
 
                     {/* experience */}
