@@ -1,4 +1,4 @@
-﻿import {
+import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
@@ -33,6 +33,7 @@ import CandidateProfile from "./pages/company/CandidateProfile";
 import CompanyInterviews from "./pages/company/Interviews";
 import CompanyMessages from "./pages/company/Messages";
 import CompanyProfile from "./pages/company/Profile";
+import CompanyNotifications from "./pages/company/Notifications";
 
 import CandidateLayout from "./components/layout/CandidateLayout";
 import CandidateOverview from "./pages/candidate/Overview";
@@ -239,6 +240,10 @@ const router = createBrowserRouter(
             {
               path: "profile",
               element: <CompanyProfile />,
+            },
+            {
+              path: "notifications",
+              element: <CompanyNotifications />,
             },
           ],
         },

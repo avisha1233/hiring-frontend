@@ -4,13 +4,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Avatar from "../../shared/Avatar";
 
 const TITLE_MAP = {
-  "/company/dashboard": "Overview",
-  "/company/jobs": "Job Postings",
-  "/company/applications": "Applications",
-  "/company/candidates": "Candidates",
-  "/company/interviews": "Interviews",
-  "/company/messages": "Messages",
-  "/company/profile": "Company Profile",
+  "/company/dashboard":     "Overview",
+  "/company/jobs":          "Job Postings",
+  "/company/applications":  "Applications",
+  "/company/candidates":    "Candidates",
+  "/company/interviews":    "Interviews",
+  "/company/messages":      "Messages",
+  "/company/profile":       "Company Profile",
+  "/company/notifications": "Notifications",
 };
 
 const SEARCH_TARGETS = {
@@ -86,10 +87,15 @@ export default function CompanyTopbar({ hasNotification = false, onLogout }) {
             Search
           </button>
 
-          <button className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100">
+          <button
+            type="button"
+            onClick={() => navigate("/company/notifications")}
+            className="relative rounded-full bg-orange-50 p-2 text-orange-600 hover:bg-orange-100 transition-colors"
+            title="Notifications"
+          >
             <Bell size={18} />
             {hasNotification && (
-              <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-red-500" />
+              <span className="absolute right-0 top-0 h-2 w-2 animate-pulse rounded-full bg-red-500" />
             )}
           </button>
 

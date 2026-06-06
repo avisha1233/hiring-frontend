@@ -1,13 +1,67 @@
 import { useEffect, useState } from "react";
-import { Briefcase, MapPin, Building2, Plus, X, Loader2 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Plus, X, Loader2, Users } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import SearchInput from "../../components/shared/SearchInput";
 import EmptyState from "../../components/shared/EmptyState";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
-import StatusBadge from "../../components/shared/StatusBadge";
 import { getCompanyJobs, getCompanyProfile } from "@/apis/company";
 import { api } from "../../services/api";
 import { getAuthUser } from "../../lib/auth";
+
+// ── level pill ────────────────────────────────────────────────────────────────
+const LEVEL_STYLE = {
+  junior: "bg-blue-100 text-blue-700",
+  mid:    "bg-orange-100 text-orange-700",
+  senior: "bg-purple-100 text-purple-700",
+};
+
+function LevelPill({ level }) {
+  if (!level) return <span className="text-xs text-gray-400">—</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${LEVEL_STYLE[level] ?? "bg-gray-100 text-gray-600"}`}>
+      {level}
+    </span>
+  );
+}
+
+// ── salary formatter ──────────────────────────────────────────────────────────
+function fmtSalary(min, max) {
+  const fmt = (n) => Number(n).toLocaleString("en-NP");
+  if (min && max) return `NPR ${fmt(min)} – ${fmt(max)}`;
+  if (min)        return `NPR ${fmt(min)}+`;
+  if (max)        return `Up to NPR ${fmt(max)}`;
+  return "—";
+}
+
+// ── deadline cell ─────────────────────────────────────────────────────────────
+function DeadlineCell({ deadline }) {
+  if (!deadline) return <span className="text-xs text-gray-400">—</span>;
+  const d    = new Date(deadline);
+  const days = Math.ceil((d - Date.now()) / 86_400_000);
+  const label = d.toLocaleDateString("en-NP", { day: "numeric", month: "short", year: "numeric" });
+  const urgent = days >= 0 && days <= 7;
+  return (
+    <div>
+      <span className={`text-xs font-medium ${urgent ? "text-rose-600" : "text-gray-700"}`}>{label}</span>
+      {urgent && days >= 0 && (
+        <span className="ml-1 text-xs text-rose-500">({days}d left)</span>
+      )}
+      {days < 0 && <span className="ml-1 text-xs text-gray-400">(expired)</span>}
+    </div>
+  );
+}
+
+// ── status dot cell ───────────────────────────────────────────────────────────
+function StatusDot({ status }) {
+  const s = String(status || "").toLowerCase();
+  const isOpen = s === "open";
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+      <span className={`h-2 w-2 rounded-full ${isOpen ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`} />
+      {isOpen ? "Open" : "Closing"}
+    </span>
+  );
+}
 
 // helper to unwrap API response
 function unwrap(res) {
@@ -15,8 +69,9 @@ function unwrap(res) {
 }
 
 export default function Jobs() {
-  const location = useLocation();
-  const authUser = getAuthUser();
+  const location  = useLocation();
+  const navigate  = useNavigate();
+  const authUser  = getAuthUser();
 
   const [search, setSearch] = useState(
     new URLSearchParams(location.search).get("search") || "",
@@ -171,9 +226,9 @@ export default function Jobs() {
         />
       </div>
 
-      {/* ── job list ── */}
+      {/* ── ACTIVE JOB POSTINGS table ── */}
       {loading ? (
-        <LoadingSkeleton rows={5} columns={4} />
+        <LoadingSkeleton rows={5} columns={8} />
       ) : error ? (
         <EmptyState title="Failed to load jobs" message={error} />
       ) : jobs.length === 0 ? (
@@ -182,45 +237,94 @@ export default function Jobs() {
           message={search ? "Try a different search term" : "Click 'Post a Job' to add your first job."}
         />
       ) : (
-        <div className="space-y-3">
-          {jobs.map((job) => (
-            <div
-              key={job.id}
-              className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm"
-            >
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Briefcase size={18} className="text-orange-600" />
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      {job.title || `Job #${job.id}`}
-                    </h2>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {job.description || "No description available"}
-                  </p>
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin size={14} />
-                      {job.location || "Remote"}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Building2 size={14} />
-                      {job.company_name || "Company"}
-                    </span>
-                    {(job.salary_min || job.salary_max) && (
-                      <span className="inline-flex items-center gap-1 text-orange-600 font-medium">
-                        ${job.salary_min?.toLocaleString()} – ${job.salary_max?.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={job.status || "open"} />
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="rounded-xl border border-orange-100 bg-white shadow-sm overflow-hidden">
+          {/* table title */}
+          <div className="px-5 py-3 border-b border-orange-50 bg-orange-50/40">
+            <h2 className="text-xs font-bold tracking-widest text-orange-700 uppercase">
+              Active Job Postings
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-orange-50 bg-gray-50/60 text-left">
+                  {["Title", "Location", "Salary (NPR)", "Level", "Deadline", "Applicants", "Status", ""].map((h) => (
+                    <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-orange-50">
+                {jobs.map((job) => {
+                  const appCount = job.applications?.length ?? job.applicant_count ?? job.applications_count ?? 0;
+                  return (
+                    <tr key={job.id} className="hover:bg-orange-50/30 transition-colors">
+                      {/* Title */}
+                      <td className="px-4 py-3">
+                        <span className="font-semibold text-gray-900">
+                          {job.title || `Job #${job.id}`}
+                        </span>
+                        {job.job_type && (
+                          <span className="ml-2 text-xs text-gray-400 capitalize">
+                            {String(job.job_type).replace("_", " ")}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Location */}
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {job.location || (job.is_remote ? "Remote" : "—")}
+                      </td>
+
+                      {/* Salary */}
+                      <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                        {fmtSalary(
+                          job.min_salary ?? job.salary_min,
+                          job.max_salary ?? job.salary_max,
+                        )}
+                      </td>
+
+                      {/* Level */}
+                      <td className="px-4 py-3">
+                        <LevelPill level={job.experience_level} />
+                      </td>
+
+                      {/* Deadline */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <DeadlineCell deadline={job.deadline} />
+                      </td>
+
+                      {/* Applicants */}
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center gap-1 text-gray-700">
+                          <Users size={13} className="text-gray-400" />
+                          {appCount}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <StatusDot status={job.status} />
+                      </td>
+
+                      {/* View Matches */}
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/company/candidates?job_id=${job.id}`)}
+                          className="rounded-lg border border-orange-300 px-3 py-1 text-xs font-semibold text-orange-600 hover:bg-orange-50 transition-colors whitespace-nowrap"
+                        >
+                          View Matches
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

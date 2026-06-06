@@ -5,14 +5,14 @@ import axiosApi from "../../api/axios";
 
 // ─── constants ───────────────────────────────────────────────────────────────
 
-const LEVELS = ["Beginner", "Elementary", "Intermediate", "Advanced", "Expert"];
+const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
 const LEVEL_STYLE = {
   Beginner:     "bg-gray-100   text-gray-600",
-  Elementary:   "bg-blue-100   text-blue-700",
+
   Intermediate: "bg-yellow-100 text-yellow-700",
   Advanced:     "bg-orange-100 text-orange-700",
-  Expert:       "bg-green-100  text-green-700",
+  
 };
 
 const inputClass =

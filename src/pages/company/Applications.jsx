@@ -1,7 +1,6 @@
 // src/pages/company/Applications.jsx
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import FilterTabs from "../../components/shared/FilterTabs";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
@@ -37,7 +36,6 @@ export default function Applications() {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyId, setCompanyId] = useState(null);
-  const navigate = useNavigate();
 
   const user = getAuthUser();
 
@@ -183,38 +181,57 @@ export default function Applications() {
       ),
     },
     {
-      key: "actions",
-      label: "Actions",
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          {/* View Profile — navigate to candidate detail */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/company/candidates/${row.candidate_id}`, {
-                state: { candidate: row.candidate },
-              });
-            }}
-            className="rounded-md border border-orange-200 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-orange-50"
-          >
-            View Profile
-          </button>
+      key: "move_to",
+      label: "Move To",
+      render: (row) => {
+        const s = String(row.status || "").toLowerCase();
 
-          {/* Schedule — only active when not already interviewing/beyond */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStatusChange(row.id, "interviewing");
-            }}
-            disabled={["interviewing", "offered", "hired", "rejected"].includes(
-              String(row.status).toLowerCase(),
+        // Determine the next forward step and its label
+        const forwardMap = {
+          applied:      { label: "Interview", next: "interviewing" },
+          reviewing:    { label: "Interview", next: "interviewing" },
+          interviewing: { label: "Offer",     next: "offered"      },
+          shortlisted:  { label: "Interview", next: "interviewing" },
+        };
+        const forward = forwardMap[s];
+
+        // Terminal statuses — nothing left to do
+        if (s === "rejected" || s === "hired" || s === "offered") {
+          return (
+            <span className="text-xs text-gray-400 italic">
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </span>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-2">
+            {/* Forward progression button — green outline */}
+            {forward && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusChange(row.id, forward.next);
+                }}
+                className="rounded-md border border-emerald-500 px-3 py-1 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors"
+              >
+                {forward.label}
+              </button>
             )}
-            className="rounded-md bg-orange-500 px-3 py-1 text-sm font-medium text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Schedule
-          </button>
-        </div>
-      ),
+
+            {/* Reject button — red outline */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange(row.id, "rejected");
+              }}
+              className="rounded-md border border-rose-400 px-3 py-1 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition-colors"
+            >
+              Reject
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
