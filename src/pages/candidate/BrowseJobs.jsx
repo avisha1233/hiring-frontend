@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, DollarSign, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import SearchInput from "../../components/shared/SearchInput";
@@ -7,7 +6,6 @@ import FilterTabs from "../../components/shared/FilterTabs";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
 import ErrorState from "../../components/shared/ErrorState";
 import EmptyState from "../../components/shared/EmptyState";
-import StatusBadge from "../../components/shared/StatusBadge";
 import Pagination from "../../components/shared/Pagination";
 import { useDebounce, usePagination } from "../../hooks";
 import { jobsApi } from "../../apis/candidate";
@@ -278,132 +276,112 @@ export default function BrowseJobs() {
         onChange={setStatusFilter}
       />
 
-      {/* Table */}
+      {/* ── Card grid ── */}
       {loading ? (
-        <LoadingSkeleton rows={5} columns={9} />
+        <LoadingSkeleton rows={6} columns={1} />
       ) : filteredJobs.length === 0 ? (
         <EmptyState
           title="No jobs found"
           message="Try adjusting your search filters"
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-orange-100 bg-white shadow-sm">
-          <table className="w-full">
-            <thead className="border-b border-orange-100 bg-orange-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Job Title
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Company
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Location
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Level
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Salary
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Remote
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Match
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredJobs.map((job) => {
-                const isApplied = hasApplied(job.id);
-                const isClosed = job.status === "closed";
-                const isApplying = applyingId === job.id;
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredJobs.map((job) => {
+            const isApplied  = hasApplied(job.id);
+            const isClosed   = job.status === "closed";
+            const isApplying = applyingId === job.id;
 
-                return (
-                  <tr
-                    key={job.id}
-                    className="border-b border-orange-50 hover:bg-orange-50"
-                  >
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{job.title}</p>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {job.companyName}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <MapPin size={14} className="text-gray-400" />
-                        {job.location || "-"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-block rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">
-                        {job.experienceLabel}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <DollarSign size={14} className="text-gray-400" />
-                        {job.salaryLabel}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        {job.workTypeLabel}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {job.match_score !== undefined && job.match_score !== null ? (
-                        <span className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${
-                          job.match_score >= 85 ? 'bg-emerald-100 text-emerald-800' :
-                          job.match_score >= 70 ? 'bg-blue-100 text-blue-800' :
-                          job.match_score >= 50 ? 'bg-orange-100 text-orange-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {job.match_score}% Match
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={job.status}>
-                        {job.status}
-                      </StatusBadge>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleApply(job.id)}
-                        disabled={isClosed || isApplied || isApplying}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                          isClosed || isApplied
-                            ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                            : isApplying
-                              ? "bg-orange-400 text-white"
-                              : "bg-orange-500 text-white hover:bg-orange-600"
-                        }`}
+            // skill tags — from JobSkills association or skills array
+            const skills = (
+              job.JobSkills?.map((js) => js.Skill?.name || js.skill_name).filter(Boolean) ||
+              job.skills?.map((s) => s.name || s).filter(Boolean) ||
+              []
+            ).slice(0, 5);
+
+            // match score colour
+            const score = job.match_score;
+            const scoreBg =
+              score >= 80 ? "bg-emerald-100 text-emerald-700" :
+              score >= 60 ? "bg-orange-100 text-orange-700" :
+              score != null ? "bg-gray-100 text-gray-500" : null;
+
+            // meta line: company · location · job type
+            const metaParts = [
+              job.companyName !== "-" ? job.companyName : null,
+              job.location    || null,
+              job.workTypeLabel !== "-" ? job.workTypeLabel.replace(/_/g, " ") : null,
+            ].filter(Boolean);
+
+            return (
+              <div
+                key={job.id}
+                className="flex flex-col rounded-2xl border border-orange-100 bg-white p-5 shadow-sm hover:shadow-md hover:border-orange-200 transition-all duration-200"
+              >
+                {/* title + match score */}
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <h2 className="text-base font-semibold text-gray-900 leading-snug">
+                    {job.title || `Job #${job.id}`}
+                  </h2>
+                  {scoreBg && score != null && (
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${scoreBg}`}>
+                      {score}%
+                    </span>
+                  )}
+                </div>
+
+                {/* company · location · type */}
+                {metaParts.length > 0 && (
+                  <p className="text-xs text-gray-500 mb-3 capitalize">
+                    {metaParts.join(" · ")}
+                  </p>
+                )}
+
+                {/* skill tags */}
+                {skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {skills.map((s) => (
+                      <span
+                        key={s}
+                        className="rounded-full bg-orange-50 border border-orange-100 px-2.5 py-0.5 text-[11px] font-medium text-orange-700"
                       >
-                        {isApplying
-                          ? "Applying..."
-                          : isApplied
-                            ? "Applied"
-                            : isClosed
-                              ? "Closed"
-                              : "Apply"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mb-4" />
+                )}
+
+                {/* push buttons to bottom */}
+                <div className="mt-auto flex gap-2">
+                  {/* Apply Now */}
+                  <button
+                    onClick={() => !isApplied && !isClosed && handleApply(job.id)}
+                    disabled={isClosed || isApplied || isApplying}
+                    className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                      isApplied
+                        ? "bg-emerald-50 text-emerald-600 cursor-default border border-emerald-200"
+                        : isClosed
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : isApplying
+                        ? "bg-orange-400 text-white cursor-not-allowed"
+                        : "bg-orange-500 text-white hover:bg-orange-600"
+                    }`}
+                  >
+                    {isApplying ? "Applying…" : isApplied ? "Applied" : isClosed ? "Closed" : "Apply Now"}
+                  </button>
+
+                  {/* View My Gap */}
+                  <button
+                    onClick={() => toast.info(`Gap analysis for "${job.title}" coming soon`)}
+                    className="flex-1 rounded-xl border border-gray-200 bg-white py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    View My Gap
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
