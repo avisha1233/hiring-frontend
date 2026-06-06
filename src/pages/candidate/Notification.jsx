@@ -181,14 +181,19 @@ export default function Notifications() {
   const [markingAll, setMarkingAll] = useState(false);
 
   const user = getAuthUser();
-  const candidateId = user?.id ?? user?.user_id ?? user?._id;
-
   async function loadNotifications() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(`/notifications?user_id=${candidateId}`);
-      setNotifications(res.data?.data || []);
+      // Use the dedicated candidate endpoint — it reads user_id from the JWT
+      // so no manual user_id query param is needed.
+      const res = await api.get(
+        `/candidate/notifications?limit=100&sort=created_at&sortDirection=DESC`
+      );
+      // Backend returns { data: rows, total, ... }
+      // axios wraps body in res.data → rows live at res.data.data
+      const rows = res.data?.data ?? (Array.isArray(res.data) ? res.data : []);
+      setNotifications(rows);
     } catch (err) {
       setError("Could not load notifications. Please try again.");
     } finally {
@@ -197,14 +202,8 @@ export default function Notifications() {
   }
 
   useEffect(() => {
-    if (!candidateId) {
-      setLoading(false);
-      setError("Could not determine your account ID. Please sign in again.");
-      return;
-    }
-
     loadNotifications();
-  }, [candidateId]);
+  }, []);
 
   async function markOneRead(id) {
     // update UI right away so it feels fast
