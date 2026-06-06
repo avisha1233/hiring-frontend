@@ -5,6 +5,7 @@ import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import PersonalInfoSection from "@/components/profile/PersonalInfoSection";
 import WorkExperienceSection from "@/components/profile/WorkExperienceSection";
 import EducationSection from "@/components/profile/EducationSection";
+import SkillsSection from "@/components/profile/SkillsSection";
 import { useCandidateProfile } from "@/hooks/useCandidateProfile";
 
 export default function Profile() {
@@ -73,6 +74,7 @@ export default function Profile() {
             />
             <WorkExperienceSection items={workItems} onUpdate={setWorkItems} />
             <EducationSection items={eduItems} onUpdate={setEduItems} />
+            <SkillsSection />
           </div>
         </div>
       
