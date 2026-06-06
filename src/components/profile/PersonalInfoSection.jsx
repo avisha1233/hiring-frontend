@@ -120,7 +120,7 @@ export default function PersonalInfoSection({
 
       <div className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm space-y-3">
         <h2 className="text-sm font-semibold text-gray-700">
-          Social & portfolio links
+          Social links
         </h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {[
@@ -133,16 +133,6 @@ export default function PersonalInfoSection({
               name: "github_url",
               label: "GitHub",
               placeholder: "github.com/yourname",
-            },
-            {
-              name: "portfolio_url",
-              label: "Portfolio",
-              placeholder: "yoursite.dev",
-            },
-            {
-              name: "twitter_url",
-              label: "Twitter / X",
-              placeholder: "x.com/yourhandle",
             },
           ].map(({ name, label, placeholder }) => (
             <label key={name} className="flex flex-col gap-1">

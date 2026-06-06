@@ -5,7 +5,6 @@ import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import PersonalInfoSection from "@/components/profile/PersonalInfoSection";
 import WorkExperienceSection from "@/components/profile/WorkExperienceSection";
 import EducationSection from "@/components/profile/EducationSection";
-import CertificationsSection from "@/components/profile/CertificationSection";
 import { useCandidateProfile } from "@/hooks/useCandidateProfile";
 
 export default function Profile() {
@@ -15,10 +14,8 @@ export default function Profile() {
     profile,
     workItems,
     eduItems,
-    certItems,
     setWorkItems,
     setEduItems,
-    setCertItems,
     saveProfile,
   } = useCandidateProfile();
 
@@ -67,7 +64,6 @@ export default function Profile() {
             watch={watch}
             workCount={workItems.length}
             eduCount={eduItems.length}
-            certCount={certItems.length}
           />
           <div className="space-y-4">
             <PersonalInfoSection
@@ -77,7 +73,6 @@ export default function Profile() {
             />
             <WorkExperienceSection items={workItems} onUpdate={setWorkItems} />
             <EducationSection items={eduItems} onUpdate={setEduItems} />
-            <CertificationsSection items={certItems} onUpdate={setCertItems} />
           </div>
         </div>
       
