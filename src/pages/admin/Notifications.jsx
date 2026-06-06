@@ -61,8 +61,8 @@ export default function Notifications() {
   }, [debouncedSearch, page]);
 
   const filteredNotifications = notifications.filter((n) => {
-    if (statusFilter === "unread") return !n.read;
-    if (statusFilter === "read") return n.read;
+    if (statusFilter === "unread") return !n.is_read;
+    if (statusFilter === "read") return n.is_read;
     return true;
   });
 
@@ -167,17 +167,17 @@ export default function Notifications() {
           {filteredNotifications.map((notification) => (
             <div
               key={notification.id}
-              className={`border-b border-orange-50 p-4 hover:bg-orange-50 ${!notification.read ? "bg-orange-50" : ""}`}
+              className={`border-b border-orange-50 p-4 hover:bg-orange-50 ${!notification.is_read ? "bg-orange-50" : ""}`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3
-                      className={`text-sm font-semibold ${!notification.read ? "text-gray-900" : "text-gray-700"}`}
+                      className={`text-sm font-semibold ${!notification.is_read ? "text-gray-900" : "text-gray-700"}`}
                     >
                       {notification.title}
                     </h3>
-                    {!notification.read && (
+                    {!notification.is_read && (
                       <span className="h-2 w-2 rounded-full bg-orange-500" />
                     )}
                   </div>
@@ -189,7 +189,7 @@ export default function Notifications() {
                   </p>
                 </div>
                 <div className="flex gap-2 ml-4">
-                  {!notification.read && (
+                  {!notification.is_read && (
                     <button
                       onClick={() => handleMarkAsRead(notification)}
                       className="text-gray-400 hover:text-orange-600"

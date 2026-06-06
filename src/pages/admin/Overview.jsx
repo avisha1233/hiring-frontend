@@ -203,10 +203,9 @@ export default function Overview() {
   const scheduledCount = data.interviews.filter(
     (i) => i.status === "scheduled",
   ).length;
-  const submissionCount = data.interviews.length;
   const blockedCount = data.users.filter((u) => u.status === "blocked").length;
   const hiredThisMonth = data.applications.filter((a) => {
-    const hired = a.status === "hired";
+    const hired = a.status === "offered";
     const thisMonth =
       new Date(a.updated_at).getMonth() === new Date().getMonth();
     return hired && thisMonth;
@@ -216,17 +215,13 @@ export default function Overview() {
   const companyCount = data.companies.length;
   const total = candidateCount + companyCount || 1;
 
-  const pendingPct = Math.round(
-    (data.applications.filter((a) => a.status === "pending").length /
-      (totalApps || 1)) *
-      100,
-  );
-  const reviewedPct = Math.round(
-    (data.applications.filter((a) => a.status === "reviewed").length /
-      (totalApps || 1)) *
-      100,
-  );
-  const hiredPct = 100 - pendingPct - reviewedPct;
+  const appliedCount = data.applications.filter((a) => a.status === "applied").length;
+  const interviewingCount = data.applications.filter((a) => a.status === "interviewing" || a.status === "rejected").length;
+  const offeredCount = data.applications.filter((a) => a.status === "offered").length;
+
+  const pendingPct = Math.round((appliedCount / (totalApps || 1)) * 100);
+  const reviewedPct = Math.round((interviewingCount / (totalApps || 1)) * 100);
+  const hiredPct = Math.round((offeredCount / (totalApps || 1)) * 100);
 
   const chartData = buildWeeklyData(data.candidates, data.companies);
 
@@ -241,16 +236,11 @@ export default function Overview() {
       </div>
 
       {/* ── Row 2: activity metrics ── */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <MetricCard
           label="Interviews scheduled"
           value={scheduledCount}
           icon={CalendarDays}
-        />
-        <MetricCard
-          label="Task submissions"
-          value={submissionCount}
-          icon={Upload}
         />
         <MetricCard
           label="Blocked accounts"

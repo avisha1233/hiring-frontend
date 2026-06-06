@@ -50,10 +50,12 @@ export default function Reports() {
       setLoading(true);
       const params = { range: dateRange };
       const res = await reportService.getReport(activeTab, params);
-      setData(res.data);
+      // Backend returns { status: "success", data: { charts, table } }
+      // Axios wraps body in res.data, so actual payload is at res.data.data
+      const payload = res.data?.data ?? res.data;
+      setData(payload);
     } catch (err) {
-
-  const status = err.response?.status?? err?.status;
+      const status = err.response?.status ?? err?.status;
       if (status === 403 || err.message?.includes("404")) {
         setData(null);
       } else {

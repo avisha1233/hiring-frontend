@@ -36,13 +36,13 @@ export default function Settings() {
 
 
       const [settingsRes, profileRes, logsRes] = await Promise.all([
-        settingService.getSettings(),
-        userService.getCurrentUser(),
-        settingService.getAuditLog({ page, limit: pageSize }),
+        settle(settingService.getSettings()),
+        settle(userService.getCurrentUser()),
+        settle(settingService.getAuditLog({ page, limit: pageSize })),
       ]);
 
       setSystemSettings(settingsRes.ok ? (settingsRes.value.data || {}) : {});
-      setAdminProfile(profileRes.ok ? (profileRes.value.data || {}) : {});
+      setAdminProfile(profileRes.ok ? (profileRes.value.data?.data || profileRes.value.data || {}) : {});
       setAuditLogs(
         logsRes.ok
           ? (logsRes.value.data?.data || logsRes.value.data || [])
