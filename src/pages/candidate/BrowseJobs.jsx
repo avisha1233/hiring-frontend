@@ -8,9 +8,9 @@ import ErrorState from "../../components/shared/ErrorState";
 import EmptyState from "../../components/shared/EmptyState";
 import Pagination from "../../components/shared/Pagination";
 import { useDebounce, usePagination } from "../../hooks";
-import { jobsApi } from "../../apis/candidate";
-import { candidateApi } from "../../apis/candidate";
+import { jobsApi, candidateApi } from "../../apis/candidate";
 import { getCompanies } from "../../apis/companies";
+import { api } from "@/services/api";
 
 const STATUS_TABS = [
   { value: "all", label: "All Jobs" },
@@ -25,15 +25,57 @@ const LEVELS = [
   { value: "senior", label: "Senior" },
 ];
 
+// Level → numeric weight for match scoring
+const LEVEL_NUM = { basic: 1, intermediate: 2, advanced: 3 };
+
+function levelToNum(str) {
+  if (!str) return 0;
+  const s = String(str).toLowerCase().trim();
+  return LEVEL_NUM[s] ?? 0;
+}
+
+/** Compute 0-100 match score between candidate skills and job required skills */
+function computeScore(candidateSkills, jobSkills) {
+  if (!Array.isArray(jobSkills) || jobSkills.length === 0) return null;
+  if (!Array.isArray(candidateSkills) || candidateSkills.length === 0) return 0;
+
+  // Build a map: skill_id → { level (num), weight }
+  const candMap = new Map();
+  candidateSkills.forEach((cs) => {
+    const skillId = cs.skill_id ?? cs.Skill?.id;
+    if (skillId == null) return;
+    candMap.set(Number(skillId), {
+      level: levelToNum(cs.level),
+      weight: Number(cs.weight) || 1,
+    });
+  });
+
+  let numerator = 0;
+  let denominator = 0;
+
+  jobSkills.forEach((js) => {
+    const skillId = js.skill_id ?? js.Skill?.id;
+    const reqLevel = levelToNum(js.required_level);
+    const weight = Number(js.weight) || 1;
+
+    denominator += reqLevel * weight;
+
+    const cand = candMap.get(Number(skillId));
+    const candLevel = cand ? cand.level : 0;
+    const candWeight = cand ? cand.weight : weight;
+
+    numerator += Math.min(candLevel, reqLevel) * candWeight;
+  });
+
+  if (denominator === 0) return null;
+  return Math.round((numerator / denominator) * 100);
+}
+
 function formatMoney(value) {
   if (value === undefined || value === null || value === "") return null;
-
   const numericValue = Number(value);
   if (Number.isNaN(numericValue)) return String(value);
-
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(
-    numericValue,
-  );
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(numericValue);
 }
 
 function formatSalary(job) {
@@ -45,29 +87,18 @@ function formatSalary(job) {
   const normalizedMax = formatMoney(maxSalary);
 
   if (normalizedMin && normalizedMax) {
-    return `${normalizedMin} - ${normalizedMax}${currency ? ` ${currency}` : ""}`;
+    return `${normalizedMin} – ${normalizedMax} ${currency}`;
   }
-
-  if (normalizedMin) {
-    return `${normalizedMin}${currency ? ` ${currency}` : ""}`;
-  }
-
-  if (normalizedMax) {
-    return `${normalizedMax}${currency ? ` ${currency}` : ""}`;
-  }
-
-  return "-";
+  if (normalizedMin) return `${normalizedMin} ${currency}`;
+  if (normalizedMax) return `${normalizedMax} ${currency}`;
+  return null;
 }
 
 function formatWorkType(job) {
   const explicitType = job.work_type || job.job_type || job.type;
-  if (explicitType) return String(explicitType);
-
-  if (typeof job.is_remote === "boolean") {
-    return job.is_remote ? "Remote" : "On-site";
-  }
-
-  return "-";
+  if (explicitType) return String(explicitType).replace(/_/g, " ");
+  if (typeof job.is_remote === "boolean") return job.is_remote ? "Remote" : "On-site";
+  return null;
 }
 
 function formatExperience(job) {
@@ -77,18 +108,12 @@ function formatExperience(job) {
   if (level) {
     return String(level)
       .replace(/_/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+      .replace(/\b\w/g, (c) => c.toUpperCase());
   }
-
-  if (
-    requiredYears !== undefined &&
-    requiredYears !== null &&
-    requiredYears !== ""
-  ) {
+  if (requiredYears !== undefined && requiredYears !== null && requiredYears !== "") {
     return `${requiredYears}+ yrs`;
   }
-
-  return "-";
+  return null;
 }
 
 function normalizeJob(job, companyName) {
@@ -98,11 +123,7 @@ function normalizeJob(job, companyName) {
   return {
     ...job,
     companyName:
-      nestedCompanyName ||
-      job.company_name ||
-      job.companyName ||
-      companyName ||
-      "-",
+      nestedCompanyName || job.company_name || job.companyName || companyName || "-",
     experienceLevelValue,
     salaryLabel: formatSalary(job),
     workTypeLabel: formatWorkType(job),
@@ -117,6 +138,48 @@ function normalizeRows(value) {
   return [];
 }
 
+/** Company initials box — picks first 2 words' first letters */
+function CompanyInitials({ name }) {
+  const initials = (name && name !== "-")
+    ? name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase() ?? "")
+        .join("")
+    : "?";
+
+  // Deterministic hue from name string
+  const hue = [...(name || "")].reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
+
+  return (
+    <div
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm"
+      style={{ background: `hsl(${hue},60%,48%)` }}
+      aria-label={name}
+    >
+      {initials}
+    </div>
+  );
+}
+
+/** Coloured match-score badge */
+function ScoreBadge({ score }) {
+  if (score == null) return null;
+
+  const cls =
+    score >= 80
+      ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
+      : score >= 60
+      ? "bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+      : "bg-orange-100 text-orange-700 ring-1 ring-orange-200";
+
+  return (
+    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>
+      {score}% match
+    </span>
+  );
+}
+
 export default function BrowseJobs() {
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
@@ -129,6 +192,23 @@ export default function BrowseJobs() {
   const [applyingId, setApplyingId] = useState(null);
   const { page, pageSize, goToPage } = usePagination();
 
+  // ── Fetch current candidate skills once ──────────────────────────────────
+  const { data: meData } = useQuery({
+    queryKey: ["candidates", "me"],
+    queryFn: async () => {
+      const res = await api.get("/candidates/me");
+      return res?.data ?? res;
+    },
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
+  const candidateSkills = useMemo(
+    () => meData?.CandidateSkills ?? [],
+    [meData],
+  );
+
+  // ── Companies lookup ─────────────────────────────────────────────────────
   const companiesQuery = useQuery({
     queryKey: ["candidate", "companies"],
     queryFn: async () => {
@@ -142,14 +222,11 @@ export default function BrowseJobs() {
   const companyMap = useMemo(() => {
     const rows = normalizeRows(companiesQuery.data);
     const map = new Map();
-
-    rows.forEach((company) => {
-      map.set(String(company.id), company.name);
-    });
-
+    rows.forEach((company) => map.set(String(company.id), company.name));
     return map;
   }, [companiesQuery.data]);
 
+  // ── Jobs + applications fetch ────────────────────────────────────────────
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -179,16 +256,14 @@ export default function BrowseJobs() {
     fetchData();
   }, [debouncedSearch, statusFilter, page]);
 
+  // ── Apply handler ────────────────────────────────────────────────────────
   const handleApply = async (jobId) => {
     try {
       setApplyingId(jobId);
       const created = await candidateApi.applyToJob(jobId);
 
       setApplications((prev) => {
-        if (prev.some((app) => Number(app.job_id) === Number(jobId))) {
-          return prev;
-        }
-
+        if (prev.some((app) => Number(app.job_id) === Number(jobId))) return prev;
         return [
           {
             id: created?.id || `optimistic-${jobId}`,
@@ -210,32 +285,21 @@ export default function BrowseJobs() {
     }
   };
 
-  const hasApplied = (jobId) => {
-    return applications.some((app) => app.job_id === jobId);
-  };
+  const hasApplied = (jobId) => applications.some((app) => app.job_id === jobId);
 
+  // ── Derived job list ─────────────────────────────────────────────────────
   const displayJobs = useMemo(
-    () =>
-      jobs.map((job) =>
-        normalizeJob(job, companyMap.get(String(job.company_id))),
-      ),
+    () => jobs.map((job) => normalizeJob(job, companyMap.get(String(job.company_id)))),
     [jobs, companyMap],
   );
 
   const filteredJobs = displayJobs.filter((job) => {
-    if (levelFilter !== "all" && job.experienceLevelValue !== levelFilter)
-      return false;
+    if (levelFilter !== "all" && job.experienceLevelValue !== levelFilter) return false;
     return true;
   });
 
   if (error) {
-    return (
-      <ErrorState
-        title="Failed to load jobs"
-        message={error}
-        onRetry={fetchData}
-      />
-    );
+    return <ErrorState title="Failed to load jobs" message={error} onRetry={fetchData} />;
   }
 
   return (
@@ -243,9 +307,7 @@ export default function BrowseJobs() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Browse Jobs</h1>
-        <p className="text-sm text-gray-600">
-          Explore available job opportunities
-        </p>
+        <p className="text-sm text-gray-600">Explore available job opportunities</p>
       </div>
 
       {/* Filters */}
@@ -270,111 +332,132 @@ export default function BrowseJobs() {
       </div>
 
       {/* Status Tabs */}
-      <FilterTabs
-        tabs={STATUS_TABS}
-        active={statusFilter}
-        onChange={setStatusFilter}
-      />
+      <FilterTabs tabs={STATUS_TABS} active={statusFilter} onChange={setStatusFilter} />
 
-      {/* ── Card grid ── */}
+      {/* ── Single-column card list ── */}
       {loading ? (
         <LoadingSkeleton rows={6} columns={1} />
       ) : filteredJobs.length === 0 ? (
-        <EmptyState
-          title="No jobs found"
-          message="Try adjusting your search filters"
-        />
+        <EmptyState title="No jobs found" message="Try adjusting your search filters" />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="flex flex-col gap-4">
           {filteredJobs.map((job) => {
-            const isApplied  = hasApplied(job.id);
-            const isClosed   = job.status === "closed";
+            const isApplied = hasApplied(job.id);
+            const isClosed = job.status === "closed";
             const isApplying = applyingId === job.id;
 
-            // skill tags — from JobSkills association or skills array
+            // Skill tags from JobSkills association
             const skills = (
               job.JobSkills?.map((js) => js.Skill?.name || js.skill_name).filter(Boolean) ||
               job.skills?.map((s) => s.name || s).filter(Boolean) ||
               []
-            ).slice(0, 5);
+            ).slice(0, 6);
 
-            // match score colour
-            const score = job.match_score;
-            const scoreBg =
-              score >= 80 ? "bg-emerald-100 text-emerald-700" :
-              score >= 60 ? "bg-orange-100 text-orange-700" :
-              score != null ? "bg-gray-100 text-gray-500" : null;
+            // Client-side match score
+            const score = computeScore(candidateSkills, job.JobSkills ?? []);
 
-            // meta line: company · location · job type
+            // Meta line: company · location · type
             const metaParts = [
               job.companyName !== "-" ? job.companyName : null,
-              job.location    || null,
-              job.workTypeLabel !== "-" ? job.workTypeLabel.replace(/_/g, " ") : null,
+              job.location || null,
+              job.workTypeLabel || null,
             ].filter(Boolean);
 
             return (
               <div
                 key={job.id}
-                className="flex flex-col rounded-2xl border border-orange-100 bg-white p-5 shadow-sm hover:shadow-md hover:border-orange-200 transition-all duration-200"
+                className="flex flex-col gap-3 rounded-2xl border border-orange-100 bg-white p-5 shadow-sm transition-all duration-200 hover:border-orange-200 hover:shadow-md"
               >
-                {/* title + match score */}
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h2 className="text-base font-semibold text-gray-900 leading-snug">
-                    {job.title || `Job #${job.id}`}
-                  </h2>
-                  {scoreBg && score != null && (
-                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${scoreBg}`}>
-                      {score}%
-                    </span>
-                  )}
+                {/* ── Top row: initials + title/meta + score ── */}
+                <div className="flex items-start gap-3">
+                  <CompanyInitials name={job.companyName} />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="text-base font-semibold leading-snug text-gray-900">
+                        {job.title || `Job #${job.id}`}
+                      </h2>
+                      <ScoreBadge score={score} />
+                    </div>
+
+                    {metaParts.length > 0 && (
+                      <p className="mt-0.5 truncate text-xs capitalize text-gray-500">
+                        {metaParts.join(" · ")}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* company · location · type */}
-                {metaParts.length > 0 && (
-                  <p className="text-xs text-gray-500 mb-3 capitalize">
-                    {metaParts.join(" · ")}
-                  </p>
-                )}
-
-                {/* skill tags */}
-                {skills.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 mb-4">
+                {/* ── Skill tags ── */}
+                {skills.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
                     {skills.map((s) => (
                       <span
                         key={s}
-                        className="rounded-full bg-orange-50 border border-orange-100 px-2.5 py-0.5 text-[11px] font-medium text-orange-700"
+                        className="rounded-full border border-orange-100 bg-orange-50 px-2.5 py-0.5 text-[11px] font-medium text-orange-700"
                       >
                         {s}
                       </span>
                     ))}
                   </div>
-                ) : (
-                  <div className="mb-4" />
                 )}
 
-                {/* push buttons to bottom */}
-                <div className="mt-auto flex gap-2">
-                  {/* Apply Now */}
+                {/* ── Salary + level badges ── */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {job.salaryLabel && (
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-200">
+                      <svg
+                        className="h-3 w-3 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 16 16"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M8 2v1m0 10v1M4.5 8a3.5 3.5 0 1 0 7 0 3.5 3.5 0 0 0-7 0Z"
+                        />
+                      </svg>
+                      {job.salaryLabel}
+                    </span>
+                  )}
+                  {job.experienceLabel && (
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-100">
+                      {job.experienceLabel}
+                    </span>
+                  )}
+                  {isClosed && (
+                    <span className="rounded-lg bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 ring-1 ring-red-100">
+                      Closed
+                    </span>
+                  )}
+                </div>
+
+                {/* ── Action buttons ── */}
+                <div className="flex gap-2 pt-1">
                   <button
+                    id={`apply-btn-${job.id}`}
                     onClick={() => !isApplied && !isClosed && handleApply(job.id)}
                     disabled={isClosed || isApplied || isApplying}
                     className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
                       isApplied
-                        ? "bg-emerald-50 text-emerald-600 cursor-default border border-emerald-200"
+                        ? "cursor-default border border-emerald-200 bg-emerald-50 text-emerald-600"
                         : isClosed
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
                         : isApplying
-                        ? "bg-orange-400 text-white cursor-not-allowed"
+                        ? "cursor-not-allowed bg-orange-400 text-white"
                         : "bg-orange-500 text-white hover:bg-orange-600"
                     }`}
                   >
-                    {isApplying ? "Applying…" : isApplied ? "Applied" : isClosed ? "Closed" : "Apply Now"}
+                    {isApplying ? "Applying…" : isApplied ? "✓ Applied" : isClosed ? "Closed" : "Apply Now"}
                   </button>
 
-                  {/* View My Gap */}
                   <button
+                    id={`gap-btn-${job.id}`}
                     onClick={() => toast.info(`Gap analysis for "${job.title}" coming soon`)}
-                    className="flex-1 rounded-xl border border-gray-200 bg-white py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex-1 rounded-xl border border-gray-200 bg-white py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                   >
                     View My Gap
                   </button>
