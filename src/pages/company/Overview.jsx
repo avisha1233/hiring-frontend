@@ -17,11 +17,8 @@ import {
   Clock,
 } from "lucide-react";
 
-<<<<<<< HEAD
-function CompanyOverview() {
-=======
 export default function Overview() {
->>>>>>> cb9de6f45d55bca070f79b3c24dded15579d43e0
+
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState(null);
   const [jobs, setJobs] = useState([]);
@@ -273,8 +270,3 @@ export default function Overview() {
     </div>
   );
 }
-<<<<<<< HEAD
-
-
-=======
->>>>>>> cb9de6f45d55bca070f79b3c24dded155
