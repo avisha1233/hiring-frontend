@@ -41,6 +41,7 @@ import MyApplications from "./pages/candidate/MyApplications";
 import ApplicationDetail from "./pages/candidate/ApplicationDetail";
 import CandidateInterviews from "./pages/candidate/Interview";
 import CandidateMessages from "./pages/candidate/Messages";
+import CandidateProposals from "./pages/candidate/Proposals";
 import Notification from "./pages/candidate/Notification";
 import Profile from "./pages/candidate/Profile";
 import CandidateSettings from "./pages/candidate/Setting";
@@ -293,7 +294,10 @@ const router = createBrowserRouter(
               path: "applications/:id",
               element: <ApplicationDetail />,
             },
-
+            {
+              path: "proposals",
+              element: <CandidateProposals />,
+            },
             {
               path: "interviews",
               element: <CandidateInterviews />,
