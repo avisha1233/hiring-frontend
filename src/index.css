@@ -3,7 +3,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #f9fafb;
+  --background: #ffffff;
   --foreground: #111827;
   --muted-foreground: #6b7280;
   --card: #ffffff;
@@ -11,7 +11,7 @@
   --border: #e5e7eb;
   --primary: #f97316;
   --primary-foreground: #ffffff;
-  --dash-bg: #f9fafb;
+  --dash-bg: #ffffff;
   --dash-bg-elevated: #ffffff;
   --dash-surface: #ffffff;
   --dash-border: #e5e7eb;
@@ -40,10 +40,9 @@ body,
 body {
   margin: 0;
   color: var(--dash-text);
-  background:
-    radial-gradient(circle at 10% 8%, #ffedd5 0, transparent 34%),
-    radial-gradient(circle at 100% 0%, #fff7ed 0, transparent 26%),
-    var(--dash-bg);
+  background: #ffffff;
+    
+    
   font-family: "DM Sans", sans-serif;
 }
 

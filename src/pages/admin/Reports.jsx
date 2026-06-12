@@ -50,9 +50,17 @@ export default function Reports() {
       setLoading(true);
       const params = { range: dateRange };
       const res = await reportService.getReport(activeTab, params);
-      setData(res.data);
+      // Backend returns { status: "success", data: { charts, table } }
+      // Axios wraps body in res.data, so actual payload is at res.data.data
+      const payload = res.data?.data ?? res.data;
+      setData(payload);
     } catch (err) {
-      setError(err.message);
+      const status = err.response?.status ?? err?.status;
+      if (status === 403 || err.message?.includes("404")) {
+        setData(null);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -238,33 +246,7 @@ export default function Reports() {
             </div>
           )}
 
-          {/* Metrics */}
-          {data?.metrics && data.metrics.length > 0 && (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {data.metrics.map((metric, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-lg border border-orange-100 bg-white p-4"
-                >
-                  <p className="text-xs font-medium text-gray-600">
-                    {metric.label}
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-gray-900">
-                    {metric.value}
-                  </p>
-                  {metric.change && (
-                    <p
-                      className={`mt-1 text-xs ${metric.change > 0 ? "text-green-600" : "text-red-600"}`}
-                    >
-                      {metric.change > 0 ? "↑" : "↓"} {Math.abs(metric.change)}%
-                      from last period
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
+        
           {/* Data Table */}
           {data?.table && data.table.rows && data.table.rows.length > 0 && (
             <div className="overflow-x-auto rounded-lg border border-orange-100 bg-white shadow-sm">

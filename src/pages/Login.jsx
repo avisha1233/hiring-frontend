@@ -49,17 +49,15 @@ export default function Login() {
         password: form.password,
       });
 
- 
-
-console.log(payload);
+      const data = payload?.data || payload || {};
 
       saveAuthSession({
-        accessToken: payload?.accessToken,
-        refreshToken: payload?.refreshToken,
-        user: payload?.user,
+        accessToken: data?.accessToken,
+        refreshToken: data?.refreshToken,
+        user: data?.user,
       });
 
-      const role = payload?.user?.role;
+      const role = data?.user?.role;
       
       if (role === "admin") navigate("/admin/dashboard", { replace: true });
       else if (role === "company")

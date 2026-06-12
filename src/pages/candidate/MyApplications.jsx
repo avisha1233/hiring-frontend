@@ -96,10 +96,12 @@ export default function MyApplications() {
       render: (row) => (
         <div>
           <div className="font-medium text-gray-900">
-            {row.jobTitle || row.job_title || row.job?.title || "-"}
+            {row.job?.title || row.jobTitle || row.job_title || "-"}
           </div>
           <div className="text-xs text-gray-500">
-            {row.job?.location || row.location || ""}
+            {row.job?.is_remote
+              ? "Remote"
+              : row.job?.location || row.location || ""}
           </div>
         </div>
       ),
@@ -140,7 +142,7 @@ export default function MyApplications() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/applications/${row.id}`);
+              navigate(`/candidate/applications/${row.id}`);
             }}
             className="rounded-md border border-orange-200 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-orange-50"
           >

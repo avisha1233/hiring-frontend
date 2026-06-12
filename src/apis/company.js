@@ -1,4 +1,4 @@
-import { apiClient } from "@/apis/api";
+import { ApiError, apiClient } from "@/apis/api";
 
 export async function getCurrentUser() {
   const response = await apiClient.get("/auth/me");
@@ -157,14 +157,27 @@ export async function sendMessage(conversationId, payload) {
 
 export async function getCompanyProfile() {
   const user = await getCurrentUser();
-  if (!user.company_id) throw new Error("User has no company");
-  const response = await apiClient.get(`/companies/${user.company_id}`);
-  return response?.data || response;
+  const companyId = user?.company_id ?? user?.id;
+
+  if (!companyId) throw new Error("User has no company");
+
+  try {
+    const response = await apiClient.get(`/companies/${companyId}`);
+    return response?.data || response;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return {};
+    }
+    throw error;
+  }
 }
 
 export async function updateCompanyProfile(data) {
   const user = await getCurrentUser();
-  if (!user.company_id) throw new Error("User has no company");
-  const response = await apiClient.patch(`/companies/${user.company_id}`, data);
+  const companyId = user?.company_id ?? user?.id;
+
+  if (!companyId) throw new Error("User has no company");
+
+  const response = await apiClient.patch(`/companies/${companyId}`, data);
   return response?.data || response;
 }

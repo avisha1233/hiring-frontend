@@ -7,7 +7,6 @@ import {
   Folder,
   MessageCircle,
   User,
-  CreditCard,
   Settings,
   Bell,
 } from "lucide-react";
@@ -18,7 +17,6 @@ export default function CandidateSidebar() {
     { icon: Briefcase, label: "Browse Jobs", to: "/candidate/jobs" },
     { icon: FileText, label: "My Applications", to: "/candidate/applications" },
     { icon: CalendarDays, label: "Interviews", to: "/candidate/interviews" },
-    { icon: CreditCard, label: "Submissions", to: "/candidate/submissions" },
     { icon: User, label: "Profile", to: "/candidate/profile" },
     { icon: MessageCircle, label: "Messages", to: "/candidate/messages" },
     { icon: Bell, label: "Notifications", to: "/candidate/notifications" },

@@ -11,7 +11,7 @@ export default function CandidateLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-orange-50">
+    <div className="min-h-screen bg-white-10">
       <CandidateSidebar />
       <CandidateTopbar onLogout={handleLogout} />
 

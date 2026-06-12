@@ -22,6 +22,7 @@ const STATUS_TABS = [
 
 export default function Interviews() {
   const [interviews, setInterviews] = useState([]);
+  const [totalInterviews, setTotalInterviews] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -43,7 +44,16 @@ export default function Interviews() {
         limit: pageSize,
       };
       const res = await interviewService.getInterviews(params);
-      setInterviews(res.data.data || []);
+      const payload = res.data || {};
+      const rows = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload?.data?.data)
+            ? payload.data.data
+            : [];
+      setInterviews(rows);
+      setTotalInterviews(payload.total ?? rows.length);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -143,25 +153,34 @@ export default function Interviews() {
                 >
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">
-                      {interview.candidate_name}
+                      {interview.candidate_name ||
+                        interview.candidate?.name ||
+                        "N/A"}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {interview.candidate_email}
+                      {interview.candidate_email ||
+                        interview.candidate?.email ||
+                        "N/A"}
                     </p>
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm text-gray-600">
-                      {interview.job_title}
+                      {interview.job_title ||
+                        interview.jobTitle ||
+                        interview.job?.title ||
+                        "N/A"}
                     </p>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
                     {formatDateTime(
-                      interview.scheduled_at || interview.created_at,
+                      interview.scheduled_at ||
+                        interview.scheduledAt ||
+                        interview.created_at,
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
                     <span className="inline-block rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
-                      {interview.type || "Phone"}
+                      {interview.interview_type || interview.type || "phone"}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -199,7 +218,7 @@ export default function Interviews() {
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={interviews.length * 2}
+          total={totalInterviews}
           onPageChange={goToPage}
         />
       )}

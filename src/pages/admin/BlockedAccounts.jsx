@@ -38,18 +38,19 @@ export default function BlockedAccounts() {
   const fetchBlockedAccounts = async () => {
     try {
       setLoading(true);
-      const [usersRes, companiesRes] = await Promise.all([
-        userService.getUsers({ status: "blocked" }),
-        companyService.getCompanies({ status: "blocked" }),
-      ]);
+      setError(null);
 
-      const accounts = [
-        ...(usersRes.data.data || []).map((u) => ({ ...u, type: "user" })),
-        ...(companiesRes.data.data || []).map((c) => ({
-          ...c,
-          type: "company",
-        })),
-      ];
+      // Only fetch users with status="blocked" — the backend /users endpoint
+      // supports a `status` query param. Companies don't have their own status
+      // field; a "blocked company" is a user with role="company" and status="blocked".
+      const usersRes = await userService.getUsers({ status: "blocked", limit: 1000 });
+      const allBlocked = usersRes?.data?.data || usersRes?.data || [];
+
+      const accounts = allBlocked.map((u) => ({
+        ...u,
+        // treat users whose role is "company" as the company type
+        type: u.role === "company" ? "company" : "user",
+      }));
 
       setBlockedAccounts(accounts);
     } catch (err) {
@@ -65,13 +66,9 @@ export default function BlockedAccounts() {
 
   const handleUnblock = async (account) => {
     try {
-      if (account.type === "user") {
-        await userService.unblockUser(account.id);
-        toast.success(`User ${account.full_name} has been unblocked`);
-      } else {
-        await companyService.unblockCompany(account.id);
-        toast.success(`Company ${account.name} has been unblocked`);
-      }
+      // All blocked accounts live in the users table (company-role users too)
+      await userService.unblockUser(account.id);
+      toast.success(`${account.full_name || account.name} has been unblocked`);
       fetchBlockedAccounts();
     } catch (err) {
       toast.error("Failed to unblock account");
@@ -81,11 +78,8 @@ export default function BlockedAccounts() {
   const handleDelete = async () => {
     try {
       const account = deleteConfirm.account;
-      if (account.type === "user") {
-        await userService.deleteUser(account.id);
-      } else {
-        await companyService.deleteCompany(account.id);
-      }
+      // All blocked accounts are users (even company-role ones)
+      await userService.deleteUser(account.id);
       toast.success("Account deleted successfully");
       setDeleteConfirm({ open: false, account: null });
       fetchBlockedAccounts();
@@ -264,7 +258,7 @@ export default function BlockedAccounts() {
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={filteredAccounts.length * 2}
+          total={filteredAccounts.length}
           onPageChange={goToPage}
         />
       )}

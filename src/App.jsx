@@ -16,7 +16,6 @@ import Jobs from "./pages/admin/Jobs";
 import Skills from "./pages/admin/Skills";
 import Applications from "./pages/admin/Applications";
 import Interviews from "./pages/admin/Interviews";
-import Submissions from "./pages/admin/Submissions";
 import Notifications from "./pages/admin/Notifications";
 import Files from "./pages/admin/Files";
 import Messages from "./pages/admin/Messages";
@@ -24,22 +23,22 @@ import Reports from "./pages/admin/Reports";
 import AdminSettings from "./pages/admin/Settings";
 import NotFound from "./pages/NotFound";
 import Home from "./pages/Home";
+
 import CompanyLayout from "./components/layout/company/CompanyLayout";
 import CompanyOverview from "./pages/company/Overview";
-<<<<<<< HEAD
+import CompanyJobs from "./pages/company/Jobs";
 import CompanyApplications from "./pages/company/Applications";
 import CompanyCandidates from "./pages/company/Candidates";
-
+import CandidateProfile from "./pages/company/CandidateProfile";
 import CompanyInterviews from "./pages/company/Interviews";
-
 import CompanyMessages from "./pages/company/Messages";
 import CompanyProfile from "./pages/company/Profile";
-=======
+import CompanyNotifications from "./pages/company/Notifications";
 
->>>>>>> cb9de6f45d55bca070f79b3c24dded15579d43e0
 import CandidateLayout from "./components/layout/CandidateLayout";
 import CandidateOverview from "./pages/candidate/Overview";
 import MyApplications from "./pages/candidate/MyApplications";
+import ApplicationDetail from "./pages/candidate/ApplicationDetail";
 import CandidateInterviews from "./pages/candidate/Interview";
 import CandidateMessages from "./pages/candidate/Messages";
 import Notification from "./pages/candidate/Notification";
@@ -171,10 +170,6 @@ const router = createBrowserRouter(
               element: <Interviews />,
             },
             {
-              path: "submissions",
-              element: <Submissions />,
-            },
-            {
               path: "notifications",
               element: <Notifications />,
             },
@@ -202,25 +197,6 @@ const router = createBrowserRouter(
       path: "/home",
       element: <Home />,
     },
-<<<<<<< HEAD
-
-    {
-      path: "/register",
-      element: <Login />,
-    },
-
-    {
-      path: "/register/company",
-      element: <Login />,
-    },
-
-    {
-      path: "/register/candidate",
-      element: <Login />,
-    },
-
-=======
->>>>>>> cb9de6f45d55bca070f79b3c24dded15579d43e0
     {
       path: "/company",
       element: <RequireCompanyRoute />,
@@ -237,31 +213,42 @@ const router = createBrowserRouter(
               element: <CompanyOverview />,
             },
             {
-  path: "applications",
-  element: <CompanyApplications />,
-},
-{
-  path: "candidates",
-  element: <CompanyCandidates />,
-},
-{
-  path: "interviews",
-  element: <CompanyInterviews />,
-},
-{
-  path: "messages",
-  element: <CompanyMessages />,
-},
-{
-  path: "profile",
-  element: <CompanyProfile />,
-},
+              path: "jobs",
+              element: <CompanyJobs />,
+            },
+            {
+              path: "applications",
+              element: <CompanyApplications />,
+            },
+            {
+              path: "candidates",
+              element: <CompanyCandidates />,
+            },
+
+            {
+              path: "candidates/:id",
+              element: <CandidateProfile />,
+            },
+            {
+              path: "interviews",
+              element: <CompanyInterviews />,
+            },
+            {
+              path: "messages",
+              element: <CompanyMessages />,
+            },
+            {
+              path: "profile",
+              element: <CompanyProfile />,
+            },
+            {
+              path: "notifications",
+              element: <CompanyNotifications />,
+            },
           ],
         },
       ],
     },
-<<<<<<< HEAD
-=======
 
     {
       path: "/register",
@@ -277,27 +264,6 @@ const router = createBrowserRouter(
       path: "/register/candidate",
       element: <Login />,
     },
-
-    {
-      path: "/company",
-      element: <RequireCompanyRoute />,
-      children: [
-        {
-          element: <CompanyLayout />,
-          children: [
-            {
-              index: true,
-              element: <Navigate to="/company/dashboard" replace />,
-            },
-            {
-              path: "dashboard",
-              element: <CompanyOverview />,
-            },
-          ],
-        },
-      ],
-    },
->>>>>>> cb9de6f45d55bca070f79b3c24dded15579d43e0
 
     {
       path: "/candidate",
@@ -322,6 +288,10 @@ const router = createBrowserRouter(
             {
               path: "applications",
               element: <MyApplications />,
+            },
+            {
+              path: "applications/:id",
+              element: <ApplicationDetail />,
             },
 
             {

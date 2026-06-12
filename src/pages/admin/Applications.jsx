@@ -51,8 +51,16 @@ function getStatusMeta(status) {
   return meta[normalized] || meta.pending;
 }
 
+function normalizeRows(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  return [];
+}
+
 export default function Applications() {
   const [applications, setApplications] = useState([]);
+  const [totalApplications, setTotalApplications] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -80,7 +88,10 @@ export default function Applications() {
         limit: pageSize,
       };
       const res = await applicationService.getApplications(params);
-      setApplications(res.data.data || []);
+      const payload = res.data || {};
+      const rows = normalizeRows(payload);
+      setApplications(rows);
+      setTotalApplications(payload.total ?? rows.length);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -216,17 +227,21 @@ export default function Applications() {
                 >
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">
-                      {app.candidate_name}
+                      {app.candidate_name || app.candidate?.name || "N/A"}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {app.candidate_email}
+                      {app.candidate_email || app.candidate?.email || "N/A"}
                     </p>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm text-gray-600">{app.job_title}</p>
+                    <p className="text-sm text-gray-600">
+                      {app.job_title || app.jobTitle || app.job?.title || "N/A"}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">
-                    {formatDate(app.created_at)}
+                    {formatDate(
+                      app.applied_at || app.appliedDate || app.created_at,
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={app.status}>{app.status}</StatusBadge>
@@ -276,7 +291,7 @@ export default function Applications() {
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={applications.length * 2}
+          total={totalApplications}
           onPageChange={goToPage}
         />
       )}
@@ -320,6 +335,7 @@ export default function Applications() {
                     <p className="text-base font-medium text-gray-900">
                       {selectedApplicationDetail.job_title ||
                         selectedApplicationDetail.jobTitle ||
+                        selectedApplicationDetail.job?.title ||
                         "N/A"}
                     </p>
                   </div>
@@ -330,10 +346,14 @@ export default function Applications() {
                       Candidate
                     </h3>
                     <p className="font-medium text-gray-900">
-                      {selectedApplicationDetail.candidate_name || "N/A"}
+                      {selectedApplicationDetail.candidate_name ||
+                        selectedApplicationDetail.candidate?.name ||
+                        "N/A"}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {selectedApplicationDetail.candidate_email || "N/A"}
+                      {selectedApplicationDetail.candidate_email ||
+                        selectedApplicationDetail.candidate?.email ||
+                        "N/A"}
                     </p>
                   </div>
 
@@ -345,6 +365,7 @@ export default function Applications() {
                     <p className="text-sm text-gray-700">
                       {selectedApplicationDetail.company_name ||
                         selectedApplicationDetail.companyName ||
+                        selectedApplicationDetail.job?.company?.name ||
                         "N/A"}
                     </p>
                   </div>
@@ -379,8 +400,11 @@ export default function Applications() {
                     <div className="space-y-2 text-xs text-gray-600">
                       <div>
                         <span className="font-medium">Applied:</span>{" "}
-                        {formatDate(selectedApplicationDetail.created_at) ||
-                          "N/A"}
+                        {formatDate(
+                          selectedApplicationDetail.applied_at ||
+                            selectedApplicationDetail.appliedDate ||
+                            selectedApplicationDetail.created_at,
+                        ) || "N/A"}
                       </div>
                       <div>
                         <span className="font-medium">Updated:</span>{" "}

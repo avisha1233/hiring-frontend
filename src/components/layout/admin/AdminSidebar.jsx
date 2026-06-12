@@ -9,7 +9,6 @@ import {
   Code2,
   FileText,
   CalendarDays,
-  Upload,
   Bell,
   Folder,
   MessageCircle,
@@ -46,7 +45,6 @@ export default function AdminSidebar() {
       section: "OPERATIONS",
       items: [
         { icon: CalendarDays, label: "Interviews", to: "/admin/interviews" },
-        { icon: Upload, label: "Submissions", to: "/admin/submissions" },
         { icon: Bell, label: "Notifications", to: "/admin/notifications" },
         { icon: Folder, label: "Files", to: "/admin/files" },
         { icon: MessageCircle, label: "Messages", to: "/admin/messages" },

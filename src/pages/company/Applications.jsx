@@ -1,7 +1,6 @@
 // src/pages/company/Applications.jsx
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import FilterTabs from "../../components/shared/FilterTabs";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
@@ -15,20 +14,28 @@ import { api } from "../../services/api";
 
 // ── filter tabs — same shape as candidate Applications ────────────────────────
 const TABS = [
-  { value: "all",          label: "All"          },
-  { value: "applied",      label: "Applied"      },
+  { value: "all", label: "All" },
+  { value: "applied", label: "Applied" },
   { value: "interviewing", label: "Interviewing" },
-  { value: "offered",      label: "Offered"      },
-  { value: "rejected",     label: "Rejected"     },
+  { value: "offered", label: "Offered" },
+  { value: "rejected", label: "Rejected" },
 ];
+
+const resolveCandidateName = (row) =>
+  [row.candidate?.first_name, row.candidate?.last_name]
+    .filter(Boolean)
+    .join(" ") ||
+  row.candidate?.name ||
+  row.candidate?.full_name ||
+  row.candidate_name ||
+  `Candidate #${row.candidate_id}`;
 
 export default function Applications() {
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [companyId, setCompanyId]       = useState(null);
-  const navigate                        = useNavigate();
+  const [companyId, setCompanyId] = useState(null);
 
   const user = getAuthUser();
 
@@ -36,9 +43,9 @@ export default function Applications() {
   useEffect(() => {
     async function resolveCompany() {
       try {
-        const res     = await getCompanyProfile();
+        const res = await getCompanyProfile();
         const profile = res?.data || res || {};
-        const id      = profile?.id || profile?.company_id || user?.company_id;
+        const id = profile?.id || profile?.company_id || user?.company_id;
         setCompanyId(Number(id));
       } catch {
         setError("Could not load company profile");
@@ -59,7 +66,7 @@ export default function Applications() {
         // only send status param when a real filter is selected
         ...(statusFilter !== "all" && { status: statusFilter }),
       };
-      const res  = await api.get("/applications", { params });
+      const res = await api.get("/applications", { params });
       const data = res?.data?.data || res?.data || res || [];
       setApplications(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -93,15 +100,58 @@ export default function Applications() {
       render: (row) => (
         <div>
           <div className="font-medium text-gray-900">
-            {row.candidate?.full_name ||
-              row.candidate?.name ||
-              row.candidate_name ||
-              `Candidate #${row.candidate_id}`}
+            {resolveCandidateName(row)}
           </div>
           <div className="text-xs text-gray-500">
             {row.candidate?.email || ""}
           </div>
         </div>
+      ),
+    },
+    {
+      key: "match_score",
+      label: "Match Score",
+      render: (row) => (
+        row.match_score !== undefined && row.match_score !== null ? (
+          <div className="group relative inline-flex items-center">
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              row.match_score >= 85 ? 'bg-emerald-100 text-emerald-800' :
+              row.match_score >= 70 ? 'bg-blue-100 text-blue-800' :
+              row.match_score >= 50 ? 'bg-orange-100 text-orange-800' :
+              'bg-rose-100 text-rose-800'
+            }`}>
+              {row.match_score}% Match
+            </span>
+            
+            {/* Breakdown Tooltip */}
+            {row.match_breakdown && (
+              <div className="invisible absolute bottom-full left-1/2 z-10 mb-2 w-48 -translate-x-1/2 rounded bg-gray-900 p-3 text-xs text-white opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                <p className="font-semibold border-b border-gray-700 pb-1 mb-2">Score Breakdown</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Skills Fit:</span>
+                    <span className="font-medium">{row.match_breakdown.skillScore}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Experience:</span>
+                    <span className="font-medium">{row.match_breakdown.experienceScore}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Location:</span>
+                    <span className="font-medium">{row.match_breakdown.locationScore}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Notice Period:</span>
+                    <span className="font-medium">{row.match_breakdown.noticePeriodScore}%</span>
+                  </div>
+                </div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-gray-400">—</span>
+        )
       ),
     },
     {
@@ -121,7 +171,7 @@ export default function Applications() {
     {
       key: "applied_on",
       label: "Applied On",
-      render: (row) => formatDate(row.created_at),
+      render: (row) => formatDate(row.applied_at || row.created_at),
     },
     {
       key: "status",
@@ -131,43 +181,63 @@ export default function Applications() {
       ),
     },
     {
-      key: "actions",
-      label: "Actions",
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          {/* View Profile — navigate to candidate detail */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/company/candidates/${row.candidate_id}`);
-            }}
-            className="rounded-md border border-orange-200 bg-white px-3 py-1 text-sm font-medium text-gray-700 hover:bg-orange-50"
-          >
-            View Profile
-          </button>
+      key: "move_to",
+      label: "Move To",
+      render: (row) => {
+        const s = String(row.status || "").toLowerCase();
 
-          {/* Schedule — only active when not already interviewing/beyond */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStatusChange(row.id, "interviewing");
-            }}
-            disabled={["interviewing", "offered", "hired", "rejected"].includes(
-              String(row.status).toLowerCase(),
+        // Determine the next forward step and its label
+        const forwardMap = {
+          applied:      { label: "Interview", next: "interviewing" },
+          reviewing:    { label: "Interview", next: "interviewing" },
+          interviewing: { label: "Offer",     next: "offered"      },
+          shortlisted:  { label: "Interview", next: "interviewing" },
+        };
+        const forward = forwardMap[s];
+
+        // Terminal statuses — nothing left to do
+        if (s === "rejected" || s === "hired" || s === "offered") {
+          return (
+            <span className="text-xs text-gray-400 italic">
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </span>
+          );
+        }
+
+        return (
+          <div className="flex items-center gap-2">
+            {/* Forward progression button — green outline */}
+            {forward && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusChange(row.id, forward.next);
+                }}
+                className="rounded-md border border-emerald-500 px-3 py-1 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors"
+              >
+                {forward.label}
+              </button>
             )}
-            className="rounded-md bg-orange-500 px-3 py-1 text-sm font-medium text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Schedule
-          </button>
-        </div>
-      ),
+
+            {/* Reject button — red outline */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusChange(row.id, "rejected");
+              }}
+              className="rounded-md border border-rose-400 px-3 py-1 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition-colors"
+            >
+              Reject
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
   // ── render — identical structure to candidate Applications ────────────────
   return (
     <div className="space-y-4">
-
       {/* page title */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
@@ -207,7 +277,6 @@ export default function Applications() {
           empty="No applications found"
         />
       )}
-
     </div>
   );
 }

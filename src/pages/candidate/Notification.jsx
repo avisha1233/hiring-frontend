@@ -8,6 +8,7 @@ import {
   Star,
 } from "lucide-react";
 import { api } from "../../services/api";
+import { getAuthUser } from "../../lib/auth";
 
 // figure out which icon to show based on notification type
 function getIcon(type) {
@@ -179,15 +180,20 @@ export default function Notifications() {
   const [error, setError] = useState(null);
   const [markingAll, setMarkingAll] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const candidateId = user?.id;
-
+  const user = getAuthUser();
   async function loadNotifications() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(`/notifications?user_id=${candidateId}`);
-      setNotifications(res.data || []);
+      // Use the dedicated candidate endpoint — it reads user_id from the JWT
+      // so no manual user_id query param is needed.
+      const res = await api.get(
+        `/candidate/notifications?limit=100&sort=created_at&sortDirection=DESC`
+      );
+      // Backend returns { data: rows, total, ... }
+      // axios wraps body in res.data → rows live at res.data.data
+      const rows = res.data?.data ?? (Array.isArray(res.data) ? res.data : []);
+      setNotifications(rows);
     } catch (err) {
       setError("Could not load notifications. Please try again.");
     } finally {
@@ -196,8 +202,8 @@ export default function Notifications() {
   }
 
   useEffect(() => {
-    if (candidateId) loadNotifications();
-  }, [candidateId]);
+    loadNotifications();
+  }, []);
 
   async function markOneRead(id) {
     // update UI right away so it feels fast

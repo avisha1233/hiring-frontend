@@ -1,7 +1,7 @@
 import Avatar from "@/components/shared/Avatar";
 import { MapPin, Phone, GraduationCap, Briefcase, Clock } from "lucide-react";
 
-export default function ProfileSidebar({ watch, workCount, eduCount, certCount }) {
+export default function ProfileSidebar({ watch, workCount, eduCount }) {
   const values = watch();
 
   return (
@@ -41,7 +41,7 @@ export default function ProfileSidebar({ watch, workCount, eduCount, certCount }
         )}
       </div>
 
-      {(values.linkedin_url || values.github_url || values.portfolio_url) && (
+      {(values.linkedin_url || values.github_url) && (
         <div className="border-t border-orange-50 pt-3 space-y-1.5">
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Links</p>
           {values.linkedin_url && (
@@ -56,12 +56,6 @@ export default function ProfileSidebar({ watch, workCount, eduCount, certCount }
               {values.github_url}
             </a>
           )}
-          {values.portfolio_url && (
-            <a href={values.portfolio_url} target="_blank" rel="noreferrer"
-              className="block text-xs text-orange-500 hover:underline truncate">
-              {values.portfolio_url}
-            </a>
-          )}
         </div>
       )}
 
@@ -74,10 +68,6 @@ export default function ProfileSidebar({ watch, workCount, eduCount, certCount }
         <div className="flex justify-between">
           <span>Education</span>
           <span className="font-medium text-gray-800">{eduCount}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>Certifications</span>
-          <span className="font-medium text-gray-800">{certCount}</span>
         </div>
       </div>
 

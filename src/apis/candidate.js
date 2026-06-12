@@ -80,8 +80,66 @@ export const candidateApi = {
   },
 
   applyToJob: async (jobId) => {
-    const { data } = await api.post("/applications", { job_id: jobId });
-    return data;
+    const normalizedJobId = Number(jobId);
+
+    if (!Number.isInteger(normalizedJobId) || normalizedJobId < 1) {
+      throw new Error("Invalid job ID");
+    }
+
+    try {
+      const { data } = await api.post("/applications", {
+        job_id: normalizedJobId,
+      });
+      return data;
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to apply for job";
+      const normalizedError = new Error(message);
+      normalizedError.status = error?.response?.status;
+      normalizedError.payload = error?.response?.data || null;
+      throw normalizedError;
+    }
+  },
+
+  getWork: async () => {
+    return { data: [] };
+  },
+  addWork: async (payload) => {
+    return { data: { id: Date.now(), ...payload } };
+  },
+  updateWork: async (id, payload) => {
+    return { data: { id, ...payload } };
+  },
+  deleteWork: async (id) => {
+    return { success: true };
+  },
+
+  getEdu: async () => {
+    return { data: [] };
+  },
+  addEdu: async (payload) => {
+    return { data: { id: Date.now(), ...payload } };
+  },
+  updateEdu: async (id, payload) => {
+    return { data: { id, ...payload } };
+  },
+  deleteEdu: async (id) => {
+    return { success: true };
+  },
+
+  getCerts: async () => {
+    return { data: [] };
+  },
+  addCert: async (payload) => {
+    return { data: { id: Date.now(), ...payload } };
+  },
+  updateCert: async (id, payload) => {
+    return { data: { id, ...payload } };
+  },
+  deleteCert: async (id) => {
+    return { success: true };
   },
 };
 

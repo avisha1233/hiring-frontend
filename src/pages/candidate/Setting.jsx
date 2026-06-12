@@ -1,146 +1,30 @@
-import { useState, useEffect } from "react";
-import { Lock, Bell, Eye, EyeOff, Save } from "lucide-react";
+// src/pages/candidate/Setting.jsx
+
+import { useState } from "react";
+import { Lock, Eye, EyeOff, Save } from "lucide-react";
 import { api } from "../../services/api";
-
-function Section({ icon: Icon, title, children }) {
-  return (
-    <div
-      style={{
-        background: "#fff",
-        border: "0.5px solid #FFD0B0",
-        borderRadius: "12px",
-        padding: "16px",
-        marginBottom: "14px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "7px",
-          fontSize: "13px",
-          fontWeight: 500,
-          marginBottom: "14px",
-          paddingBottom: "10px",
-          borderBottom: "0.5px solid #FFE8D6",
-        }}
-      >
-        <Icon size={14} color="#F97316" />
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function SaveBtn({ label, saving, saved, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={saving}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "6px",
-        fontSize: "12px",
-        padding: "7px 16px",
-        borderRadius: "8px",
-        border: "none",
-        background: saved ? "#1D9E75" : saving ? "#FFD0B0" : "#F97316",
-        color: "#fff",
-        cursor: saving ? "not-allowed" : "pointer",
-        transition: "background 0.2s",
-      }}
-    >
-      <Save size={13} color="#fff" />
-      {saved ? "Saved" : saving ? "Saving…" : label}
-    </button>
-  );
-}
 
 function PasswordField({ label, value, onChange, placeholder }) {
   const [show, setShow] = useState(false);
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "5px",
-        marginBottom: "11px",
-      }}
-    >
-      <label style={{ fontSize: "12px", color: "#6b7280" }}>{label}</label>
-      <div style={{ position: "relative" }}>
+    <div className="flex flex-col gap-1 mb-3">
+      <label className="text-xs text-gray-500">{label}</label>
+      <div className="relative">
         <input
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          style={{
-            fontSize: "13px",
-            padding: "8px 36px 8px 11px",
-            borderRadius: "8px",
-            border: "0.5px solid #FFD0B0",
-            background: "#fff",
-            color: "#111827",
-            outline: "none",
-            width: "100%",
-          }}
+          className="w-full text-sm px-3 py-2 pr-9 rounded-lg border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-gray-900"
         />
         <button
           type="button"
           onClick={() => setShow(!show)}
-          style={{
-            position: "absolute",
-            right: "10px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-          }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
         >
-          {show ? (
-            <EyeOff size={14} color="#9ca3af" />
-          ) : (
-            <Eye size={14} color="#9ca3af" />
-          )}
+          {show ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
       </div>
-    </div>
-  );
-}
-
-function Toggle({ on, onToggle }) {
-  return (
-    <div
-      onClick={onToggle}
-      style={{
-        width: "36px",
-        height: "20px",
-        borderRadius: "10px",
-        background: on ? "#F97316" : "#e5e7eb",
-        position: "relative",
-        cursor: "pointer",
-        flexShrink: 0,
-        transition: "background 0.2s",
-      }}
-    >
-      <div
-        style={{
-          width: "14px",
-          height: "14px",
-          borderRadius: "50%",
-          background: "#fff",
-          position: "absolute",
-          top: "3px",
-          left: on ? "19px" : "3px",
-          transition: "left 0.2s",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-        }}
-      />
     </div>
   );
 }
@@ -153,154 +37,80 @@ function getStrength(pw) {
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   const levels = [
-    { label: "Weak", color: "#E24B4A", pct: 25 },
-    { label: "Fair", color: "#EF9F27", pct: 50 },
-    { label: "Good", color: "#F97316", pct: 75 },
+    { label: "Weak",   color: "#E24B4A", pct: 25  },
+    { label: "Fair",   color: "#EF9F27", pct: 50  },
+    { label: "Good",   color: "#F97316", pct: 75  },
     { label: "Strong", color: "#1D9E75", pct: 100 },
   ];
   return levels[score - 1] || levels[0];
 }
 
 export default function Settings() {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const userId = user?.id;
+  const stored =
+    JSON.parse(localStorage.getItem("authUser") || "null") ||
+    JSON.parse(localStorage.getItem("user") || "{}");
+  const userId = stored?.id;
 
-  // password
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
-  const [pwError, setPwError] = useState(null);
-  const [savingPw, setSavingPw] = useState(false);
-  const [savedPw, setSavedPw] = useState(false);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const strength = getStrength(pw.next);
 
-  // notification prefs
-  const [prefs, setPrefs] = useState({
-    interview_reminders: true,
-    application_updates: true,
-    task_deadlines: true,
-    messages: true,
-    offers: false,
-  });
-  const [loadingPrefs, setLoadingPrefs] = useState(true);
-  const [savingPrefs, setSavingPrefs] = useState(false);
-  const [savedPrefs, setSavedPrefs] = useState(false);
-
-  useEffect(() => {
-    async function loadPrefs() {
-      setLoadingPrefs(true);
-      try {
-        const res = await api.get(`/users/${userId}`);
-        if (res.data?.notification_preferences) {
-          setPrefs(res.data.notification_preferences);
-        }
-      } catch {
-        // use defaults if fetch fails
-      } finally {
-        setLoadingPrefs(false);
-      }
-    }
-    if (userId) loadPrefs();
-  }, [userId]);
-
-  function togglePref(key) {
-    setPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
-  }
-
   async function changePassword() {
-    setPwError(null);
+    setError(null);
 
     if (!pw.current || !pw.next || !pw.confirm) {
-      setPwError("Please fill in all three fields");
+      setError("Please fill in all three fields.");
       return;
     }
     if (pw.next !== pw.confirm) {
-      setPwError("New passwords do not match");
+      setError("New passwords do not match.");
       return;
     }
     if (pw.next.length < 8) {
-      setPwError("New password must be at least 8 characters");
+      setError("New password must be at least 8 characters.");
       return;
     }
 
-    setSavingPw(true);
+    setSaving(true);
     try {
       await api.patch(`/users/${userId}`, {
         current_password: pw.current,
         password: pw.next,
       });
       setPw({ current: "", next: "", confirm: "" });
-      setSavedPw(true);
-      setTimeout(() => setSavedPw(false), 2500);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
     } catch (err) {
-      setPwError(
-        err.response?.data?.message ||
-          "Could not update password. Check your current password.",
+      setError(
+        err?.response?.data?.message ||
+          "Could not update password. Check your current password."
       );
     } finally {
-      setSavingPw(false);
+      setSaving(false);
     }
   }
-
-  async function saveNotifPrefs() {
-    setSavingPrefs(true);
-    try {
-      await api.patch(`/users/${userId}`, {
-        notification_preferences: prefs,
-      });
-      setSavedPrefs(true);
-      setTimeout(() => setSavedPrefs(false), 2500);
-    } catch {
-      setSavedPrefs(true);
-      setTimeout(() => setSavedPrefs(false), 2500);
-    } finally {
-      setSavingPrefs(false);
-    }
-  }
-
-  const prefList = [
-    {
-      key: "interview_reminders",
-      label: "Interview reminders",
-      desc: "Get notified before your scheduled interviews",
-    },
-    {
-      key: "application_updates",
-      label: "Application updates",
-      desc: "When a company reviews or changes your application status",
-    },
-    {
-      key: "task_deadlines",
-      label: "Task deadlines",
-      desc: "Reminders when a task deadline is approaching",
-    },
-    {
-      key: "messages",
-      label: "New messages",
-      desc: "When a company sends you a message",
-    },
-    {
-      key: "offers",
-      label: "Job offers",
-      desc: "When you receive an offer from a company",
-    },
-  ];
 
   return (
-    <div style={{ maxWidth: "580px" }}>
-      {/* change password */}
-      <Section icon={Lock} title="Change password">
-        {pwError && (
-          <div
-            style={{
-              padding: "9px 12px",
-              background: "#FCEBEB",
-              border: "0.5px solid #F09595",
-              borderRadius: "8px",
-              fontSize: "12px",
-              color: "#A32D2D",
-              marginBottom: "12px",
-            }}
-          >
-            {pwError}
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="w-full max-w-md">
+        
+        <div className="mb-6 text-center">
+        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <p className="text-sm text-gray-500">Manage your account</p>
+      </div>
+
+      <div className="bg-white border border-orange-100 rounded-xl p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-sm font-medium mb-4 pb-3 border-b border-orange-50">
+        
+          <Lock size={15} className="text-orange-500" />
+          Change password
+        </div>
+
+        {error && (
+          <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {error}
           </div>
         )}
 
@@ -311,13 +121,7 @@ export default function Settings() {
           placeholder="Enter your current password"
         />
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "11px",
-          }}
-        >
+        <div className="grid grid-cols-2 gap-3">
           <PasswordField
             label="New password"
             value={pw.next}
@@ -333,140 +137,34 @@ export default function Settings() {
         </div>
 
         {pw.next && strength && (
-          <div style={{ marginBottom: "13px" }}>
-            <div
-              style={{
-                fontSize: "11px",
-                color: "#6b7280",
-                marginBottom: "5px",
-              }}
-            >
-              Password strength
-            </div>
-            <div
-              style={{
-                height: "5px",
-                background: "#FFE8D6",
-                borderRadius: "3px",
-                overflow: "hidden",
-              }}
-            >
+          <div className="mb-3">
+            <p className="mb-1 text-xs text-gray-400">Password strength</p>
+            <div className="h-1.5 w-full rounded-full bg-orange-100 overflow-hidden">
               <div
-                style={{
-                  height: "100%",
-                  width: `${strength.pct}%`,
-                  background: strength.color,
-                  borderRadius: "3px",
-                  transition: "width 0.2s, background 0.2s",
-                }}
+                className="h-full rounded-full transition-all"
+                style={{ width: `${strength.pct}%`, background: strength.color }}
               />
             </div>
-            <div
-              style={{
-                fontSize: "11px",
-                color: strength.color,
-                marginTop: "4px",
-              }}
-            >
+            <p className="mt-1 text-xs" style={{ color: strength.color }}>
               {strength.label}
-            </div>
+            </p>
           </div>
         )}
 
-        <SaveBtn
-          label="Update password"
-          saving={savingPw}
-          saved={savedPw}
+        <button
           onClick={changePassword}
-        />
-      </Section>
-
-      {/* notification preferences */}
-      <Section icon={Bell} title="Notification preferences">
-        {loadingPrefs
-          ? [1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "11px 0",
-                  borderBottom: "0.5px solid #FFE8D6",
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      height: "13px",
-                      width: "140px",
-                      background: "#FFE8D6",
-                      borderRadius: "4px",
-                      marginBottom: "6px",
-                      opacity: 0.5,
-                    }}
-                  />
-                  <div
-                    style={{
-                      height: "11px",
-                      width: "220px",
-                      background: "#FFE8D6",
-                      borderRadius: "4px",
-                      opacity: 0.35,
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    width: "36px",
-                    height: "20px",
-                    borderRadius: "10px",
-                    background: "#FFE8D6",
-                    opacity: 0.5,
-                  }}
-                />
-              </div>
-            ))
-          : prefList.map((p) => (
-              <div
-                key={p.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "11px 0",
-                  borderBottom: "0.5px solid #FFE8D6",
-                }}
-              >
-                <div style={{ flex: 1, marginRight: "16px" }}>
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      color: "#111827",
-                      marginBottom: "3px",
-                    }}
-                  >
-                    {p.label}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#9ca3af" }}>
-                    {p.desc}
-                  </div>
-                </div>
-                <Toggle on={prefs[p.key]} onToggle={() => togglePref(p.key)} />
-              </div>
-            ))}
-
-        {!loadingPrefs && (
-          <div style={{ marginTop: "13px" }}>
-            <SaveBtn
-              label="Save preferences"
-              saving={savingPrefs}
-              saved={savedPrefs}
-              onClick={saveNotifPrefs}
-            />
-          </div>
-        )}
-      </Section>
+          disabled={saving}
+          className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg text-white transition-colors"
+          style={{
+            background: saved ? "#1D9E75" : saving ? "#FFD0B0" : "#F97316",
+            cursor: saving ? "not-allowed" : "pointer",
+          }}
+        >
+          <Save size={14} />
+          {saved ? "Password updated!" : saving ? "Saving…" : "Update password"}
+        </button>
+      </div>
+    </div>
     </div>
   );
 }

@@ -31,16 +31,18 @@ export default function AdminLogin() {
         password: form.password,
       });
 
-      if (payload?.user?.role !== "admin") {
+       const data = payload?.data || payload || {};
+
+      if (data?.user?.role !== "admin") {
         setError("This page is reserved for admin accounts.");
         setLoading(false);
         return;
       }
 
       saveAuthSession({
-        accessToken: payload?.accessToken,
-        refreshToken: payload?.refreshToken,
-        user: payload?.user,
+        accessToken: data?.accessToken,
+        refreshToken: data?.refreshToken,
+        user: data?.user,
       });
 
       navigate("/admin/dashboard", { replace: true });

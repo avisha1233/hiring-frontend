@@ -4,43 +4,40 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
 import Avatar from "../../components/shared/Avatar";
-import {
-  getCompanyProfile,
-  updateCompanyProfile,
-} from "@/apis/company";
+import { getCompanyProfile, updateCompanyProfile } from "@/apis/company";
 import { apiClient } from "@/apis/api";
 import { Plus, Trash2 } from "lucide-react";
 
 export default function Profile() {
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [form, setForm]         = useState({
-    name:        "",
-    location:    "",
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    location: "",
     website_url: "",
-    logo_url:    "",
+    logo_url: "",
   });
-  const [initial, setInitial]   = useState(null);
+  const [initial, setInitial] = useState(null);
 
   // ── skills library state ──────────────────────────────────────────────────
-  const [skills, setSkills]         = useState([]);
+  const [skills, setSkills] = useState([]);
   const [skillsLoading, setSkillsLoading] = useState(true);
-  const [newSkill, setNewSkill]     = useState({ name: "", description: "" });
+  const [newSkill, setNewSkill] = useState({ name: "", description: "" });
   const [addingSkill, setAddingSkill] = useState(false);
-  const [showAddRow, setShowAddRow]  = useState(false);
+  const [showAddRow, setShowAddRow] = useState(false);
 
   // ── load company profile ──────────────────────────────────────────────────
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const res  = await getCompanyProfile();
+      const res = await getCompanyProfile();
       const data = res?.data || res || {};
 
       const merged = {
-        name:        data.name        || "",
-        location:    data.location    || "",
+        name: data.name || "",
+        location: data.location || "",
         website_url: data.website_url || "",
-        logo_url:    data.logo_url    || "",
+        logo_url: data.logo_url || "",
       };
 
       setForm(merged);
@@ -56,7 +53,7 @@ export default function Profile() {
   const fetchSkills = async () => {
     setSkillsLoading(true);
     try {
-      const res  = await apiClient.get("/skills");
+      const res = await apiClient.get("/skills");
       const data = res?.data?.data || res?.data || res;
       setSkills(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -85,14 +82,14 @@ export default function Profile() {
       return "You have unsaved changes.";
     };
 
-    const origPush    = window.history.pushState;
+    const origPush = window.history.pushState;
     const origReplace = window.history.replaceState;
 
     function confirmAndRun(fn) {
       return function (...args) {
         if (hasUnsaved) {
           const ok = window.confirm(
-            "You have unsaved changes. Leave without saving?"
+            "You have unsaved changes. Leave without saving?",
           );
           if (!ok) return;
         }
@@ -101,12 +98,12 @@ export default function Profile() {
     }
 
     window.addEventListener("beforeunload", beforeUnload);
-    window.history.pushState   = confirmAndRun(origPush);
+    window.history.pushState = confirmAndRun(origPush);
     window.history.replaceState = confirmAndRun(origReplace);
 
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
-      window.history.pushState   = origPush;
+      window.history.pushState = origPush;
       window.history.replaceState = origReplace;
     };
   }, [hasUnsaved]);
@@ -116,15 +113,20 @@ export default function Profile() {
     setSaving(true);
     try {
       await updateCompanyProfile({
-        name:        form.name,
-        location:    form.location,
+        name: form.name,
+        location: form.location,
         website_url: form.website_url,
-        logo_url:    form.logo_url,
+        logo_url: form.logo_url,
       });
       toast.success("Profile updated successfully");
       setInitial({ ...form });
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to save profile");
+      const errorMessage =
+        err?.payload?.errors?.[0]?.msg ||
+        err?.payload?.message ||
+        err?.message ||
+        "Failed to save profile";
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -135,8 +137,8 @@ export default function Profile() {
     if (!newSkill.name.trim()) return toast.error("Skill name is required");
     setAddingSkill(true);
     try {
-      const res  = await apiClient.post("/skills", {
-        name:        newSkill.name.trim(),
+      const res = await apiClient.post("/skills", {
+        name: newSkill.name.trim(),
         description: newSkill.description.trim(),
       });
       const created = res?.data?.data || res?.data || res;
@@ -167,18 +169,14 @@ export default function Profile() {
 
   return (
     <div className="space-y-4">
-
       {/* ── page title ── */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
-        <p className="text-sm text-gray-600">
-          Manage your company information
-        </p>
+        <p className="text-sm text-gray-600">Manage your company information</p>
       </div>
 
       {/* ── left info card + right edit form ── */}
       <section className="grid grid-cols-1 gap-4 xl:grid-cols-[320px,1fr]">
-
         {/* ── left: company info card ── */}
         <aside className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
           <div className="flex flex-col items-center gap-3">
@@ -225,9 +223,12 @@ export default function Profile() {
               )}
             </p>
             <p className="m-0">
-              Logo URL: {form.logo_url ? (
+              Logo URL:{" "}
+              {form.logo_url ? (
                 <span className="break-all">{form.logo_url}</span>
-              ) : "—"}
+              ) : (
+                "—"
+              )}
             </p>
           </div>
         </aside>
@@ -235,7 +236,6 @@ export default function Profile() {
         {/* ── right: edit form ── */}
         <div className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
           <div className="space-y-3">
-
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <input
                 value={form.name}
@@ -266,7 +266,7 @@ export default function Profile() {
                 onChange={(e) =>
                   setForm((p) => ({ ...p, logo_url: e.target.value }))
                 }
-                placeholder="Logo URL"
+                placeholder="Logo URL (Optional)"
                 className="h-10 rounded-lg border border-orange-100 px-3 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
               />
             </div>
@@ -287,15 +287,12 @@ export default function Profile() {
                 </span>
               )}
             </div>
-
           </div>
         </div>
-
       </section>
 
       {/* ── skills library table ── */}
       <section className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
-
         {/* skills header */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -416,9 +413,7 @@ export default function Profile() {
             </table>
           </div>
         )}
-
       </section>
-
     </div>
   );
 }

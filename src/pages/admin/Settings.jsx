@@ -29,15 +29,25 @@ export default function Settings() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      setError(null);
+
+      const settle = (promise) =>
+        promise.then((v) => ({ok: true, value: v})).catch((e) => ({ok: false, error:  e}));
+
+
       const [settingsRes, profileRes, logsRes] = await Promise.all([
-        settingService.getSettings(),
-        userService.getCurrentUser(),
-        settingService.getAuditLog({ page, limit: pageSize }),
+        settle(settingService.getSettings()),
+        settle(userService.getCurrentUser()),
+        settle(settingService.getAuditLog({ page, limit: pageSize })),
       ]);
 
-      setSystemSettings(settingsRes.data || {});
-      setAdminProfile(profileRes.data || {});
-      setAuditLogs(logsRes.data.data || []);
+      setSystemSettings(settingsRes.ok ? (settingsRes.value.data || {}) : {});
+      setAdminProfile(profileRes.ok ? (profileRes.value.data?.data || profileRes.value.data || {}) : {});
+      setAuditLogs(
+        logsRes.ok
+          ? (logsRes.value.data?.data || logsRes.value.data || [])
+          : [],
+      );
     } catch (err) {
       setError(err.message);
     } finally {

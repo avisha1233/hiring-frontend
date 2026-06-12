@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 
 export default function Overview() {
-
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState(null);
   const [jobs, setJobs] = useState([]);
