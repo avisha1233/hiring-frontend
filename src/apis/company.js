@@ -181,3 +181,16 @@ export async function updateCompanyProfile(data) {
   const response = await apiClient.patch(`/companies/${companyId}`, data);
   return response?.data || response;
 }
+
+export async function createProposal(payload) {
+  const response = await apiClient.post("/proposals", payload);
+  return response?.data || response;
+}
+
+export async function getCompanyProposals() {
+  const user = await getCurrentUser();
+  const companyId = user?.company_id ?? user?.id;
+  if (!companyId) return [];
+  const response = await apiClient.get(`/proposals?company_id=${companyId}`);
+  return response?.data || response?.data?.data || [];
+}

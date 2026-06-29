@@ -47,6 +47,7 @@ import CandidateSettings from "./pages/candidate/Setting";
 
 import { getAuthUser } from "./lib/auth";
 import BrowseJobs from "./pages/candidate/BrowseJobs";
+import CandidateProposals from "./pages/candidate/Proposals";
 
 function HomeRedirect() {
   const user = getAuthUser();
@@ -292,6 +293,10 @@ const router = createBrowserRouter(
             {
               path: "applications/:id",
               element: <ApplicationDetail />,
+            },
+            {
+              path: "proposals",
+              element: <CandidateProposals />,
             },
 
             {
