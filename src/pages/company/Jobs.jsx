@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import { Plus, X, Loader2, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, X, Loader2, Users, ChevronDown, Check } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SearchInput from "../../components/shared/SearchInput";
 import EmptyState from "../../components/shared/EmptyState";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
 import { getCompanyJobs, getCompanyProfile } from "@/apis/company";
 import { api } from "../../services/api";
+import { apiClient } from "@/apis/api";
 import { getAuthUser } from "../../lib/auth";
 
 // ── level pill ────────────────────────────────────────────────────────────────
@@ -86,14 +87,27 @@ export default function Jobs() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError]   = useState("");
   const [form, setForm] = useState({
-    title:        "",
-    description:  "",
-    location:     "",
-    salary_min:   "",
-    salary_max:   "",
-    job_type:     "full_time",
-    status:       "open",
+    title:                  "",
+    description:            "",
+    location:               "",
+    min_salary:             "",
+    max_salary:             "",
+    currency:               "NPR",
+    job_type:               "full_time",
+    status:                 "open",
+    experience_level:       "",
+    required_experience:    "",
+    project_duration_days:  "",
+    is_remote:              false,
+    deadline:               "",
   });
+
+  // ── skills for multi-select ───────────────────────────────────────────────
+  const [allSkills, setAllSkills]       = useState([]);
+  const [selectedSkills, setSelectedSkills] = useState([]); // [{id, name}]
+  const [skillDropOpen, setSkillDropOpen]   = useState(false);
+  const [skillSearch, setSkillSearch]       = useState("");
+  const skillDropRef = useRef(null);
   // ─────────────────────────────────────────────────────────────────────────
 
   // ── sync search from URL ─────────────────────────────────────────────────
@@ -146,16 +160,53 @@ export default function Jobs() {
     return () => { cancelled = true; };
   }, [search, companyId]);
 
+  // ── load company skills for the dropdown ─────────────────────────────────
+  useEffect(() => {
+    if (!showModal) return;
+    apiClient.get("/skills", { params: { limit: 200 } })
+      .then((res) => {
+        const data = res?.data?.data || res?.data || [];
+        setAllSkills(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {});
+  }, [showModal]);
+
+  // ── close skills dropdown on outside click ────────────────────────────────
+  useEffect(() => {
+    function handleClick(e) {
+      if (skillDropRef.current && !skillDropRef.current.contains(e.target)) {
+        setSkillDropOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
   // ── form helpers ──────────────────────────────────────────────────────────
   const handleFormChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+  };
+
+  const toggleSkill = (skill) => {
+    setSelectedSkills((prev) =>
+      prev.find((s) => s.id === skill.id)
+        ? prev.filter((s) => s.id !== skill.id)
+        : [...prev, { id: skill.id, name: skill.name }]
+    );
   };
 
   const resetForm = () => {
     setForm({
       title: "", description: "", location: "",
-      salary_min: "", salary_max: "", job_type: "full_time", status: "open",
+      min_salary: "", max_salary: "", currency: "NPR",
+      job_type: "full_time", status: "open",
+      experience_level: "", required_experience: "",
+      project_duration_days: "", is_remote: false, deadline: "",
     });
+    setSelectedSkills([]);
+    setSkillSearch("");
+    setSkillDropOpen(false);
     setFormError("");
   };
 
@@ -166,25 +217,46 @@ export default function Jobs() {
 
   // ── submit new job ────────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!form.title.trim()) { setFormError("Job title is required."); return; }
+    if (!form.title.trim())       { setFormError("Job title is required."); return; }
     if (!form.description.trim()) { setFormError("Description is required."); return; }
-    if (!form.location.trim()) { setFormError("Location is required."); return; }
+    if (!form.location.trim())    { setFormError("Location is required."); return; }
 
     setSubmitting(true);
     setFormError("");
 
     try {
       const payload = {
-        ...form,
-        company_id: companyId || authUser?.company_id || authUser?.id,
-        salary_min: form.salary_min ? Number(form.salary_min) : undefined,
-        salary_max: form.salary_max ? Number(form.salary_max) : undefined,
+        title:                 form.title.trim(),
+        description:           form.description.trim(),
+        location:              form.location.trim(),
+        min_salary:            form.min_salary     ? Number(form.min_salary)            : undefined,
+        max_salary:            form.max_salary     ? Number(form.max_salary)            : undefined,
+        currency:              form.currency       || "NPR",
+        job_type:              form.job_type       || "full_time",
+        status:                form.status         || "open",
+        experience_level:      form.experience_level      || undefined,
+        required_experience:   form.required_experience   ? Number(form.required_experience)   : undefined,
+        project_duration_days: form.project_duration_days ? Number(form.project_duration_days) : undefined,
+        is_remote:             form.is_remote,
+        deadline:              form.deadline       || undefined,
+        company_id:            companyId || authUser?.company_id || authUser?.id,
       };
 
-      const res     = await api.post("/jobs", payload);
-      const newJob  = res?.data?.data || res?.data || res;
+      const res    = await api.post("/jobs", payload);
+      const newJob = res?.data?.data || res?.data || res;
+      const jobId  = newJob?.id;
 
-      // add new job to top of list immediately
+      // Link selected skills to the new job
+      if (jobId && selectedSkills.length > 0) {
+        await Promise.allSettled(
+          selectedSkills.map((skill) =>
+            apiClient.post("/job-skills", { job_id: jobId, skill_id: skill.id })
+          )
+        );
+        // attach skills to the job object for the table
+        newJob.JobSkills = selectedSkills.map((s) => ({ Skill: s }));
+      }
+
       setJobs((prev) => [newJob, ...prev]);
       handleCloseModal();
     } catch (err) {
@@ -332,117 +404,105 @@ export default function Jobs() {
       {/* ── Post a Job Modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl flex flex-col max-h-[90vh]">
 
             {/* modal header */}
-            <div className="mb-5 flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-orange-50 px-6 py-4 shrink-0">
               <h2 className="text-lg font-bold text-gray-900">Post a New Job</h2>
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="rounded-lg p-1 text-gray-400 hover:bg-orange-50 hover:text-orange-600"
-              >
+              <button type="button" onClick={handleCloseModal}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-orange-50 hover:text-orange-600 transition">
                 <X size={20} />
               </button>
             </div>
 
-            {/* form */}
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            {/* scrollable form body */}
+            <div className="overflow-y-auto px-6 py-5 space-y-4">
 
-              {/* title */}
+              {/* ── Row 1: Title ── */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Job Title <span className="text-red-500">*</span>
                 </label>
-                <input
-                  name="title"
-                  value={form.title}
-                  onChange={handleFormChange}
+                <input name="title" value={form.title} onChange={handleFormChange}
                   placeholder="e.g. Frontend Developer"
-                  className="w-full rounded-xl border border-orange-200 px-4 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                />
+                  className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
               </div>
 
-              {/* description */}
+              {/* ── Row 2: Description ── */}
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Description <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleFormChange}
-                  placeholder="Describe the role, responsibilities, requirements..."
-                  rows={4}
-                  className="w-full resize-none rounded-xl border border-orange-200 px-4 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                />
+                <textarea name="description" value={form.description} onChange={handleFormChange}
+                  placeholder="Describe the role, responsibilities, requirements…"
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
               </div>
 
-              {/* location */}
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Location <span className="text-red-500">*</span>
-                </label>
-                <input
-                  name="location"
-                  value={form.location}
-                  onChange={handleFormChange}
-                  placeholder="e.g. Kathmandu or Remote"
-                  className="w-full rounded-xl border border-orange-200 px-4 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                />
-              </div>
-
-              {/* salary */}
+              {/* ── Row 3: Location + Remote ── */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Location <span className="text-red-500">*</span>
+                  </label>
+                  <input name="location" value={form.location} onChange={handleFormChange}
+                    placeholder="e.g. Kathmandu"
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
+                </div>
+                <div className="flex flex-col justify-end">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Remote</label>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-orange-200 px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 transition">
+                    <input type="checkbox" name="is_remote" checked={form.is_remote} onChange={handleFormChange}
+                      className="h-4 w-4 rounded accent-orange-500" />
+                    Remote / Work from home
+                  </label>
+                </div>
+              </div>
+
+              {/* ── Row 4: Salary range + Currency ── */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Min Salary</label>
-                  <input
-                    name="salary_min"
-                    type="number"
-                    value={form.salary_min}
-                    onChange={handleFormChange}
-                    placeholder="e.g. 50000"
-                    className="w-full rounded-xl border border-orange-200 px-4 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                  />
+                  <input name="min_salary" type="number" value={form.min_salary} onChange={handleFormChange}
+                    placeholder="e.g. 30000"
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Max Salary</label>
-                  <input
-                    name="salary_max"
-                    type="number"
-                    value={form.salary_max}
-                    onChange={handleFormChange}
+                  <input name="max_salary" type="number" value={form.max_salary} onChange={handleFormChange}
                     placeholder="e.g. 80000"
-                    className="w-full rounded-xl border border-orange-200 px-4 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                  />
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Currency</label>
+                  <select name="currency" value={form.currency} onChange={handleFormChange}
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
+                    <option value="NPR">NPR</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="INR">INR</option>
+                  </select>
                 </div>
               </div>
 
-              {/* job type + status */}
+              {/* ── Row 5: Job Type + Status ── */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Job Type</label>
-                  <select
-                    name="job_type"
-                    value={form.job_type}
-                    onChange={handleFormChange}
-                    className="w-full rounded-xl border border-orange-200 px-4 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                  >
+                  <select name="job_type" value={form.job_type} onChange={handleFormChange}
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
                     <option value="full_time">Full Time</option>
                     <option value="part_time">Part Time</option>
                     <option value="contract">Contract</option>
                     <option value="internship">Internship</option>
-                    <option value="remote">Remote</option>
+                    <option value="freelance">Freelance</option>
                   </select>
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
-                  <select
-                    name="status"
-                    value={form.status}
-                    onChange={handleFormChange}
-                    className="w-full rounded-xl border border-orange-200 px-4 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                  >
+                  <select name="status" value={form.status} onChange={handleFormChange}
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
                     <option value="open">Open</option>
                     <option value="closed">Closed</option>
                     <option value="draft">Draft</option>
@@ -450,34 +510,124 @@ export default function Jobs() {
                 </div>
               </div>
 
+              {/* ── Row 6: Experience Level + Required Experience ── */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Experience Level</label>
+                  <select name="experience_level" value={form.experience_level} onChange={handleFormChange}
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100">
+                    <option value="">Select level</option>
+                    <option value="junior">Junior</option>
+                    <option value="mid">Mid</option>
+                    <option value="senior">Senior</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Required Experience (years)</label>
+                  <input name="required_experience" type="number" min="0" max="30"
+                    value={form.required_experience} onChange={handleFormChange}
+                    placeholder="e.g. 2"
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
+                </div>
+              </div>
+
+              {/* ── Row 7: Project Duration + Deadline ── */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Project Duration (days)</label>
+                  <input name="project_duration_days" type="number" min="1"
+                    value={form.project_duration_days} onChange={handleFormChange}
+                    placeholder="e.g. 90"
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Application Deadline</label>
+                  <input name="deadline" type="date"
+                    value={form.deadline} onChange={handleFormChange}
+                    className="w-full rounded-xl border border-orange-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100" />
+                </div>
+              </div>
+
+              {/* ── Row 8: Skills Multi-select ── */}
+              <div ref={skillDropRef}>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Required Skills</label>
+
+                {/* selected pills */}
+                {selectedSkills.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {selectedSkills.map((s) => (
+                      <span key={s.id}
+                        className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                        {s.name}
+                        <button type="button" onClick={() => toggleSkill(s)}
+                          className="ml-0.5 text-orange-400 hover:text-orange-700">
+                          <X size={11} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* trigger */}
+                <button type="button"
+                  onClick={() => setSkillDropOpen((v) => !v)}
+                  className="flex w-full items-center justify-between rounded-xl border border-orange-200 px-4 py-2.5 text-sm text-gray-600 outline-none hover:border-orange-400 transition">
+                  <span>{selectedSkills.length === 0 ? "Select skills…" : `${selectedSkills.length} skill(s) selected`}</span>
+                  <ChevronDown size={16} className={`transition-transform ${skillDropOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* dropdown */}
+                {skillDropOpen && (
+                  <div className="mt-1 max-h-44 overflow-y-auto rounded-xl border border-orange-100 bg-white shadow-lg">
+                    {/* search */}
+                    <div className="sticky top-0 border-b border-orange-50 bg-white px-3 py-2">
+                      <input
+                        autoFocus
+                        value={skillSearch}
+                        onChange={(e) => setSkillSearch(e.target.value)}
+                        placeholder="Search skills…"
+                        className="w-full rounded-lg border border-orange-100 px-3 py-1.5 text-sm outline-none focus:border-orange-300"
+                      />
+                    </div>
+                    {allSkills
+                      .filter((s) => s.name.toLowerCase().includes(skillSearch.toLowerCase()))
+                      .map((skill) => {
+                        const isSelected = selectedSkills.some((s) => s.id === skill.id);
+                        return (
+                          <button key={skill.id} type="button"
+                            onClick={() => toggleSkill(skill)}
+                            className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition hover:bg-orange-50 ${
+                              isSelected ? "text-orange-600 font-medium" : "text-gray-700"
+                            }`}>
+                            <span>{skill.name}</span>
+                            {isSelected && <Check size={14} className="text-orange-500" />}
+                          </button>
+                        );
+                      })}
+                    {allSkills.filter((s) => s.name.toLowerCase().includes(skillSearch.toLowerCase())).length === 0 && (
+                      <p className="px-4 py-3 text-sm text-gray-400">No skills found. Add them in Skills Library first.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* error */}
               {formError && (
-                <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-600">
-                  {formError}
-                </p>
+                <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{formError}</p>
               )}
             </div>
 
-            {/* footer buttons */}
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                onClick={handleCloseModal}
-                className="flex-1 rounded-xl border border-orange-200 py-2 text-sm text-gray-600 transition hover:bg-orange-50"
-              >
+            {/* footer */}
+            <div className="flex gap-3 border-t border-orange-50 px-6 py-4 shrink-0">
+              <button type="button" onClick={handleCloseModal}
+                className="flex-1 rounded-xl border border-orange-200 py-2.5 text-sm text-gray-600 transition hover:bg-orange-50">
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? (
-                  <><Loader2 size={15} className="animate-spin" /> Posting...</>
-                ) : (
-                  <><Plus size={15} /> Post Job</>
-                )}
+              <button type="button" onClick={handleSubmit} disabled={submitting}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed">
+                {submitting
+                  ? <><Loader2 size={15} className="animate-spin" /> Posting…</>
+                  : <><Plus size={15} /> Post Job</>}
               </button>
             </div>
 

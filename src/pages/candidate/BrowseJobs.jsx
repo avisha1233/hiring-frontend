@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import SearchInput from "../../components/shared/SearchInput";
@@ -191,6 +192,11 @@ export default function BrowseJobs() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [applyingId, setApplyingId] = useState(null);
   const { page, pageSize, goToPage } = usePagination();
+  const [viewingJob, setViewingJob] = useState(null);
+
+  const openDetails = (job) => {
+    setViewingJob(job);
+  };
 
   // ── Fetch current candidate skills once ──────────────────────────────────
   const { data: meData } = useQuery({
@@ -438,6 +444,13 @@ export default function BrowseJobs() {
                 {/* ── Action buttons ── */}
                 <div className="flex gap-2 pt-1">
                   <button
+                    onClick={() => openDetails(job)}
+                    className="flex-1 rounded-xl border border-orange-200 bg-white py-2 text-sm font-semibold text-orange-600 transition-colors hover:bg-orange-50"
+                  >
+                    View Details
+                  </button>
+
+                  <button
                     id={`apply-btn-${job.id}`}
                     onClick={() => !isApplied && !isClosed && handleApply(job.id)}
                     disabled={isClosed || isApplied || isApplying}
@@ -457,9 +470,10 @@ export default function BrowseJobs() {
                   <button
                     id={`gap-btn-${job.id}`}
                     onClick={() => toast.info(`Gap analysis for "${job.title}" coming soon`)}
-                    className="flex-1 rounded-xl border border-gray-200 bg-white py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                    className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                    title="View My Gap"
                   >
-                    View My Gap
+                    Gap
                   </button>
                 </div>
               </div>
@@ -476,6 +490,161 @@ export default function BrowseJobs() {
           total={filteredJobs.length * 2}
           onPageChange={goToPage}
         />
+      )}
+
+      {/* ── Job Details Modal ── */}
+      {viewingJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setViewingJob(null); }}>
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-orange-50 px-6 py-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <CompanyInitials name={viewingJob.companyName} />
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 leading-snug">{viewingJob.title}</h2>
+                  <p className="text-sm text-gray-500">{viewingJob.companyName}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingJob(null)}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-orange-50 hover:text-orange-600 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="overflow-y-auto px-6 py-5 space-y-6">
+              
+              {/* Quick Info Grid */}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <div className="rounded-xl bg-orange-50/40 p-3">
+                  <span className="block text-xs text-gray-500">Salary Range</span>
+                  <span className="text-sm font-semibold text-gray-900">{viewingJob.salaryLabel || "Not specified"}</span>
+                </div>
+                <div className="rounded-xl bg-orange-50/40 p-3">
+                  <span className="block text-xs text-gray-500">Job Type</span>
+                  <span className="text-sm font-semibold text-gray-900 capitalize">{viewingJob.workTypeLabel || "Not specified"}</span>
+                </div>
+                <div className="rounded-xl bg-orange-50/40 p-3">
+                  <span className="block text-xs text-gray-500">Location</span>
+                  <span className="text-sm font-semibold text-gray-900">{viewingJob.location || "Not specified"}</span>
+                </div>
+                <div className="rounded-xl bg-orange-50/40 p-3">
+                  <span className="block text-xs text-gray-500">Experience Level</span>
+                  <span className="text-sm font-semibold text-gray-900 capitalize">{viewingJob.experienceLabel || "Not specified"}</span>
+                </div>
+                <div className="rounded-xl bg-orange-50/40 p-3">
+                  <span className="block text-xs text-gray-500">Required Experience</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {viewingJob.required_experience != null ? `${viewingJob.required_experience} years` : "Not specified"}
+                  </span>
+                </div>
+                <div className="rounded-xl bg-orange-50/40 p-3">
+                  <span className="block text-xs text-gray-500">Project Duration</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {viewingJob.project_duration_days != null ? `${viewingJob.project_duration_days} days` : "Not specified"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Deadline & Remote Status */}
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600 bg-gray-50 p-3.5 rounded-xl">
+                <div>
+                  <span className="font-semibold text-gray-700">Application Deadline: </span>
+                  {viewingJob.deadline ? (
+                    new Date(viewingJob.deadline).toLocaleDateString("en-NP", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric"
+                    })
+                  ) : "No deadline"}
+                </div>
+                <div className="h-4 w-px bg-gray-300 self-center hidden sm:block" />
+                <div>
+                  <span className="font-semibold text-gray-700">Remote Policy: </span>
+                  {viewingJob.is_remote ? "Fully Remote" : "On-site / Hybrid"}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-2">Job Description</h3>
+                <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {viewingJob.description || "No description provided."}
+                </div>
+              </div>
+
+              {/* Required Skills */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-2.5">Required Skills</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    viewingJob.JobSkills?.map((js) => js.Skill?.name || js.skill_name).filter(Boolean) ||
+                    viewingJob.skills?.map((s) => s.name || s).filter(Boolean) ||
+                    []
+                  ).map((s) => (
+                    <span
+                      key={s}
+                      className="rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                  {(!viewingJob.JobSkills || viewingJob.JobSkills.length === 0) && (
+                    <span className="text-sm text-gray-400">No specific skills listed.</span>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex gap-3 border-t border-orange-50 px-6 py-4 shrink-0 bg-gray-50/50 rounded-b-2xl">
+              <button
+                type="button"
+                onClick={() => setViewingJob(null)}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
+              >
+                Close
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  const isApplied = hasApplied(viewingJob.id);
+                  const isClosed = viewingJob.status === "closed";
+                  if (!isApplied && !isClosed) {
+                    handleApply(viewingJob.id);
+                    setViewingJob(null);
+                  }
+                }}
+                disabled={hasApplied(viewingJob.id) || viewingJob.status === "closed" || applyingId === viewingJob.id}
+                className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${
+                  hasApplied(viewingJob.id)
+                    ? "bg-emerald-500 text-white cursor-default"
+                    : viewingJob.status === "closed"
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-orange-500 hover:bg-orange-600 text-white"
+                }`}
+              >
+                {applyingId === viewingJob.id ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : hasApplied(viewingJob.id) ? (
+                  "✓ Already Applied"
+                ) : viewingJob.status === "closed" ? (
+                  "Closed"
+                ) : (
+                  "Apply Now"
+                )}
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
     </div>
   );
