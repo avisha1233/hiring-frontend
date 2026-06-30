@@ -108,11 +108,12 @@ export default function Jobs() {
       try {
         const profile  = await getCompanyProfile();
         const company  = profile?.data?.data || profile?.data || profile || {};
-        const id       = Number(company?.id || company?.company_id || authUser?.company_id);
+        const id       = Number(company?.id || company?.company_id || authUser?.company_id || authUser?.id);
         if (id) setCompanyId(id);
       } catch {
         // fallback: try authUser directly
-        if (authUser?.company_id) setCompanyId(Number(authUser.company_id));
+        const id = Number(authUser?.company_id || authUser?.id);
+        if (id) setCompanyId(id);
       }
     }
     loadCompanyId();
@@ -130,7 +131,7 @@ export default function Jobs() {
         const res  = await getCompanyJobs({
           search,
           limit:      50,
-          company_id: companyId || authUser?.company_id,
+          company_id: companyId || authUser?.company_id || authUser?.id,
         });
         const data = unwrap(res);
         if (!cancelled) setJobs(Array.isArray(data) ? data : []);
@@ -175,7 +176,7 @@ export default function Jobs() {
     try {
       const payload = {
         ...form,
-        company_id: companyId || authUser?.company_id,
+        company_id: companyId || authUser?.company_id || authUser?.id,
         salary_min: form.salary_min ? Number(form.salary_min) : undefined,
         salary_max: form.salary_max ? Number(form.salary_max) : undefined,
       };

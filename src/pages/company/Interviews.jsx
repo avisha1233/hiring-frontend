@@ -21,9 +21,10 @@ export default function Interviews() {
   const [loading, setLoading] = useState(true);
   const [interviews, setInterviews] = useState([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("scheduled");
   const [showSchedule, setShowSchedule] = useState(false);
   const [companyId, setCompanyId] = useState(null);
+  const [companyName, setCompanyName] = useState("");
   const [applications, setApplications] = useState([]);
   const [applicationsLoading, setApplicationsLoading] = useState(false);
   const [applicationSearch, setApplicationSearch] = useState("");
@@ -107,7 +108,7 @@ export default function Interviews() {
   const handleOpenSchedule = () => {
     setShowSchedule(true);
     setFormError("");
-    loadApplications(companyId || authUser?.company_id);
+    loadApplications(companyId || authUser?.company_id || authUser?.id);
   };
 
   const handleCloseSchedule = () => {
@@ -148,13 +149,28 @@ export default function Interviews() {
     }
   };
 
-  async function load() {
+async function load() {
     setLoading(true);
     try {
-      const res = await getInterviews({ limit: 50 });
-      setInterviews(toArray(res?.data || res));
+      // Fetch scheduled interviews only
+      const res = await getInterviews({ status: "scheduled", limit: 50 });
+      // Extract array of interviews from possible nested structures
+      const interviewsArray = (() => {
+        if (Array.isArray(res?.data?.data?.data)) return res.data.data.data;
+        if (Array.isArray(res?.data?.data)) return res.data.data;
+        if (Array.isArray(res?.data)) return res.data;
+        if (Array.isArray(res?.data?.rows)) return res.data.rows;
+        if (Array.isArray(res?.interviews)) return res.interviews;
+        return [];
+      })();
+      setInterviews(interviewsArray);
+
+      // Fetch company profile to display company name
+      const profile = await getCompanyProfile();
+      const comp = profile?.data?.data || profile?.data || profile || {};
+      setCompanyName(comp.name || comp.company_name || "");
     } catch {
-      // silent
+      // silent on error
     } finally {
       setLoading(false);
     }
@@ -171,14 +187,18 @@ export default function Interviews() {
         const profile = await getCompanyProfile();
         const company = profile?.data?.data || profile?.data || profile || {};
         const resolvedId = Number(
-          company?.id || company?.company_id || authUser?.company_id,
+          company?.id || company?.company_id || authUser?.company_id || authUser?.id,
         );
         if (resolvedId) {
           setCompanyId(resolvedId);
           loadApplications(resolvedId);
         }
       } catch {
-        // silent
+        const resolvedId = Number(authUser?.company_id || authUser?.id);
+        if (resolvedId) {
+          setCompanyId(resolvedId);
+          loadApplications(resolvedId);
+        }
       }
     }
     resolveCompany();
@@ -361,16 +381,7 @@ export default function Interviews() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-orange-50 bg-orange-50/60">
-                  {[
-                    "Candidate",
-                    "Job",
-                    "Date",
-                    "Time",
-                    "Duration",
-                    "Type",
-                    "Status",
-                    "Actions",
-                  ].map((h) => (
+                  {["Candidate","Job","Company","Date","Time","Duration","Type","Status","Actions"].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
@@ -414,6 +425,7 @@ export default function Interviews() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-700">{jobTitle}</td>
+                      <td className="px-4 py-3 text-gray-700">{companyName}</td>
                       <td className="px-4 py-3 text-gray-700">
                         <div className="flex items-center gap-1.5">
                           <CalendarDays size={13} className="text-orange-400" />

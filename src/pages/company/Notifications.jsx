@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { api } from "../../services/api";
+import { getNotifications, markAsRead, deleteNotification } from "../../services/notificationService";
 import { getAuthUser } from "../../lib/auth";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -110,10 +111,8 @@ export default function CompanyNotifications() {
     setError(null);
     try {
       // GET /notifications?user_id=<id>&limit=100 — the generic notification handler
-      const res  = await api.get(`/notifications`, {
-        params: { user_id: user?.id, limit: 100, sort: "created_at", sortDirection: "DESC" },
-      });
-      const rows = res.data?.data ?? (Array.isArray(res.data) ? res.data : []);
+      const res = await getNotifications({ user_id: user?.id, limit: 100, sort: "created_at", sortDirection: "DESC" });
+      const rows = res?.data?.data ?? (Array.isArray(res?.data) ? res?.data : []);
       setNotifications(rows);
     } catch {
       setError("Could not load notifications. Please try again.");
@@ -127,7 +126,7 @@ export default function CompanyNotifications() {
   async function markOneRead(id) {
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
     try {
-      await api.patch(`/notifications/${id}`, { is_read: true });
+      await markAsRead(id);
     } catch {
       setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, is_read: false } : n));
     }
@@ -139,7 +138,7 @@ export default function CompanyNotifications() {
     setMarkingAll(true);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     try {
-      await Promise.all(unread.map((n) => api.patch(`/notifications/${n.id}`, { is_read: true })));
+      await Promise.all(unread.map((n) => markAsRead(n.id)));
     } catch {
       load();
     } finally {
@@ -150,7 +149,7 @@ export default function CompanyNotifications() {
   async function dismiss(id) {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
     try {
-      await api.delete(`/notifications/${id}`);
+      await deleteNotification(id);
     } catch {
       load();
     }

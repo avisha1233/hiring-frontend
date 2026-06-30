@@ -56,17 +56,14 @@ export default function Login() {
         refreshToken: data?.refreshToken,
         user: data?.user,
       });
+    const userRole = data?.user?.role;
 
-      const role = data?.user?.role;
-      
-      if (role === "admin") navigate("/admin/dashboard", { replace: true });
-      else if (role === "company")
-        navigate("/company/dashboard", { replace: true });
-      else if (role === "candidate")
-        navigate("/candidate/dashboard", { replace: true });
-      else navigate("/login", { replace: true });
-
-
+    if (userRole === "admin") navigate("/admin/dashboard", { replace: true });
+    else if (userRole === "company")
+      navigate("/company/dashboard", { replace: true });
+    else if (userRole === "candidate")
+      navigate("/candidate/dashboard", { replace: true });
+    else navigate("/login", { replace: true });
     } catch (err) {
       setError(err?.message || "Authentication failed.");
     } finally {
