@@ -7,6 +7,7 @@ import {
   CalendarDays,
   MessageSquare,
   Settings,
+  Layers,
 } from "lucide-react";
 
 export default function CompanySidebar() {
@@ -17,6 +18,7 @@ export default function CompanySidebar() {
     { label: "Candidates", icon: Users, to: "/company/candidates" },
     { label: "Interviews", icon: CalendarDays, to: "/company/interviews" },
     { label: "Messages", icon: MessageSquare, to: "/company/messages" },
+    { label: "Skills Library", icon: Layers, to: "/company/skills" },
     { label: "Company Profile", icon: Settings, to: "/company/profile" },
   ];
 

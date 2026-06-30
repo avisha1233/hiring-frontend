@@ -5,8 +5,6 @@ import { toast } from "react-toastify";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
 import Avatar from "../../components/shared/Avatar";
 import { getCompanyProfile, updateCompanyProfile } from "@/apis/company";
-import { apiClient } from "@/apis/api";
-import { Plus, Trash2 } from "lucide-react";
 
 export default function Profile() {
   const [loading, setLoading] = useState(true);
@@ -18,13 +16,6 @@ export default function Profile() {
     logo_url: "",
   });
   const [initial, setInitial] = useState(null);
-
-  // ── skills library state ──────────────────────────────────────────────────
-  const [skills, setSkills] = useState([]);
-  const [skillsLoading, setSkillsLoading] = useState(true);
-  const [newSkill, setNewSkill] = useState({ name: "", description: "" });
-  const [addingSkill, setAddingSkill] = useState(false);
-  const [showAddRow, setShowAddRow] = useState(false);
 
   // ── load company profile ──────────────────────────────────────────────────
   const fetchProfile = async () => {
@@ -49,23 +40,8 @@ export default function Profile() {
     }
   };
 
-  // ── load skills library ───────────────────────────────────────────────────
-  const fetchSkills = async () => {
-    setSkillsLoading(true);
-    try {
-      const res = await apiClient.get("/skills");
-      const data = res?.data?.data || res?.data || res;
-      setSkills(Array.isArray(data) ? data : []);
-    } catch (err) {
-      toast.error("Failed to load skills");
-    } finally {
-      setSkillsLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchProfile();
-    fetchSkills();
   }, []);
 
   // ── unsaved-changes detection (identical to candidate Profile) ────────────
@@ -129,39 +105,6 @@ export default function Profile() {
       toast.error(errorMessage);
     } finally {
       setSaving(false);
-    }
-  };
-
-  // ── add a new skill ───────────────────────────────────────────────────────
-  const handleAddSkill = async () => {
-    if (!newSkill.name.trim()) return toast.error("Skill name is required");
-    setAddingSkill(true);
-    try {
-      const res = await apiClient.post("/skills", {
-        name: newSkill.name.trim(),
-        description: newSkill.description.trim(),
-      });
-      const created = res?.data?.data || res?.data || res;
-      setSkills((prev) => [...prev, created]);
-      setNewSkill({ name: "", description: "" });
-      setShowAddRow(false);
-      toast.success("Skill added");
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to add skill");
-    } finally {
-      setAddingSkill(false);
-    }
-  };
-
-  // ── delete a skill ────────────────────────────────────────────────────────
-  const handleDeleteSkill = async (id) => {
-    if (!window.confirm("Delete this skill?")) return;
-    try {
-      await apiClient.delete(`/skills/${id}`);
-      setSkills((prev) => prev.filter((s) => s.id !== id));
-      toast.success("Skill deleted");
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to delete skill");
     }
   };
 
@@ -291,129 +234,6 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* ── skills library table ── */}
-      <section className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
-        {/* skills header */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">
-              Skills Library
-            </h2>
-            <p className="text-sm text-gray-500">
-              Skills available across all your job listings
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowAddRow((v) => !v)}
-            className="flex items-center gap-2 rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700"
-          >
-            <Plus size={15} />
-            Add Skill
-          </button>
-        </div>
-
-        {/* inline add row */}
-        {showAddRow && (
-          <div className="mb-4 grid grid-cols-1 gap-3 rounded-lg border border-orange-100 bg-orange-50/40 p-3 md:grid-cols-[1fr,2fr,auto]">
-            <input
-              value={newSkill.name}
-              onChange={(e) =>
-                setNewSkill((p) => ({ ...p, name: e.target.value }))
-              }
-              placeholder="Skill name"
-              className="h-9 rounded-lg border border-orange-100 px-3 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
-            />
-            <input
-              value={newSkill.description}
-              onChange={(e) =>
-                setNewSkill((p) => ({ ...p, description: e.target.value }))
-              }
-              placeholder="Description (optional)"
-              className="h-9 rounded-lg border border-orange-100 px-3 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleAddSkill}
-                disabled={addingSkill}
-                className="rounded-lg bg-orange-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-60"
-              >
-                {addingSkill ? "Adding..." : "Add"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddRow(false);
-                  setNewSkill({ name: "", description: "" });
-                }}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* skills table */}
-        {skillsLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="h-10 w-full animate-pulse rounded-lg bg-orange-50"
-              />
-            ))}
-          </div>
-        ) : skills.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            No skills yet. Click Add Skill to create one.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-orange-50 bg-orange-50/60">
-                  {["#", "Skill Name", "Description", "Action"].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {skills.map((skill, idx) => (
-                  <tr
-                    key={skill.id}
-                    className="hover:bg-orange-50/30 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-gray-400">{idx + 1}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {skill.name}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {skill.description || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteSkill(skill.id)}
-                        className="flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 size={12} />
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
     </div>
   );
 }
