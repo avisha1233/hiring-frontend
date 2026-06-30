@@ -28,7 +28,6 @@ import { Route as CompanyMessagesRouteImport } from './routes/company/messages'
 import { Route as CompanyJobsRouteImport } from './routes/company/jobs'
 import { Route as CompanyInterviewsRouteImport } from './routes/company/interviews'
 import { Route as CompanyCandidatesRouteImport } from './routes/company/candidates'
-import { Route as CandidateProposalsRouteImport } from './routes/candidate/proposals'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -125,11 +124,6 @@ const CompanyCandidatesRoute = CompanyCandidatesRouteImport.update({
   path: '/company/candidates',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CandidateProposalsRoute = CandidateProposalsRouteImport.update({
-  id: '/candidate/proposals',
-  path: '/candidate/proposals',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -143,7 +137,6 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
-  '/candidate/proposals': typeof CandidateProposalsRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/interviews': typeof CompanyInterviewsRoute
   '/company/jobs': typeof CompanyJobsRoute
@@ -165,7 +158,6 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
-  '/candidate/proposals': typeof CandidateProposalsRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/interviews': typeof CompanyInterviewsRoute
   '/company/jobs': typeof CompanyJobsRoute
@@ -188,7 +180,6 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/tasks': typeof TasksRoute
   '/users': typeof UsersRoute
-  '/candidate/proposals': typeof CandidateProposalsRoute
   '/company/candidates': typeof CompanyCandidatesRoute
   '/company/interviews': typeof CompanyInterviewsRoute
   '/company/jobs': typeof CompanyJobsRoute
@@ -212,7 +203,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/users'
-    | '/candidate/proposals'
     | '/company/candidates'
     | '/company/interviews'
     | '/company/jobs'
@@ -234,7 +224,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/users'
-    | '/candidate/proposals'
     | '/company/candidates'
     | '/company/interviews'
     | '/company/jobs'
@@ -256,7 +245,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/users'
-    | '/candidate/proposals'
     | '/company/candidates'
     | '/company/interviews'
     | '/company/jobs'
@@ -279,7 +267,6 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TasksRoute: typeof TasksRoute
   UsersRoute: typeof UsersRoute
-  CandidateProposalsRoute: typeof CandidateProposalsRoute
   CompanyCandidatesRoute: typeof CompanyCandidatesRoute
   CompanyInterviewsRoute: typeof CompanyInterviewsRoute
   CompanyJobsRoute: typeof CompanyJobsRoute
@@ -425,13 +412,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompanyCandidatesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/candidate/proposals': {
-      id: '/candidate/proposals'
-      path: '/candidate/proposals'
-      fullPath: '/candidate/proposals'
-      preLoaderRoute: typeof CandidateProposalsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -447,7 +427,6 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TasksRoute: TasksRoute,
   UsersRoute: UsersRoute,
-  CandidateProposalsRoute: CandidateProposalsRoute,
   CompanyCandidatesRoute: CompanyCandidatesRoute,
   CompanyInterviewsRoute: CompanyInterviewsRoute,
   CompanyJobsRoute: CompanyJobsRoute,
