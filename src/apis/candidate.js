@@ -79,6 +79,21 @@ export const candidateApi = {
     return data;
   },
 
+  getProposals: async () => {
+    // First get the candidate's own numeric ID from their profile
+    const profileRes = await api.get("/candidate/profile");
+    const profile = profileRes?.data?.data || profileRes?.data || profileRes;
+    const candidateId = profile?.id;
+    if (!candidateId) return [];
+    const { data } = await api.get(`/proposals?candidate_id=${candidateId}`);
+    return data?.data || data || [];
+  },
+
+  updateProposalStatus: async (id, newStatus) => {
+    const { data } = await api.patch(`/proposals/${id}`, { newStatus });
+    return data;
+  },
+
   applyToJob: async (jobId) => {
     const normalizedJobId = Number(jobId);
 

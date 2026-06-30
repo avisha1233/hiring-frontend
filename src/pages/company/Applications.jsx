@@ -45,11 +45,16 @@ export default function Applications() {
       try {
         const res = await getCompanyProfile();
         const profile = res?.data || res || {};
-        const id = profile?.id || profile?.company_id || user?.company_id;
+        const id = profile?.id || profile?.company_id || user?.company_id || user?.id;
         setCompanyId(Number(id));
       } catch {
-        setError("Could not load company profile");
-        setLoading(false);
+        const id = Number(user?.company_id || user?.id);
+        if (id) {
+          setCompanyId(id);
+        } else {
+          setError("Could not load company profile");
+          setLoading(false);
+        }
       }
     }
     resolveCompany();

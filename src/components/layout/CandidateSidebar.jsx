@@ -9,20 +9,21 @@ import {
   User,
   Settings,
   Bell,
+  MailOpen,
 } from "lucide-react";
 
 export default function CandidateSidebar() {
   const navItems = [
-    { icon: LayoutDashboard, label: "Overview", to: "/candidate/dashboard" },
-    { icon: Briefcase, label: "Browse Jobs", to: "/candidate/jobs" },
-    { icon: FileText, label: "My Applications", to: "/candidate/applications" },
-    { icon: Folder, label: "Proposals", to: "/candidate/proposals" },
-    { icon: CalendarDays, label: "Interviews", to: "/candidate/interviews" },
-    { icon: User, label: "Profile", to: "/candidate/profile" },
-    { icon: MessageCircle, label: "Messages", to: "/candidate/messages" },
-    { icon: Bell, label: "Notifications", to: "/candidate/notifications" },
-    { icon: Folder, label: "Files", to: "/candidate/files" },
-    { icon: Settings, label: "Settings", to: "/candidate/settings" },
+    { icon: LayoutDashboard, label: "Overview",        to: "/candidate/dashboard"     },
+    { icon: Briefcase,       label: "Browse Jobs",     to: "/candidate/jobs"           },
+    { icon: FileText,        label: "My Applications", to: "/candidate/applications"   },
+    { icon: MailOpen,        label: "Proposals",       to: "/candidate/proposals"      },
+    { icon: CalendarDays,    label: "Interviews",      to: "/candidate/interviews"     },
+    { icon: User,            label: "Profile",         to: "/candidate/profile"        },
+    { icon: MessageCircle,   label: "Messages",        to: "/candidate/messages"       },
+    { icon: Bell,            label: "Notifications",   to: "/candidate/notifications"  },
+    { icon: Folder,          label: "Files",           to: "/candidate/files"          },
+    { icon: Settings,        label: "Settings",        to: "/candidate/settings"       },
   ];
 
   return (

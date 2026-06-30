@@ -310,7 +310,7 @@ export default function Messages() {
         const cid = Number(
           profile?.id         || profile?.company_id    ||
           profile?.data?.id   || profile?.data?.company_id ||
-          me?.company_id
+          me?.company_id      || me?.id
         );
         if (!cid) throw new Error("Could not find your company profile.");
         if (gone) return;

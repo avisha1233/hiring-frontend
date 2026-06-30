@@ -1,129 +1,197 @@
-import { useEffect, useState } from "react";
-import StatusBadge from "../../components/shared/StatusBadge";
-import EmptyState from "../../components/shared/EmptyState";
-import { api } from "@/services/api";
-import { getAuthUser } from "@/lib/auth";
-import { formatDateTime } from "@/utils/formatters";
+// src/pages/candidate/Proposals.jsx
+
+import { useState, useEffect } from "react";
+import { Building2, Briefcase, Calendar, MessageSquare, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "react-toastify";
+import EmptyState from "../../components/shared/EmptyState";
+import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
+import { candidateApi } from "../../apis/candidate";
 
-export default function CandidateProposals() {
-  const [loading, setLoading] = useState(true);
-  const [proposals, setProposals] = useState([]);
+const STATUS_CONFIG = {
+  pending:  { label: "Pending",  classes: "bg-yellow-100 text-yellow-800 border border-yellow-200" },
+  accepted: { label: "Accepted", classes: "bg-emerald-100 text-emerald-800 border border-emerald-200" },
+  rejected: { label: "Rejected", classes: "bg-rose-100 text-rose-800 border border-rose-200" },
+};
 
-  const user = getAuthUser();
-  const candidateId = user?.id;
+function StatusBadge({ status }) {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${cfg.classes}`}>
+      {cfg.label}
+    </span>
+  );
+}
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setLoading(true);
-      try {
-        const res = await api.get(`/proposals?candidate_id=${candidateId}`);
-        if (!mounted) return;
-        setProposals(res.data || res);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-    if (candidateId) load();
-    return () => {
-      mounted = false;
-    };
-  }, [candidateId]);
+function ProposalCard({ proposal, onAction }) {
+  const [acting, setActing] = useState(null); // "accepted" | "rejected"
 
-  const pushToast = (message, type = "success") => {
-    if (type === "error") toast.error(message);
-    else toast.success(message);
-  };
+  const company  = proposal?.company;
+  const job      = proposal?.job;
+  const created  = proposal?.created_at
+    ? new Date(proposal.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "—";
 
-  const handleRespond = async (id, newStatus) => {
+  async function handleAction(newStatus) {
+    setActing(newStatus);
     try {
-      const res = await api.patch(`/proposals/${id}`, { newStatus });
-      setProposals((prev) =>
-        prev.map((p) => (String(p.id) === String(id) ? res.data || res : p)),
-      );
-      pushToast(`Proposal ${newStatus}`);
-      if (newStatus === "accepted")
-        pushToast("Application created automatically", "success");
+      await candidateApi.updateProposalStatus(proposal.id, newStatus);
+      onAction(proposal.id, newStatus);
+      if (newStatus === "accepted") {
+        toast.success("🎉 Proposal accepted! Application created automatically.");
+      } else {
+        toast.info("Proposal rejected.");
+      }
     } catch (err) {
-      pushToast(
-        err?.response?.data?.message || err.message || "Failed",
-        "error",
-      );
+      toast.error(err?.message || "Failed to update proposal.");
+    } finally {
+      setActing(null);
     }
-  };
-
-  if (!loading && (!proposals || proposals.length === 0)) {
-    return (
-      <EmptyState
-        title="No proposals"
-        message="You have not received any proposals"
-      />
-    );
   }
 
   return (
+    <div className="group relative overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm transition-all hover:shadow-md hover:border-orange-200">
+      {/* top accent */}
+      <div className="h-1 w-full bg-gradient-to-r from-orange-400 to-orange-500" />
+
+      <div className="p-5">
+        {/* header row */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {/* company avatar */}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-sm font-bold text-orange-600">
+              {(company?.name || "?")[0].toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">{company?.name || "Unknown Company"}</p>
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <Building2 size={11} />
+                {company?.location || "—"}
+              </p>
+            </div>
+          </div>
+          <StatusBadge status={proposal.status} />
+        </div>
+
+        {/* job */}
+        <div className="mt-4 flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2">
+          <Briefcase size={14} className="text-orange-500 shrink-0" />
+          <span className="text-sm font-medium text-gray-800">{job?.title || `Job #${proposal.job_id}`}</span>
+        </div>
+
+        {/* message */}
+        {proposal.message && (
+          <div className="mt-3 flex gap-2">
+            <MessageSquare size={14} className="mt-0.5 shrink-0 text-gray-400" />
+            <p className="text-sm text-gray-600 italic leading-relaxed">&ldquo;{proposal.message}&rdquo;</p>
+          </div>
+        )}
+
+        {/* date */}
+        <div className="mt-3 flex items-center gap-1.5 text-xs text-gray-400">
+          <Calendar size={12} />
+          Received on {created}
+        </div>
+
+        {/* actions – only for pending */}
+        {proposal.status === "pending" && (
+          <div className="mt-4 flex gap-3 border-t border-orange-50 pt-4">
+            <button
+              onClick={() => handleAction("accepted")}
+              disabled={!!acting}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-60"
+            >
+              <CheckCircle size={15} />
+              {acting === "accepted" ? "Accepting…" : "Accept"}
+            </button>
+            <button
+              onClick={() => handleAction("rejected")}
+              disabled={!!acting}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-60"
+            >
+              <XCircle size={15} />
+              {acting === "rejected" ? "Rejecting…" : "Reject"}
+            </button>
+          </div>
+        )}
+
+        {/* accepted success message */}
+        {proposal.status === "accepted" && (
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+            <CheckCircle size={14} />
+            Application created automatically — check My Applications.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function Proposals() {
+  const [proposals, setProposals] = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState(null);
+
+  async function load() {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await candidateApi.getProposals();
+      setProposals(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err?.message || "Failed to load proposals.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  // Optimistically update status in local state after action
+  function handleAction(proposalId, newStatus) {
+    setProposals((prev) =>
+      prev.map((p) => (p.id === proposalId ? { ...p, status: newStatus } : p))
+    );
+  }
+
+  const counts = {
+    pending:  proposals.filter((p) => p.status === "pending").length,
+    accepted: proposals.filter((p) => p.status === "accepted").length,
+    rejected: proposals.filter((p) => p.status === "rejected").length,
+  };
+
+  return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Proposals</h1>
-        <p className="text-sm text-gray-600">Proposals sent by companies</p>
+      {/* header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Job Proposals</h1>
+          <p className="text-sm text-gray-600">Proposals sent to you by companies</p>
+        </div>
+        {proposals.length > 0 && (
+          <div className="flex gap-3 text-sm">
+            <span className="rounded-full bg-yellow-100 px-3 py-1 font-medium text-yellow-800">{counts.pending} pending</span>
+            <span className="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-800">{counts.accepted} accepted</span>
+            <span className="rounded-full bg-rose-100 px-3 py-1 font-medium text-rose-800">{counts.rejected} rejected</span>
+          </div>
+        )}
       </div>
 
       {loading ? (
-        <div className="space-y-2">Loading…</div>
+        <LoadingSkeleton rows={3} columns={1} />
+      ) : error ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{error}</div>
+      ) : proposals.length === 0 ? (
+        <EmptyState
+          title="No proposals yet"
+          message="Companies will send you job proposals here. Keep your profile updated to attract more attention!"
+        />
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {proposals.map((p) => (
-            <div
-              key={p.id}
-              className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {p.job?.title || `Job #${p.job_id}`}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {p.company?.name || `Company ${p.company_id}`}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <StatusBadge status={p.status}>{p.status}</StatusBadge>
-                </div>
-              </div>
-
-              <p className="mt-3 text-sm text-gray-700">
-                {p.message || "No message provided"}
-              </p>
-              <div className="mt-3 flex items-center justify-between">
-                <p className="text-xs text-gray-500">
-                  {formatDateTime(p.created_at)}
-                </p>
-                {p.status === "pending" && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleRespond(p.id, "accepted")}
-                      className="rounded-md bg-orange-500 px-3 py-1 text-xs font-medium text-white"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => handleRespond(p.id, "rejected")}
-                      className="rounded-md border border-orange-100 px-3 py-1 text-xs font-medium text-gray-700"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <ProposalCard key={p.id} proposal={p} onAction={handleAction} />
           ))}
         </div>
       )}
-
-      {/* react-toastify handles toasts globally via ToastContainer in main.jsx */}
     </div>
   );
 }
