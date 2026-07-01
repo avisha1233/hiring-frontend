@@ -205,7 +205,7 @@ export default function Overview() {
   ).length;
   const blockedCount = data.users.filter((u) => u.status === "blocked").length;
   const hiredThisMonth = data.applications.filter((a) => {
-    const hired = a.status === "offered";
+    const hired = a.status === "hired";
     const thisMonth =
       new Date(a.updated_at).getMonth() === new Date().getMonth();
     return hired && thisMonth;
@@ -217,11 +217,11 @@ export default function Overview() {
 
   const appliedCount = data.applications.filter((a) => a.status === "applied").length;
   const interviewingCount = data.applications.filter((a) => a.status === "interviewing" || a.status === "rejected").length;
-  const offeredCount = data.applications.filter((a) => a.status === "offered").length;
+  const hiredCount = data.applications.filter((a) => a.status === "hired").length;
 
   const pendingPct = Math.round((appliedCount / (totalApps || 1)) * 100);
   const reviewedPct = Math.round((interviewingCount / (totalApps || 1)) * 100);
-  const hiredPct = Math.round((offeredCount / (totalApps || 1)) * 100);
+  const hiredPct = Math.round((hiredCount / (totalApps || 1)) * 100);
 
   const chartData = buildWeeklyData(data.candidates, data.companies);
 

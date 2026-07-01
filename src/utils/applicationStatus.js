@@ -31,8 +31,8 @@ const APPLICATION_STATUS_ACTIONS = {
       tone: "rose",
     },
   },
-  offered: {
-    statusLabel: "Offered",
+  hired: {
+    statusLabel: "Hired",
     primaryAction: null,
     secondaryAction: null,
   },

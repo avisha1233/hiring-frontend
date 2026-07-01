@@ -192,7 +192,13 @@ export default function Jobs() {
     setSelectedSkills((prev) =>
       prev.find((s) => s.id === skill.id)
         ? prev.filter((s) => s.id !== skill.id)
-        : [...prev, { id: skill.id, name: skill.name }]
+        : [...prev, { id: skill.id, name: skill.name, required_level: "intermediate" }]
+    );
+  };
+
+  const updateSkillLevel = (skillId, level) => {
+    setSelectedSkills((prev) =>
+      prev.map((s) => s.id === skillId ? { ...s, required_level: level } : s)
     );
   };
 
@@ -246,11 +252,15 @@ export default function Jobs() {
       const newJob = res?.data?.data || res?.data || res;
       const jobId  = newJob?.id;
 
-      // Link selected skills to the new job
+      // Link selected skills to the new job (with required_level)
       if (jobId && selectedSkills.length > 0) {
         await Promise.allSettled(
           selectedSkills.map((skill) =>
-            apiClient.post("/job-skills", { job_id: jobId, skill_id: skill.id })
+            apiClient.post("/job-skills", {
+              job_id: jobId,
+              skill_id: skill.id,
+              required_level: skill.required_level || "intermediate",
+            })
           )
         );
         // attach skills to the job object for the table
@@ -552,18 +562,27 @@ export default function Jobs() {
               <div ref={skillDropRef}>
                 <label className="mb-1 block text-sm font-medium text-gray-700">Required Skills</label>
 
-                {/* selected pills */}
+                {/* selected pills with required_level selector */}
                 {selectedSkills.length > 0 && (
-                  <div className="mb-2 flex flex-wrap gap-1.5">
+                  <div className="mb-2 space-y-2">
                     {selectedSkills.map((s) => (
-                      <span key={s.id}
-                        className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700">
-                        {s.name}
+                      <div key={s.id}
+                        className="flex items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
+                        <span className="flex-1 text-sm font-medium text-orange-800">{s.name}</span>
+                        <select
+                          value={s.required_level}
+                          onChange={(e) => updateSkillLevel(s.id, e.target.value)}
+                          className="rounded-lg border border-orange-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
+                        >
+                          <option value="basic">Basic</option>
+                          <option value="intermediate">Intermediate</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
                         <button type="button" onClick={() => toggleSkill(s)}
-                          className="ml-0.5 text-orange-400 hover:text-orange-700">
-                          <X size={11} />
+                          className="text-orange-400 hover:text-orange-700">
+                          <X size={14} />
                         </button>
-                      </span>
+                      </div>
                     ))}
                   </div>
                 )}

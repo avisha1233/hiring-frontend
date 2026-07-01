@@ -43,10 +43,12 @@ function resolveCandidateEmail(row) {
 
 function resolveJobTitle(row) {
   return (
+    row?.interview?.job?.title ||
+    row?.interview?.job_title ||
     row?.job?.title ||
     row?.job_title ||
     row?.application?.job?.title ||
-    `Job #${row?.job_id || "—"}`
+    `Job #${row?.job_id || row?.interview?.job?.id || "—"}`
   );
 }
 
@@ -386,9 +388,9 @@ export default function Interviews() {
                           <span className="font-medium text-gray-900">
                             {jobTitle}
                           </span>
-                          {row?.job?.location || row?.location ? (
+                          {row?.interview?.job?.location || row?.job?.location ? (
                             <span className="text-xs text-gray-500">
-                              {row.job?.location || row.location}
+                              {row?.interview?.job?.location || row?.job?.location}
                             </span>
                           ) : null}
                         </div>

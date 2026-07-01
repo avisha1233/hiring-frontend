@@ -19,7 +19,7 @@ const TABS = [
   { value: "all", label: "All" },
   { value: "applied", label: "Applied" },
   { value: "interviewing", label: "Interviewing" },
-  { value: "offered", label: "Offered" },
+  { value: "hired", label: "Hired" },
   { value: "rejected", label: "Rejected" },
 ];
 
@@ -37,8 +37,8 @@ const MOVE_TO_ACTIONS = {
   },
   interviewing: {
     primaryAction: {
-      label: "Offer",
-      nextStatus: "offered",
+      label: "Hire",
+      nextStatus: "hired",
       tone: "emerald",
     },
     secondaryAction: {
@@ -46,7 +46,7 @@ const MOVE_TO_ACTIONS = {
       nextStatus: "rejected",
     },
   },
-  offered: {
+  hired: {
     terminalLabel: "Terminal",
   },
   rejected: {
@@ -350,7 +350,6 @@ export default function Applications() {
         <InterviewScheduleModal
           open={Boolean(scheduleTarget)}
           application={scheduleTarget}
-          interviewerId={user?.id}
           onClose={() => {
             setScheduleTarget(null);
             setScheduleError("");

@@ -11,7 +11,6 @@ const formatDateValue = (value) => {
 function InterviewScheduleModal({
   open,
   application,
-  interviewerId,
   onClose,
   onSubmit,
   submitting = false,
@@ -20,7 +19,8 @@ function InterviewScheduleModal({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [mode, setMode] = useState("online");
-  const [selectedInterviewerId, setSelectedInterviewerId] = useState("");
+  const [interviewerName, setInterviewerName] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION);
 
   const title = useMemo(() => {
     if (!application) return "Schedule Interview";
@@ -42,8 +42,9 @@ function InterviewScheduleModal({
     setDate(formatDateValue(now));
     setTime(now.toTimeString().slice(0, 5));
     setMode("online");
-    setSelectedInterviewerId(interviewerId ? String(interviewerId) : "");
-  }, [open, interviewerId]);
+    setInterviewerName("");
+    setDurationMinutes(DEFAULT_DURATION);
+  }, [open]);
 
   if (!open || !application) {
     return null;
@@ -52,7 +53,7 @@ function InterviewScheduleModal({
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!date || !time || !selectedInterviewerId) {
+    if (!date || !time || !interviewerName.trim()) {
       return;
     }
 
@@ -60,10 +61,10 @@ function InterviewScheduleModal({
 
     await onSubmit({
       application_id: Number(application.id),
-      interviewer_id: Number(selectedInterviewerId),
+      interviewer_name: interviewerName.trim(),
       interview_type: mode,
       scheduled_at: scheduledAt.toISOString(),
-      duration_minutes: DEFAULT_DURATION,
+      duration_minutes: Number(durationMinutes),
     });
   };
 
@@ -109,28 +110,42 @@ function InterviewScheduleModal({
           </div>
 
           <label className="space-y-1 text-sm font-medium text-gray-700">
-            <span>Interviewer ID</span>
+            <span>Interviewer Name</span>
             <input
-              type="number"
-              min="1"
-              value={selectedInterviewerId}
-              onChange={(event) => setSelectedInterviewerId(event.target.value)}
+              type="text"
+              value={interviewerName}
+              onChange={(event) => setInterviewerName(event.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
-              placeholder="Enter interviewer user ID"
+              placeholder="Enter interviewer name"
+              required
             />
           </label>
 
-          <label className="space-y-1 text-sm font-medium text-gray-700">
-            <span>Mode</span>
-            <select
-              value={mode}
-              onChange={(event) => setMode(event.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
-            >
-              <option value="online">Online</option>
-              <option value="offline">Offline</option>
-            </select>
-          </label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="space-y-1 text-sm font-medium text-gray-700">
+              <span>Interview Type</span>
+              <select
+                value={mode}
+                onChange={(event) => setMode(event.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
+              >
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+              </select>
+            </label>
+
+            <label className="space-y-1 text-sm font-medium text-gray-700">
+              <span>Duration (minutes)</span>
+              <input
+                type="number"
+                min="1"
+                value={durationMinutes}
+                onChange={(event) => setDurationMinutes(event.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
+                placeholder="Duration in minutes"
+              />
+            </label>
+          </div>
 
           {error ? (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

@@ -15,7 +15,7 @@ const TABS = [
   { value: "all", label: "All" },
   { value: "applied", label: "Applied" },
   { value: "interviewing", label: "Interviewing" },
-  { value: "offered", label: "Offered" },
+  { value: "hired", label: "Hired" },
   { value: "rejected", label: "Rejected" },
 ];
 
@@ -128,16 +128,10 @@ export default function MyApplications() {
       key: "action",
       label: "Action",
       render: (row) =>
-        String(row.status).toLowerCase() === "offered" ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleAccept(row);
-            }}
-            className="rounded-md bg-green-600 px-3 py-1 text-sm font-medium text-white hover:bg-green-700"
-          >
-            Accept Offer
-          </button>
+        String(row.status).toLowerCase() === "hired" ? (
+          <div className="rounded-md bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700 border border-emerald-200">
+            Hired
+          </div>
         ) : (
           <button
             onClick={(e) => {

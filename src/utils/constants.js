@@ -14,9 +14,8 @@ export const STATUS_COLORS = {
   draft: 'bg-gray-100 text-gray-500',
   applied: 'bg-yellow-100 text-yellow-700',
   interviewing: 'bg-amber-100 text-amber-700',
-  offered: 'bg-green-100 text-green-700',
+  hired: 'bg-green-100 text-green-700',
   rejected: 'bg-red-100 text-red-600',
-  hired: 'bg-orange-100 text-orange-700',
   completed: 'bg-green-100 text-green-700',
 };
 

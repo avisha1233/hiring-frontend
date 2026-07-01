@@ -38,7 +38,7 @@ const NOTICE_OPTIONS = [
 const STATUS_BADGE = {
   applied: "bg-yellow-100 text-yellow-800 border border-yellow-200",
   interviewing: "bg-blue-100 text-blue-800 border border-blue-200",
-  offered: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+  hired: "bg-emerald-100 text-emerald-800 border border-emerald-200",
   rejected: "bg-rose-100 text-rose-800 border border-rose-200",
 };
 

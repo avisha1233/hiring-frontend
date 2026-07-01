@@ -5,13 +5,13 @@ import axiosApi from "../../api/axios";
 
 // ─── constants ───────────────────────────────────────────────────────────────
 
-const LEVELS = ["Beginner", "Intermediate", "Advanced"];
+const LEVELS = ["basic", "intermediate", "advanced"];
 
 const LEVEL_STYLE = {
-  Beginner:     "bg-gray-100   text-gray-600",
+  basic:     "bg-gray-100   text-gray-600",
 
-  Intermediate: "bg-yellow-100 text-yellow-700",
-  Advanced:     "bg-orange-100 text-orange-700",
+  intermediate: "bg-yellow-100 text-yellow-700",
+  advanced:     "bg-orange-100 text-orange-700",
   
 };
 
@@ -26,13 +26,14 @@ const selectClass =
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function LevelPill({ level }) {
+  const displayLevel = level ? level.charAt(0).toUpperCase() + level.slice(1) : "";
   return (
     <span
       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
         LEVEL_STYLE[level] ?? "bg-gray-100 text-gray-600"
       }`}
     >
-      {level}
+      {displayLevel}
     </span>
   );
 }
@@ -236,7 +237,7 @@ export default function SkillsSection() {
                 onChange={(e) => setAddForm((p) => ({ ...p, level: e.target.value }))}
                 className={selectClass}
               >
-                {LEVELS.map((l) => <option key={l}>{l}</option>)}
+                {LEVELS.map((l) => <option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>)}
               </select>
             </label>
 
@@ -310,7 +311,7 @@ export default function SkillsSection() {
                         onChange={(e) => setEditForm((p) => ({ ...p, level: e.target.value }))}
                         className="h-8 rounded-lg border border-orange-200 px-2 text-xs outline-none focus:border-orange-400 bg-white"
                       >
-                        {LEVELS.map((l) => <option key={l}>{l}</option>)}
+                        {LEVELS.map((l) => <option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>)}
                       </select>
                     </td>
                     <td className="px-4 py-2">
