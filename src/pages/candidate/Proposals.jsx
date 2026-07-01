@@ -27,6 +27,7 @@ function ProposalCard({ proposal, onAction }) {
 
   const company  = proposal?.company;
   const job      = proposal?.job;
+  const salary   = Number(proposal?.salary || 0);
   const created  = proposal?.created_at
     ? new Date(proposal.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : "—";
@@ -91,6 +92,12 @@ function ProposalCard({ proposal, onAction }) {
           <Calendar size={12} />
           Received on {created}
         </div>
+
+        {salary > 0 && (
+          <div className="mt-3 rounded-lg border border-orange-100 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700">
+            Offered salary: NPR {salary.toLocaleString("en-NP")}
+          </div>
+        )}
 
         {/* actions – only for pending */}
         {proposal.status === "pending" && (

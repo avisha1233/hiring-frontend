@@ -11,6 +11,8 @@ import { getAuthUser } from "../../lib/auth";
 import { formatDate } from "../../utils/formatters";
 import { getCompanyProfile } from "@/apis/company";
 import { api } from "../../services/api";
+import InterviewScheduleModal from "../../components/company/InterviewScheduleModal";
+import { normalizeApplicationStatus } from "../../utils/applicationStatus";
 
 // ── filter tabs — same shape as candidate Applications ────────────────────────
 const TABS = [
@@ -20,6 +22,40 @@ const TABS = [
   { value: "offered", label: "Offered" },
   { value: "rejected", label: "Rejected" },
 ];
+
+const MOVE_TO_ACTIONS = {
+  applied: {
+    primaryAction: {
+      label: "Interview",
+      type: "schedule",
+      tone: "amber",
+    },
+    secondaryAction: {
+      label: "Reject",
+      nextStatus: "rejected",
+    },
+  },
+  interviewing: {
+    primaryAction: {
+      label: "Offer",
+      nextStatus: "offered",
+      tone: "emerald",
+    },
+    secondaryAction: {
+      label: "Reject",
+      nextStatus: "rejected",
+    },
+  },
+  offered: {
+    terminalLabel: "Terminal",
+  },
+  rejected: {
+    terminalLabel: "Terminal",
+  },
+};
+
+const getMoveToActions = (status) =>
+  MOVE_TO_ACTIONS[normalizeApplicationStatus(status)] || MOVE_TO_ACTIONS.applied;
 
 const resolveCandidateName = (row) =>
   [row.candidate?.first_name, row.candidate?.last_name]
@@ -36,6 +72,9 @@ export default function Applications() {
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyId, setCompanyId] = useState(null);
+  const [scheduleTarget, setScheduleTarget] = useState(null);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
 
   const user = getAuthUser();
 
@@ -94,6 +133,27 @@ export default function Applications() {
       fetchApplications();
     } catch {
       toast.error("Failed to update application");
+    }
+  };
+
+  const handleScheduleSubmit = async (payload) => {
+    setScheduling(true);
+    setScheduleError("");
+    try {
+      await api.post("/interviews", payload);
+      toast.success("Interview scheduled");
+      setScheduleTarget(null);
+      fetchApplications();
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to schedule interview";
+      setScheduleError(message);
+      toast.error(message);
+      throw error;
+    } finally {
+      setScheduling(false);
     }
   };
 
@@ -182,58 +242,61 @@ export default function Applications() {
       key: "status",
       label: "Status",
       render: (row) => (
-        <StatusBadge status={row.status}>{row.status}</StatusBadge>
+        <StatusBadge status={normalizeApplicationStatus(row.status)}>
+          {normalizeApplicationStatus(row.status)}
+        </StatusBadge>
       ),
     },
     {
-      key: "move_to",
+      key: "actions",
       label: "Move To",
       render: (row) => {
-        const s = String(row.status || "").toLowerCase();
+        const status = normalizeApplicationStatus(row.status);
+        const actions = getMoveToActions(status);
 
-        // Determine the next forward step and its label
-        const forwardMap = {
-          applied:      { label: "Interview", next: "interviewing" },
-          reviewing:    { label: "Interview", next: "interviewing" },
-          interviewing: { label: "Offer",     next: "offered"      },
-          shortlisted:  { label: "Interview", next: "interviewing" },
-        };
-        const forward = forwardMap[s];
-
-        // Terminal statuses — nothing left to do
-        if (s === "rejected" || s === "hired" || s === "offered") {
+        if (actions.terminalLabel) {
           return (
-            <span className="text-xs text-gray-400 italic">
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+            <span className="text-xs font-medium italic text-gray-400">
+              {actions.terminalLabel}
             </span>
           );
         }
 
         return (
-          <div className="flex items-center gap-2">
-            {/* Forward progression button — green outline */}
-            {forward && (
+          <div className="flex flex-wrap items-center gap-2">
+            {actions.primaryAction ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStatusChange(row.id, forward.next);
-                }}
-                className="rounded-md border border-emerald-500 px-3 py-1 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors"
-              >
-                {forward.label}
-              </button>
-            )}
+                  if (actions.primaryAction.type === "schedule") {
+                    setScheduleTarget(row);
+                    setScheduleError("");
+                    return;
+                  }
 
-            {/* Reject button — red outline */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStatusChange(row.id, "rejected");
-              }}
-              className="rounded-md border border-rose-400 px-3 py-1 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition-colors"
-            >
-              Reject
-            </button>
+                  handleStatusChange(row.id, actions.primaryAction.nextStatus);
+                }}
+                className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
+                  actions.primaryAction.tone === "emerald"
+                    ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                    : "border-amber-500 text-amber-600 hover:bg-amber-50"
+                }`}
+              >
+                {actions.primaryAction.label}
+              </button>
+            ) : null}
+
+            {actions.secondaryAction ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStatusChange(row.id, actions.secondaryAction.nextStatus);
+                }}
+                className="rounded-md border border-rose-400 px-3 py-1 text-xs font-semibold text-rose-500 transition-colors hover:bg-rose-50"
+              >
+                {actions.secondaryAction.label}
+              </button>
+            ) : null}
           </div>
         );
       },
@@ -282,6 +345,21 @@ export default function Applications() {
           empty="No applications found"
         />
       )}
+
+      {scheduleTarget ? (
+        <InterviewScheduleModal
+          open={Boolean(scheduleTarget)}
+          application={scheduleTarget}
+          interviewerId={user?.id}
+          onClose={() => {
+            setScheduleTarget(null);
+            setScheduleError("");
+          }}
+          onSubmit={handleScheduleSubmit}
+          submitting={scheduling}
+          error={scheduleError}
+        />
+      ) : null}
     </div>
   );
 }

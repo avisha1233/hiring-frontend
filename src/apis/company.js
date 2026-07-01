@@ -55,6 +55,33 @@ export async function getUpcomingInterviews() {
   );
 }
 
+export async function getCompanyInterviews({
+  status = "",
+  page = 1,
+  limit = 20,
+  search = "",
+  sort = "scheduled_at",
+  sortDirection = "ASC",
+} = {}) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (search) params.set("search", search);
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  params.set("sort", sort);
+  params.set("sortDirection", sortDirection);
+
+  const response = await apiClient.get(
+    `/company/interviews?${params.toString()}`,
+  );
+  return (
+    response?.data?.data?.data ||
+    response?.data?.data ||
+    response?.data ||
+    response
+  );
+}
+
 export async function getCompanyJobs({
   search = "",
   status = "",

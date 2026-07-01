@@ -1,7 +1,7 @@
 // src/pages/company/Candidates.jsx
 
-import { useState, useEffect, useCallback } from "react";
-import { MapPin, Briefcase, Clock, Send, X, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MapPin, Briefcase, Clock, X, ChevronDown, Send, Sparkles } from "lucide-react";
 import { toast } from "react-toastify";
 import SearchInput from "../../components/shared/SearchInput";
 import FilterTabs from "../../components/shared/FilterTabs";
@@ -12,7 +12,12 @@ import Pagination from "../../components/shared/Pagination";
 import { useDebounce, usePagination } from "../../hooks";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../api/axios";
-import { createProposal, getCompanyProposals } from "../../apis/company";
+import { createProposal } from "../../apis/company";
+import InterviewScheduleModal from "../../components/company/InterviewScheduleModal";
+import {
+  getApplicationStatusActions,
+  normalizeApplicationStatus,
+} from "../../utils/applicationStatus";
 
 const EXPERIENCE_TABS = [
   { value: "all",  label: "All"      },
@@ -31,8 +36,9 @@ const NOTICE_OPTIONS = [
 ];
 
 const STATUS_BADGE = {
-  pending:  "bg-yellow-100 text-yellow-800 border border-yellow-200",
-  accepted: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+  applied: "bg-yellow-100 text-yellow-800 border border-yellow-200",
+  interviewing: "bg-blue-100 text-blue-800 border border-blue-200",
+  offered: "bg-emerald-100 text-emerald-800 border border-emerald-200",
   rejected: "bg-rose-100 text-rose-800 border border-rose-200",
 };
 
@@ -86,21 +92,42 @@ function InitialsAvatar({ name }) {
   );
 }
 
+function formatSalary(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return "Salary open";
+  }
+
+  return `NPR ${numericValue.toLocaleString("en-NP")}`;
+}
+
 // ── Proposal Modal ──────────────────────────────────────────────────────────
-function ProposalModal({ candidate, candidateName, jobs, onClose, onSent }) {
+function ProposalModal({ candidate, candidateName, jobs, initialJobId, onClose, onSent }) {
   const [jobId, setJobId]       = useState("");
   const [message, setMessage]   = useState("");
+  const [salary, setSalary]     = useState("");
   const [sending, setSending]   = useState(false);
+
+  useEffect(() => {
+    if (!candidate) return;
+    setJobId(initialJobId ? String(initialJobId) : "");
+    setMessage("");
+    setSalary("");
+  }, [candidate, initialJobId]);
+
+  const selectedJob = jobs.find((job) => String(job.id) === String(jobId));
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!jobId) { toast.error("Please select a job."); return; }
+    if (!salary) { toast.error("Please enter a salary."); return; }
     setSending(true);
     try {
       await createProposal({
         job_id: Number(jobId),
         candidate_id: Number(candidate.id),
         message: message.trim() || undefined,
+        salary: Number(salary),
       });
       toast.success(`Proposal sent to ${candidateName}!`);
       onSent(candidate.id, Number(jobId));
@@ -144,6 +171,24 @@ function ProposalModal({ candidate, candidateName, jobs, onClose, onSent }) {
               </select>
               <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
+            {selectedJob && (
+              <p className="mt-1 text-xs text-gray-500">
+                {selectedJob.location || (selectedJob.is_remote ? "Remote" : "On site")} · {formatSalary(selectedJob.min_salary || selectedJob.max_salary)}
+              </p>
+            )}
+          </div>
+
+          {/* salary */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Salary *</label>
+            <input
+              type="number"
+              min="1"
+              value={salary}
+              onChange={(e) => setSalary(e.target.value)}
+              placeholder="Enter proposed salary"
+              className="w-full rounded-lg border border-orange-200 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
+            />
           </div>
 
           {/* message */}
@@ -183,16 +228,21 @@ export default function Candidates() {
 
   const [candidates, setCandidates]   = useState([]);
   const [userMap, setUserMap]         = useState({});
+  const [jobs, setJobs]               = useState([]);
+  const [suggestedCandidates, setSuggestedCandidates] = useState([]);
   const [total, setTotal]             = useState(0);
   const [loading, setLoading]         = useState(true);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
+  const [suggestionsError, setSuggestionsError] = useState(null);
   const [error, setError]             = useState(null);
   const [expFilter, setExpFilter]     = useState("all");
   const [noticeFilter, setNoticeFilter] = useState("all");
+  const [proposalTarget, setProposalTarget] = useState(null);
 
-  // Proposal feature state
-  const [openJobs, setOpenJobs]               = useState([]);
-  const [proposalMap, setProposalMap]         = useState({}); // candidateId → proposal
-  const [modalTarget, setModalTarget]         = useState(null); // candidate object
+  // Interview scheduling state
+  const [scheduleTarget, setScheduleTarget]   = useState(null);
+  const [scheduling, setScheduling]           = useState(false);
+  const [scheduleError, setScheduleError]     = useState("");
 
   const [search, setSearch] = useState(
     new URLSearchParams(location.search).get("search") || ""
@@ -204,31 +254,6 @@ export default function Candidates() {
     const q = new URLSearchParams(location.search).get("search") || "";
     setSearch(q);
   }, [location.search]);
-
-  // Load open jobs + existing proposals (for badge display)
-  useEffect(() => {
-    async function loadSideData() {
-      try {
-        const jobsRes = await api.get("/company/jobs", { params: { status: "open", limit: 100 } });
-        const body = jobsRes?.data?.data || jobsRes?.data || {};
-        const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
-        setOpenJobs(rows);
-      } catch { /* non-fatal */ }
-
-      try {
-        const props = await getCompanyProposals();
-        const list  = Array.isArray(props?.data) ? props.data : Array.isArray(props) ? props : [];
-        const map   = {};
-        list.forEach((p) => {
-          const key = String(p.candidate_id);
-          // keep the most recent (already DESC from API)
-          if (!map[key]) map[key] = p;
-        });
-        setProposalMap(map);
-      } catch { /* non-fatal */ }
-    }
-    loadSideData();
-  }, []);
 
   async function fetchData() {
     try {
@@ -257,15 +282,84 @@ export default function Candidates() {
     }
   }
 
-  useEffect(() => { fetchData(); }, [debouncedSearch, page]);
+  async function fetchJobs() {
+    try {
+      const res = await api.get("/company/jobs", { params: { page: 1, limit: 100 } });
+      const body = res?.data?.data || res?.data || {};
+      const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body?.rows) ? body.rows : Array.isArray(body) ? body : [];
+      setJobs(rows);
+    } catch {
+      setJobs([]);
+    }
+  }
 
-  // After a proposal is sent, update the local map optimistically
-  const handleProposalSent = useCallback((candidateId, jobId) => {
-    setProposalMap((prev) => ({
-      ...prev,
-      [String(candidateId)]: { candidate_id: candidateId, job_id: jobId, status: "pending" },
-    }));
+  async function fetchSuggestedCandidates() {
+    try {
+      setSuggestionsLoading(true);
+      setSuggestionsError(null);
+      const res = await api.get("/company/suggested-candidates", { params: { page: 1, limit: 6 } });
+      const body = res?.data?.data || res?.data || {};
+      const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body?.rows) ? body.rows : Array.isArray(body) ? body : [];
+      setSuggestedCandidates(rows);
+    } catch (err) {
+      setSuggestionsError(err?.response?.data?.message || err.message || "Failed to load suggested candidates");
+      setSuggestedCandidates([]);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchData(); }, [debouncedSearch, page]);
+  useEffect(() => {
+    fetchJobs();
+    fetchSuggestedCandidates();
   }, []);
+
+  const handleProposalOpen = (candidate, initialJobId = "") => {
+    setProposalTarget({
+      candidate,
+      candidateName: resolveName(candidate, userMap) ?? `Candidate #${candidate.id}`,
+      initialJobId,
+    });
+  };
+
+  const handleProposalSent = async () => {
+    await fetchSuggestedCandidates();
+    await fetchData();
+  };
+
+  const handleStatusUpdate = async (applicationId, nextStatus) => {
+    try {
+      await api.patch(`/applications/${applicationId}`, { status: nextStatus });
+      toast.success(`Application marked as ${nextStatus}`);
+      await fetchData();
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || error?.message || "Failed to update application",
+      );
+    }
+  };
+
+  const handleScheduleSubmit = async (payload) => {
+    setScheduling(true);
+    setScheduleError("");
+    try {
+      await api.post("/interviews", payload);
+      toast.success("Interview scheduled");
+      setScheduleTarget(null);
+      await fetchData();
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to schedule interview";
+      setScheduleError(message);
+      toast.error(message);
+      throw error;
+    } finally {
+      setScheduling(false);
+    }
+  };
 
   const shown = candidates.filter((c) => {
     if (expFilter !== "all") {
@@ -291,13 +385,29 @@ export default function Candidates() {
 
   return (
     <>
-      {modalTarget && (
+      {proposalTarget && (
         <ProposalModal
-          candidate={modalTarget}
-          candidateName={resolveName(modalTarget, userMap) ?? `Candidate #${modalTarget.id}`}
-          jobs={openJobs}
-          onClose={() => setModalTarget(null)}
+          candidate={proposalTarget.candidate}
+          candidateName={proposalTarget.candidateName}
+          jobs={jobs}
+          initialJobId={proposalTarget.initialJobId}
+          onClose={() => setProposalTarget(null)}
           onSent={handleProposalSent}
+        />
+      )}
+
+      {scheduleTarget && (
+        <InterviewScheduleModal
+          open={Boolean(scheduleTarget)}
+          application={scheduleTarget}
+          interviewerId={location?.state?.interviewerId}
+          onClose={() => {
+            setScheduleTarget(null);
+            setScheduleError("");
+          }}
+          onSubmit={handleScheduleSubmit}
+          submitting={scheduling}
+          error={scheduleError}
         />
       )}
 
@@ -306,6 +416,90 @@ export default function Candidates() {
           <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
           <p className="text-sm text-gray-600">Browse and discover available candidates</p>
         </div>
+
+        <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-orange-500" />
+                <h2 className="text-lg font-bold text-gray-900">Suggested Candidates</h2>
+              </div>
+              <p className="mt-1 text-sm text-gray-600">Skill-matched candidates who have not applied to your jobs yet</p>
+            </div>
+            <div className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+              {suggestedCandidates.length} matches
+            </div>
+          </div>
+
+          {suggestionsLoading ? (
+            <LoadingSkeleton rows={2} columns={1} />
+          ) : suggestionsError ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+              {suggestionsError}
+            </div>
+          ) : suggestedCandidates.length === 0 ? (
+            <EmptyState
+              title="No suggested candidates yet"
+              message="Once you have open jobs with skills attached, matching candidates will appear here."
+            />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+              {suggestedCandidates.map((candidate) => {
+                const name = resolveName(candidate, userMap) ?? `Candidate #${candidate.id}`;
+                const email = resolveEmail(candidate, userMap);
+                const skills = Array.isArray(candidate.skills) ? candidate.skills : resolveSkills(candidate);
+                const bestJobTitle = candidate.best_job_title || candidate.best_job?.title || "Best matched job";
+
+                return (
+                  <article key={candidate.id} className="rounded-2xl border border-orange-100 bg-orange-50/40 p-4 shadow-sm transition hover:border-orange-200 hover:bg-orange-50">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <InitialsAvatar name={name} />
+                        <div>
+                          <p className="font-semibold text-gray-900">{name}</p>
+                          {email && <p className="text-xs text-gray-500">{email}</p>}
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-orange-700 shadow-sm">
+                        {candidate.match_score || 0}% match
+                      </span>
+                    </div>
+
+                    <div className="mt-4 rounded-xl bg-white p-3 text-sm text-gray-700">
+                      <p className="font-medium text-gray-900">Best fit</p>
+                      <p className="mt-1 text-gray-600">{bestJobTitle}</p>
+                      {candidate.best_job?.location && (
+                        <p className="mt-1 text-xs text-gray-500">{candidate.best_job.location}</p>
+                      )}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {skills.slice(0, 4).map((skill) => (
+                        <span key={skill} className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-orange-700 shadow-sm">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <p className="text-xs text-gray-500">
+                        {candidate.location || "Location not specified"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleProposalOpen(candidate, candidate.best_job_id || candidate.best_job?.id || "")}
+                        className="inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                      >
+                        <Send size={14} />
+                        Send Proposal
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         <div className="flex flex-wrap gap-4 rounded-lg border border-orange-100 bg-white p-4">
           <SearchInput value={search} onChange={setSearch} placeholder="Search by name or location…" disabled={loading} />
@@ -321,7 +515,7 @@ export default function Candidates() {
         <FilterTabs tabs={EXPERIENCE_TABS} active={expFilter} onChange={setExpFilter} />
 
         {loading ? (
-          <LoadingSkeleton rows={5} columns={7} />
+          <LoadingSkeleton rows={5} columns={8} />
         ) : shown.length === 0 ? (
           <EmptyState title="No candidates found" message="Try adjusting your search or filters" />
         ) : (
@@ -335,6 +529,7 @@ export default function Candidates() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Skills</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Location</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Notice Period</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Actions</th>
                 </tr>
               </thead>
@@ -348,7 +543,11 @@ export default function Candidates() {
                   const notice = c.notice_period_days != null
                     ? c.notice_period_days === 0 ? "Immediate" : `${c.notice_period_days} days`
                     : "–";
-                  const proposal = proposalMap[String(c.id)];
+                  const applicationStatus = normalizeApplicationStatus(
+                    c.application_status || c.status,
+                  );
+                  const actions = getApplicationStatusActions(applicationStatus);
+                  const applicationId = c.application_id || c.id;
 
                   return (
                     <tr key={c.id} className="border-b border-orange-50 hover:bg-orange-50/50">
@@ -432,23 +631,48 @@ export default function Candidates() {
                         </div>
                       </td>
 
+                      {/* status */}
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${STATUS_BADGE[applicationStatus] || STATUS_BADGE.applied}`}>
+                          {actions.statusLabel}
+                        </span>
+                      </td>
+
                       {/* actions */}
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Proposal status badge or Send button */}
-                          {proposal ? (
-                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${STATUS_BADGE[proposal.status] || STATUS_BADGE.pending}`}>
-                              {proposal.status}
-                            </span>
-                          ) : (
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {actions.primaryAction ? (
                             <button
-                              onClick={() => setModalTarget(c)}
-                              className="flex items-center gap-1.5 rounded-lg bg-orange-100 px-3 py-1.5 text-xs font-semibold text-orange-700 transition hover:bg-orange-200"
+                              onClick={() => {
+                                if (actions.primaryAction.type === "schedule") {
+                                  setScheduleTarget({
+                                    ...c,
+                                    id: applicationId,
+                                    candidate_name: name,
+                                  });
+                                  setScheduleError("");
+                                  return;
+                                }
+
+                                handleStatusUpdate(applicationId, actions.primaryAction.nextStatus);
+                              }}
+                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                actions.primaryAction.tone === "emerald"
+                                  ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                                  : "border-amber-500 text-amber-600 hover:bg-amber-50"
+                              }`}
                             >
-                              <Send size={13} />
-                              Send Proposal
+                              {actions.primaryAction.label}
                             </button>
-                          )}
+                          ) : null}
+                          {actions.secondaryAction ? (
+                            <button
+                              onClick={() => handleStatusUpdate(applicationId, actions.secondaryAction.nextStatus)}
+                              className="rounded-lg border border-rose-400 px-3 py-1.5 text-xs font-semibold text-rose-500 transition-colors hover:bg-rose-50"
+                            >
+                              {actions.secondaryAction.label}
+                            </button>
+                          ) : null}
                           <button
                             onClick={() => navigate(`/company/candidates/${c.id}`, { state: { candidate: c } })}
                             className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-orange-600"
