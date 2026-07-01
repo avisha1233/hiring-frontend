@@ -63,14 +63,14 @@ export default function SkillsSection() {
       try {
         const [meRes, skillsRes] = await Promise.all([
           axiosApi.get("/candidates/me"),
-          axiosApi.get("/skills"),
+          axiosApi.get("/skills?limit=1000"),
         ]);
 
         if (!alive) return;
 
         const me              = meRes.data ?? {};
         const candidateSkills = me.CandidateSkills ?? me.candidateSkills ?? [];
-        const allSkills       = Array.isArray(skillsRes.data) ? skillsRes.data : [];
+        const allSkills       = Array.isArray(skillsRes.data?.data) ? skillsRes.data.data : (Array.isArray(skillsRes.data) ? skillsRes.data : []);
 
         candidateIdRef.current = me.id ?? null;
         setRows(candidateSkills);
@@ -90,7 +90,7 @@ export default function SkillsSection() {
     if (!addForm.skill_id) return toast.error("Please select a skill");
     if (!addForm.level)    return toast.error("Please select a level");
 
-    const yoe = Number(addForm.years_of_experience);
+    const yoe = Math.round(Number(addForm.years_of_experience));
     if (isNaN(yoe) || yoe < 0) return toast.error("Enter valid years of experience");
 
     // duplicate guard
@@ -147,7 +147,7 @@ export default function SkillsSection() {
   }
 
   async function handleSave(id) {
-    const yoe = Number(editForm.years_of_experience);
+    const yoe = Math.round(Number(editForm.years_of_experience));
     if (isNaN(yoe) || yoe < 0) return toast.error("Enter valid years of experience");
 
     setSaving(true);

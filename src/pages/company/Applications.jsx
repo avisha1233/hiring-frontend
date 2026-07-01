@@ -176,16 +176,18 @@ export default function Applications() {
     {
       key: "match_score",
       label: "Match Score",
-      render: (row) => (
-        row.match_score !== undefined && row.match_score !== null ? (
+      render: (row) => {
+        const displayScore = row.match_score !== undefined && row.match_score !== null ? Number(row.match_score) : null;
+
+        return displayScore !== null ? (
           <div className="group relative inline-flex items-center">
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              row.match_score >= 85 ? 'bg-emerald-100 text-emerald-800' :
-              row.match_score >= 70 ? 'bg-blue-100 text-blue-800' :
-              row.match_score >= 50 ? 'bg-orange-100 text-orange-800' :
+              displayScore >= 85 ? 'bg-emerald-100 text-emerald-800' :
+              displayScore >= 70 ? 'bg-blue-100 text-blue-800' :
+              displayScore >= 50 ? 'bg-orange-100 text-orange-800' :
               'bg-rose-100 text-rose-800'
             }`}>
-              {row.match_score}% Match
+              {displayScore}% Match
             </span>
             
             {/* Breakdown Tooltip */}
@@ -216,8 +218,8 @@ export default function Applications() {
           </div>
         ) : (
           <span className="text-xs text-gray-400">—</span>
-        )
-      ),
+        );
+      },
     },
     {
       key: "job",
