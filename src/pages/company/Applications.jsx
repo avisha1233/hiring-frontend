@@ -66,6 +66,160 @@ const resolveCandidateName = (row) =>
   row.candidate_name ||
   `Candidate #${row.candidate_id}`;
 
+// ── Skill Gap Modal ─────────────────────────────────────────────────────────
+function SkillGapModal({ open, onClose, application }) {
+  if (!open || !application) return null;
+
+  const breakdown = application.match_breakdown;
+  const displayScore =
+    application.match_score !== undefined && application.match_score !== null
+      ? Number(application.match_score)
+      : 0;
+
+  // Handle both camelCase and snake_case keys from backend
+  const met = breakdown?.met || breakdown?.matched || [];
+  const belowLevel = breakdown?.belowLevel || breakdown?.below_level || [];
+  const missing = breakdown?.missing || [];
+  const skillsBreakdown = breakdown?.skillsBreakdown || breakdown?.skills_breakdown || [];
+  const totalSkills = skillsBreakdown.length > 0 ? skillsBreakdown.length : met.length + belowLevel.length + missing.length;
+
+  const candidateName = resolveCandidateName(application);
+  const jobTitle = application.job?.title || application.job_title || `Job #${application.job_id}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+      {/* modal */}
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+        {/* header */}
+        <div className="px-6 pt-6 pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Skill Gap Analysis</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {candidateName} — {jobTitle}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          {/* score summary bar */}
+          <div className="mt-4 rounded-xl bg-orange-50 border border-orange-100 p-4">
+            <div className="flex items-center gap-4">
+              {/* circular score */}
+              <div className="relative w-14 h-14 flex-shrink-0">
+                <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#fed7aa"
+                    strokeWidth="3.5"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#f97316"
+                    strokeWidth="3.5"
+                    strokeDasharray={`${displayScore}, 100`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-orange-700">
+                  {displayScore}%
+                </span>
+              </div>
+              {/* stat pills */}
+              <div className="flex flex-wrap gap-2 flex-1">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {met.length} Matched
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-medium text-amber-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  {belowLevel.length} Below Level
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  {missing.length} Missing
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* body */}
+        <div className="px-6 pb-2 max-h-[50vh] overflow-y-auto space-y-4">
+          {skillsBreakdown.length > 0 ? (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 border-b border-gray-100 pb-2 mb-3">
+                Job's Skills
+              </h3>
+              <div className="space-y-4">
+                {skillsBreakdown.map((item, idx) => (
+                  <div key={idx} className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700 capitalize">
+                        {item.skill}
+                      </span>
+                      <span className={`text-xs font-semibold ${
+                        item.matchPercentage >= 100 ? 'text-emerald-600' :
+                        item.matchPercentage >= 50 ? 'text-amber-600' :
+                        'text-rose-600'
+                      }`}>
+                        matched {item.matchPercentage}%
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          item.matchPercentage >= 100 ? 'bg-emerald-500' :
+                          item.matchPercentage >= 50 ? 'bg-amber-500' :
+                          'bg-rose-500'
+                        }`}
+                        style={{ width: `${item.matchPercentage}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-gray-400">
+                      <span>Candidate: {item.candidateLevel || 'None'}</span>
+                      <span>Required: {item.required}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            totalSkills === 0 && (
+              <div className="text-center py-6">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-50 text-orange-400 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <p className="text-sm text-gray-500">
+                  No skill breakdown data available for this application.
+                </p>
+              </div>
+            )
+          )}
+        </div>
+
+        {/* footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Applications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +229,7 @@ export default function Applications() {
   const [scheduleTarget, setScheduleTarget] = useState(null);
   const [scheduling, setScheduling] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
+  const [skillGapTarget, setSkillGapTarget] = useState(null);
 
   const user = getAuthUser();
 
@@ -190,45 +345,25 @@ export default function Applications() {
         const displayScore = row.match_score !== undefined && row.match_score !== null ? Number(row.match_score) : null;
 
         return displayScore !== null ? (
-          <div className="flex flex-col items-start group relative">
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              displayScore >= 85 ? 'bg-emerald-100 text-emerald-800' :
-              displayScore >= 70 ? 'bg-blue-100 text-blue-800' :
-              displayScore >= 50 ? 'bg-orange-100 text-orange-800' :
-              'bg-rose-100 text-rose-800'
-            }`}>
-              {displayScore}% Match
-            </span>
-            
-            {/* Breakdown Tooltip */}
-            {row.match_breakdown && (
-              <div className="invisible absolute bottom-full left-1/2 z-10 mb-2 w-48 -translate-x-1/2 rounded bg-gray-900 p-3 text-xs text-white opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:opacity-100">
-                <p className="font-semibold border-b border-gray-700 pb-1 mb-2">Score Breakdown</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Skills Fit:</span>
-                    <span className="font-medium">{row.match_breakdown.skillScore}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Experience:</span>
-                    <span className="font-medium">{row.match_breakdown.experienceScore}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Location:</span>
-                    <span className="font-medium">{row.match_breakdown.locationScore}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Notice Period:</span>
-                    <span className="font-medium">{row.match_breakdown.noticePeriodScore}%</span>
-                  </div>
-                </div>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-              </div>
-            )}
-            <div className="text-[10px] text-gray-500 mt-1 pl-1">
-              Gap Score: {row.gap_score ?? "—"}
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSkillGapTarget(row);
+            }}
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold cursor-pointer transition-all hover:shadow-md hover:scale-105 ${
+              displayScore >= 85 ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' :
+              displayScore >= 70 ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
+              displayScore >= 50 ? 'bg-orange-100 text-orange-800 hover:bg-orange-200' :
+              'bg-rose-100 text-rose-800 hover:bg-rose-200'
+            }`}
+            title="Click to view skill gap analysis"
+          >
+            {displayScore}% Match
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 opacity-60">
+              <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+            </svg>
+          </button>
         ) : (
           <span className="text-xs text-gray-400">—</span>
         );
@@ -374,6 +509,13 @@ export default function Applications() {
           error={scheduleError}
         />
       ) : null}
+
+      {/* Skill Gap Modal */}
+      <SkillGapModal
+        open={Boolean(skillGapTarget)}
+        application={skillGapTarget}
+        onClose={() => setSkillGapTarget(null)}
+      />
     </div>
   );
 }

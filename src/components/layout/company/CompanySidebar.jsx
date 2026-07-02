@@ -14,8 +14,8 @@ export default function CompanySidebar() {
   const navItems = [
     { label: "Overview", icon: LayoutDashboard, to: "/company/dashboard" },
     { label: "Job Postings", icon: Briefcase, to: "/company/jobs" },
-    { label: "Applications", icon: FileText, to: "/company/applications" },
     { label: "Candidates", icon: Users, to: "/company/candidates" },
+    { label: "Applications", icon: FileText, to: "/company/applications" },
     { label: "Interviews", icon: CalendarDays, to: "/company/interviews" },
     { label: "Messages", icon: MessageSquare, to: "/company/messages" },
     { label: "Skills Library", icon: Layers, to: "/company/skills" },
@@ -37,10 +37,9 @@ export default function CompanySidebar() {
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition ${
-                    isActive
-                      ? "bg-white text-orange-600"
-                      : "text-orange-100 hover:bg-orange-500"
+                  `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition ${isActive
+                    ? "bg-white text-orange-600"
+                    : "text-orange-100 hover:bg-orange-500"
                   }`
                 }
               >

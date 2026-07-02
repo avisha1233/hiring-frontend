@@ -26,50 +26,78 @@ const LEVELS = [
   { value: "senior", label: "Senior" },
 ];
 
-// Level → numeric weight for match scoring
-const LEVEL_NUM = { basic: 1, intermediate: 2, advanced: 3 };
-
-function levelToNum(str) {
-  if (!str) return 0;
+function levelToWeight(str) {
+  if (!str) return 2;
   const s = String(str).toLowerCase().trim();
-  return LEVEL_NUM[s] ?? 0;
+  if (['expert', 'advanced', 'senior'].includes(s)) return 3;
+  if (['intermediate', 'mid'].includes(s)) return 2;
+  if (['beginner', 'junior', 'basic'].includes(s)) return 1;
+  return 2;
 }
 
-/** Compute 0-100 match score between candidate skills and job required skills */
-function computeScore(candidateSkills, jobSkills) {
-  if (!Array.isArray(jobSkills) || jobSkills.length === 0) return null;
-  if (!Array.isArray(candidateSkills) || candidateSkills.length === 0) return 0;
+/** Compute 0-100 match score and breakdown between candidate skills and job required skills */
+function computeScoreAndBreakdown(candidateSkills, jobSkills) {
+  const breakdown = [];
 
-  // Build a map: skill_id → { level (num), weight }
+  if (!Array.isArray(jobSkills) || jobSkills.length === 0) {
+    return { score: null, breakdown };
+  }
+
   const candMap = new Map();
-  candidateSkills.forEach((cs) => {
-    const skillId = cs.skill_id ?? cs.Skill?.id;
-    if (skillId == null) return;
-    candMap.set(Number(skillId), {
-      level: levelToNum(cs.level),
-      weight: Number(cs.weight) || 1,
+  if (Array.isArray(candidateSkills)) {
+    candidateSkills.forEach((cs) => {
+      const skillName = (cs.Skill?.name || cs.skill?.name || cs.name || "").toLowerCase().trim();
+      if (!skillName) return;
+      candMap.set(skillName, {
+        level: cs.level || cs.proficiency || "intermediate",
+        weight: levelToWeight(cs.level || cs.proficiency),
+      });
     });
-  });
+  }
 
-  let numerator = 0;
-  let denominator = 0;
+  let totalPossible = 0;
+  let actualScore = 0;
 
   jobSkills.forEach((js) => {
-    const skillId = js.skill_id ?? js.Skill?.id;
-    const reqLevel = levelToNum(js.required_level);
-    const weight = Number(js.weight) || 1;
+    const skillName = (js.Skill?.name || js.skill?.name || js.name || "").toLowerCase().trim();
+    if (!skillName) return;
 
-    denominator += reqLevel * weight;
+    const reqLevel = js.required_level || js.level || "intermediate";
+    const jobWeight = levelToWeight(reqLevel);
+    totalPossible += jobWeight;
 
-    const cand = candMap.get(Number(skillId));
-    const candLevel = cand ? cand.level : 0;
-    const candWeight = cand ? cand.weight : weight;
+    const cand = candMap.get(skillName);
 
-    numerator += Math.min(candLevel, reqLevel) * candWeight;
+    if (!cand) {
+      breakdown.push({
+        skill: skillName,
+        required: reqLevel,
+        candidateLevel: null,
+        matchPercentage: 0,
+      });
+      return;
+    }
+
+    const candWeight = cand.weight;
+    const matchPercentage = Math.min(Math.round((candWeight / jobWeight) * 100), 100);
+
+    breakdown.push({
+      skill: skillName,
+      required: reqLevel,
+      candidateLevel: cand.level,
+      matchPercentage,
+    });
+
+    if (candWeight < jobWeight) {
+      actualScore += candWeight;
+    } else {
+      actualScore += jobWeight;
+    }
   });
 
-  if (denominator === 0) return null;
-  return Math.round((numerator / denominator) * 100);
+  const score = totalPossible === 0 ? 0 : Math.min(Math.round((actualScore / totalPossible) * 100), 100);
+
+  return { score, breakdown };
 }
 
 function formatMoney(value) {
@@ -143,10 +171,10 @@ function normalizeRows(value) {
 function CompanyInitials({ name }) {
   const initials = (name && name !== "-")
     ? name
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((w) => w[0]?.toUpperCase() ?? "")
-        .join("")
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? "")
+      .join("")
     : "?";
 
   // Deterministic hue from name string
@@ -164,20 +192,172 @@ function CompanyInitials({ name }) {
 }
 
 /** Coloured match-score badge */
-function ScoreBadge({ score }) {
+function ScoreBadge({ score, onClick }) {
   if (score == null) return null;
 
   const cls =
     score >= 80
-      ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
-      : score >= 60
-      ? "bg-amber-100 text-amber-700 ring-1 ring-amber-200"
-      : "bg-orange-100 text-orange-700 ring-1 ring-orange-200";
+      ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-200"
+      : score >= 50
+        ? "bg-amber-100 text-amber-700 ring-1 ring-amber-200 hover:bg-amber-200"
+        : "bg-orange-100 text-orange-700 ring-1 ring-orange-200 hover:bg-orange-200";
 
   return (
-    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1 transition-colors ${cls}`}
+      title="Click to view skill gap analysis"
+    >
       {score}% match
-    </span>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 opacity-60">
+        <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+      </svg>
+    </button>
+  );
+}
+
+function SkillGapModal({ isOpen, onClose, score, breakdown, jobTitle, companyName }) {
+  if (!isOpen) return null;
+
+  const displayScore = score || 0;
+  const skillsBreakdown = breakdown || [];
+
+  // Calculate met, belowLevel, missing for the summary bar
+  let met = 0;
+  let belowLevel = 0;
+  let missing = 0;
+
+  skillsBreakdown.forEach((b) => {
+    if (b.matchPercentage >= 100) met++;
+    else if (b.matchPercentage > 0) belowLevel++;
+    else missing++;
+  });
+
+  const totalSkills = skillsBreakdown.length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+        <div className="px-6 pt-6 pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Skill Gap Analysis</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {companyName} — {jobTitle}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* score summary bar */}
+          <div className="mt-4 rounded-xl bg-orange-50 border border-orange-100 p-4">
+            <div className="flex items-center gap-4">
+              <div className="relative w-14 h-14 flex-shrink-0">
+                <svg viewBox="0 0 36 36" className="w-14 h-14 -rotate-90">
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#fed7aa"
+                    strokeWidth="3.5"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#f97316"
+                    strokeWidth="3.5"
+                    strokeDasharray={`${displayScore}, 100`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-orange-700">
+                  {displayScore}%
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2 flex-1">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {met} Matched
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-medium text-amber-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  {belowLevel} Below Level
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  {missing} Missing
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-2 max-h-[50vh] overflow-y-auto space-y-4">
+          {skillsBreakdown.length > 0 ? (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 border-b border-gray-100 pb-2 mb-3">
+                Job's Skills
+              </h3>
+              <div className="space-y-4">
+                {skillsBreakdown.map((item, idx) => (
+                  <div key={idx} className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700 capitalize">
+                        {item.skill}
+                      </span>
+                      <span className={`text-xs font-semibold ${item.matchPercentage >= 100 ? 'text-emerald-600' :
+                          item.matchPercentage >= 50 ? 'text-amber-600' :
+                            'text-rose-600'
+                        }`}>
+                        matched {item.matchPercentage}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${item.matchPercentage >= 100 ? 'bg-emerald-500' :
+                            item.matchPercentage >= 50 ? 'bg-amber-500' :
+                              'bg-rose-500'
+                          }`}
+                        style={{ width: `${item.matchPercentage}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-gray-400">
+                      <span>Candidate: {item.candidateLevel || 'None'}</span>
+                      <span>Required: {item.required}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            totalSkills === 0 && (
+              <div className="text-center py-6">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-50 text-orange-400 mb-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+                </div>
+                <p className="text-sm text-gray-500">
+                  No skill breakdown data available for this application.
+                </p>
+              </div>
+            )
+          )}
+        </div>
+
+        <div className="p-6 border-t border-gray-100 flex justify-end">
+          <button
+            onClick={onClose}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -193,6 +373,7 @@ export default function BrowseJobs() {
   const [applyingId, setApplyingId] = useState(null);
   const { page, pageSize, goToPage } = usePagination();
   const [viewingJob, setViewingJob] = useState(null);
+  const [gapModalJob, setGapModalJob] = useState(null);
 
   const openDetails = (job) => {
     setViewingJob(job);
@@ -303,8 +484,8 @@ export default function BrowseJobs() {
     if (levelFilter !== "all" && job.experienceLevelValue !== levelFilter) return false;
     return true;
   }).sort((a, b) => {
-    const scoreA = computeScore(candidateSkills, a.JobSkills ?? []) ?? 0;
-    const scoreB = computeScore(candidateSkills, b.JobSkills ?? []) ?? 0;
+    const scoreA = computeScoreAndBreakdown(candidateSkills, a.JobSkills ?? []).score ?? 0;
+    const scoreB = computeScoreAndBreakdown(candidateSkills, b.JobSkills ?? []).score ?? 0;
     return scoreB - scoreA;
   });
 
@@ -364,7 +545,7 @@ export default function BrowseJobs() {
             ).slice(0, 6);
 
             // Client-side match score
-            const score = computeScore(candidateSkills, job.JobSkills ?? []);
+            const { score, breakdown } = computeScoreAndBreakdown(candidateSkills, job.JobSkills ?? []);
 
             // Meta line: company · location · type
             const metaParts = [
@@ -387,7 +568,7 @@ export default function BrowseJobs() {
                       <h2 className="text-base font-semibold leading-snug text-gray-900">
                         {job.title || `Job #${job.id}`}
                       </h2>
-                      <ScoreBadge score={score} />
+                      <ScoreBadge score={score} onClick={() => setGapModalJob({ job, score, breakdown })} />
                     </div>
 
                     {metaParts.length > 0 && (
@@ -458,26 +639,16 @@ export default function BrowseJobs() {
                     id={`apply-btn-${job.id}`}
                     onClick={() => !isApplied && !isClosed && handleApply(job.id)}
                     disabled={isClosed || isApplied || isApplying}
-                    className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
-                      isApplied
+                    className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${isApplied
                         ? "cursor-default border border-emerald-200 bg-emerald-50 text-emerald-600"
                         : isClosed
-                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                        : isApplying
-                        ? "cursor-not-allowed bg-orange-400 text-white"
-                        : "bg-orange-500 text-white hover:bg-orange-600"
-                    }`}
+                          ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                          : isApplying
+                            ? "cursor-not-allowed bg-orange-400 text-white"
+                            : "bg-orange-500 text-white hover:bg-orange-600"
+                      }`}
                   >
                     {isApplying ? "Applying…" : isApplied ? "✓ Applied" : isClosed ? "Closed" : "Apply Now"}
-                  </button>
-
-                  <button
-                    id={`gap-btn-${job.id}`}
-                    onClick={() => toast.info(`Gap analysis for "${job.title}" coming soon`)}
-                    className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-                    title="View My Gap"
-                  >
-                    Gap
                   </button>
                 </div>
               </div>
@@ -501,7 +672,7 @@ export default function BrowseJobs() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) setViewingJob(null); }}>
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl flex flex-col max-h-[90vh]">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-orange-50 px-6 py-4 shrink-0">
               <div className="flex items-center gap-3">
@@ -522,7 +693,7 @@ export default function BrowseJobs() {
 
             {/* Modal Body */}
             <div className="overflow-y-auto px-6 py-5 space-y-6">
-              
+
               {/* Quick Info Grid */}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <div className="rounded-xl bg-orange-50/40 p-3">
@@ -615,7 +786,7 @@ export default function BrowseJobs() {
               >
                 Close
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => {
@@ -627,13 +798,12 @@ export default function BrowseJobs() {
                   }
                 }}
                 disabled={hasApplied(viewingJob.id) || viewingJob.status === "closed" || applyingId === viewingJob.id}
-                className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${
-                  hasApplied(viewingJob.id)
+                className={`flex-1 inline-flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold text-white transition-colors ${hasApplied(viewingJob.id)
                     ? "bg-emerald-500 text-white cursor-default"
                     : viewingJob.status === "closed"
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600 text-white"
-                }`}
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-orange-500 hover:bg-orange-600 text-white"
+                  }`}
               >
                 {applyingId === viewingJob.id ? (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -650,6 +820,15 @@ export default function BrowseJobs() {
           </div>
         </div>
       )}
+
+      <SkillGapModal
+        isOpen={!!gapModalJob}
+        onClose={() => setGapModalJob(null)}
+        score={gapModalJob?.score}
+        breakdown={gapModalJob?.breakdown}
+        jobTitle={gapModalJob?.job?.title}
+        companyName={gapModalJob?.job?.companyName}
+      />
     </div>
   );
 }
