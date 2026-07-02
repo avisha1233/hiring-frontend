@@ -9,3 +9,5 @@ export const blockCandidate = (userId, reason) =>
   api.patch(`/users/${userId}`, { status: "inactive", block_reason: reason });
 export const unblockCandidate = (userId) =>
   api.patch(`/users/${userId}`, { status: "active" });
+
+export const getAllCandidates = (limit = 1000) => api.get('/candidates', { params: { limit } });

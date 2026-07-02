@@ -2,19 +2,17 @@ import api from "../api/axios";
 
 // Generic report fetcher based on frontend tab type
 export const getReport = (type, params) => {
-  const typeMap = {
-    overview: "overview",
-    users: "user-growth",
-    jobs: "jobs",
-    hiring: "hiring",
-    submissions: "applications",
-  };
-  const backendType = typeMap[type] || "overview";
-  if (backendType === "overview") {
-    return api.get("/reports/overview", { params });
+  if (type === "users") {
+    return api.get("/reports/user-growth", { params });
   }
-  // For other types, use generic reports endpoint with type query param
-  return api.get("/reports", { params: { ...params, type: backendType } });
+  if (type === "jobs") {
+    return api.get("/reports/jobs", { params });
+  }
+  if (type === "hiring") {
+    return api.get("/reports/hiring", { params });
+  }
+  // Default to overview
+  return api.get("/reports/overview", { params });
 };
 
 export const getOverviewReport = () => api.get("/reports/overview");

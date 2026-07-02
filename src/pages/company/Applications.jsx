@@ -112,7 +112,12 @@ export default function Applications() {
       };
       const res = await api.get("/applications", { params });
       const data = res?.data?.data || res?.data || res || [];
-      setApplications(Array.isArray(data) ? data : []);
+      const sorted = (Array.isArray(data) ? data : []).sort((a, b) => {
+        const aScore = a.match_score !== undefined && a.match_score !== null ? Number(a.match_score) : 0;
+        const bScore = b.match_score !== undefined && b.match_score !== null ? Number(b.match_score) : 0;
+        return bScore - aScore;
+      });
+      setApplications(sorted);
     } catch (err) {
       setError(err.message || "Failed to load applications");
     } finally {
@@ -164,8 +169,13 @@ export default function Applications() {
       label: "Candidate",
       render: (row) => (
         <div>
-          <div className="font-medium text-gray-900">
+          <div className="font-medium text-gray-900 flex items-center gap-2">
             {resolveCandidateName(row)}
+            {row.match_score >= 85 && (
+              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                Recommended
+              </span>
+            )}
           </div>
           <div className="text-xs text-gray-500">
             {row.candidate?.email || ""}
@@ -180,7 +190,7 @@ export default function Applications() {
         const displayScore = row.match_score !== undefined && row.match_score !== null ? Number(row.match_score) : null;
 
         return displayScore !== null ? (
-          <div className="group relative inline-flex items-center">
+          <div className="flex flex-col items-start group relative">
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
               displayScore >= 85 ? 'bg-emerald-100 text-emerald-800' :
               displayScore >= 70 ? 'bg-blue-100 text-blue-800' :
@@ -215,6 +225,9 @@ export default function Applications() {
                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
               </div>
             )}
+            <div className="text-[10px] text-gray-500 mt-1 pl-1">
+              Gap Score: {row.gap_score ?? "—"}
+            </div>
           </div>
         ) : (
           <span className="text-xs text-gray-400">—</span>

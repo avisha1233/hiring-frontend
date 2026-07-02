@@ -302,6 +302,10 @@ export default function BrowseJobs() {
   const filteredJobs = displayJobs.filter((job) => {
     if (levelFilter !== "all" && job.experienceLevelValue !== levelFilter) return false;
     return true;
+  }).sort((a, b) => {
+    const scoreA = computeScore(candidateSkills, a.JobSkills ?? []) ?? 0;
+    const scoreB = computeScore(candidateSkills, b.JobSkills ?? []) ?? 0;
+    return scoreB - scoreA;
   });
 
   if (error) {

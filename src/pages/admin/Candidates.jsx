@@ -56,8 +56,8 @@ export default function Candidates() {
       setLoading(true);
       const params = {
         search: debouncedSearch,
-        page,
-        limit: pageSize,
+        page: 1,
+        limit: 1000,
       };
       const res = await candidateService.getCandidates(params);
       setcandidates(res.data.data || []);

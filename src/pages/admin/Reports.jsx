@@ -26,7 +26,6 @@ const TABS = [
   { value: "users", label: "Users" },
   { value: "jobs", label: "Jobs" },
   { value: "hiring", label: "Hiring" },
-  { value: "submissions", label: "Submissions" },
 ];
 
 const EXPORT_FORMATS = [
