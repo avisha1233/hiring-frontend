@@ -82,6 +82,11 @@ export async function getCompanyInterviews({
   );
 }
 
+export async function updateInterview(id, payload) {
+  const response = await apiClient.patch(`/interviews/${id}`, payload);
+  return response?.data || response;
+}
+
 export async function getCompanyJobs({
   search = "",
   status = "",

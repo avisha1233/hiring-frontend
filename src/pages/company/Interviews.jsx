@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import StatusBadge from "../../components/shared/StatusBadge";
 import ErrorState from "../../components/shared/ErrorState";
 import EmptyState from "../../components/shared/EmptyState";
-import { getCompanyCandidates, getCompanyInterviews } from "@/apis/company";
+import { getCompanyCandidates, getCompanyInterviews, updateInterview } from "@/apis/company";
+import InterviewEditModal from "../../components/company/InterviewEditModal";
 import { formatDateTime } from "../../utils/formatters";
 import { normalizeApplicationStatus } from "../../utils/applicationStatus";
 import { CalendarDays, Clock, MapPin, Search, Video } from "lucide-react";
@@ -48,7 +49,7 @@ function resolveJobTitle(row) {
     row?.job?.title ||
     row?.job_title ||
     row?.application?.job?.title ||
-    `Job #${row?.job_id || row?.interview?.job?.id || "—"}`
+    "Unknown Job"
   );
 }
 
@@ -109,6 +110,9 @@ export default function Interviews() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedInterviewForEdit, setSelectedInterviewForEdit] = useState(null);
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const interviewsQuery = useQuery({
     queryKey: ["company", "interviews", "roster"],
@@ -135,30 +139,37 @@ export default function Interviews() {
       },
     );
 
-    const interviewRows = toArray(interviewsQuery.data?.interviews)
-      .slice()
-      .sort((left, right) => {
-        const leftTime = new Date(left?.scheduled_at || 0).getTime();
-        const rightTime = new Date(right?.scheduled_at || 0).getTime();
-        return leftTime - rightTime;
-      });
+    const interviewRows = toArray(interviewsQuery.data?.interviews);
+    const existingAppIds = new Set(interviewRows.map(int => int.application_id || int.application?.id));
+    
+    const rowsFromInterviews = interviewRows.map(interview => {
+      const cand = candidateRows.find(c => (c.application_id || c.application?.id) === interview.application_id) || interview.application?.candidate || {};
+      const job = interview.job || interview.application?.job || {};
+      
+      return {
+        ...cand,
+        id: cand.id || interview.application?.candidate_id || `int-${interview.id}`,
+        applicationStatus: normalizeApplicationStatus(
+          interview.application?.status || cand.application_status || cand.status || "scheduled"
+        ),
+        job,
+        interview,
+      };
+    });
 
-    return candidateRows
-      .map((candidate) => {
-        const interview = resolveInterview(interviewRows, candidate);
-        const applicationStatus = normalizeApplicationStatus(
-          candidate?.application_status || candidate?.status,
-        );
+    const pendingCandidates = candidateRows
+      .filter(cand => !existingAppIds.has(cand.application_id || cand.application?.id))
+      .map(cand => ({
+        ...cand,
+        applicationStatus: normalizeApplicationStatus(cand.application_status || cand.status),
+        interview: null
+      }));
 
-        return {
-          ...candidate,
-          applicationStatus,
-          interview,
-        };
-      })
+    return [...rowsFromInterviews, ...pendingCandidates]
       .filter((row) => {
-        if (statusFilter !== "all" && row.applicationStatus !== statusFilter) {
-          return false;
+        if (statusFilter !== "all") {
+          const rowStatus = row.interview ? row.interview.status : row.applicationStatus;
+          if (rowStatus !== statusFilter) return false;
         }
 
         if (!search.trim()) {
@@ -185,16 +196,19 @@ export default function Interviews() {
         const rightTime = new Date(
           right?.interview?.scheduled_at || 0,
         ).getTime();
-        return leftTime - rightTime;
+        return rightTime - leftTime;
       });
   }, [interviewsQuery.data, search, statusFilter]);
 
   const stats = useMemo(() => {
     const scheduledCount = rows.filter(
-      (row) => row.applicationStatus === "scheduled",
+      (row) => (row.interview ? row.interview.status === "scheduled" : row.applicationStatus === "scheduled"),
     ).length;
-    const interviewingCount = rows.filter(
-      (row) => row.applicationStatus === "interviewing",
+    const completedCount = rows.filter(
+      (row) => row.interview?.status === "completed",
+    ).length;
+    const cancelledCount = rows.filter(
+      (row) => row.interview?.status === "cancelled",
     ).length;
     const withInterviewDetails = rows.filter((row) => row.interview).length;
     const upcomingCount = rows.filter((row) => {
@@ -204,8 +218,9 @@ export default function Interviews() {
 
     return {
       total: rows.length,
-      interviewing: interviewingCount,
       scheduled: scheduledCount,
+      completed: completedCount,
+      cancelled: cancelledCount,
       upcoming: upcomingCount,
       withInterviewDetails,
     };
@@ -213,6 +228,20 @@ export default function Interviews() {
 
   const loading = interviewsQuery.isLoading;
   const error = interviewsQuery.error;
+
+  const handleEditSubmit = async (interviewId, payload) => {
+    setSubmittingEdit(true);
+    setEditError("");
+    try {
+      await updateInterview(interviewId, payload);
+      await interviewsQuery.refetch();
+      setSelectedInterviewForEdit(null);
+    } catch (err) {
+      setEditError(err.message || "Failed to update interview.");
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -261,9 +290,9 @@ export default function Interviews() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "Total", value: stats.total },
-          { label: "Interviewing", value: stats.interviewing },
           { label: "Scheduled", value: stats.scheduled },
-          { label: "Upcoming", value: stats.upcoming },
+          { label: "Completed", value: stats.completed },
+          { label: "Cancelled", value: stats.cancelled },
         ].map((item) => (
           <div
             key={item.label}
@@ -457,17 +486,15 @@ export default function Interviews() {
                           status={interview?.status || row.applicationStatus}
                         />
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <button
-                          onClick={() =>
-                            navigate(`/company/candidates/${row.id}`, {
-                              state: { candidate: row },
-                            })
-                          }
-                          className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-orange-600"
-                        >
-                          View candidate
-                        </button>
+                      <td className="px-4 py-4 text-right space-x-2">
+                        {interview && (
+                          <button
+                            onClick={() => setSelectedInterviewForEdit(interview)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                          >
+                            Edit
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -477,6 +504,18 @@ export default function Interviews() {
           </div>
         )}
       </div>
+
+      <InterviewEditModal
+        open={!!selectedInterviewForEdit}
+        interview={selectedInterviewForEdit}
+        onClose={() => {
+          setSelectedInterviewForEdit(null);
+          setEditError("");
+        }}
+        onSubmit={handleEditSubmit}
+        submitting={submittingEdit}
+        error={editError}
+      />
     </div>
   );
 }

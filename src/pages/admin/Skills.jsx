@@ -19,9 +19,9 @@ export default function Skills() {
     open: false,
     skill: null,
   });
-  const [formOpen, setFormOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState(null);
-  const [formData, setFormData] = useState({ name: "" });
+  const [formData, setFormData] = useState({ name: "", description: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const fetchSkills = async () => {
@@ -43,13 +43,12 @@ export default function Skills() {
     fetchSkills();
   }, [debouncedSearch]);
 
-  const handleCreate = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       toast.error("Skill name is required");
       return;
     }
-
     try {
       setSubmitting(true);
       if (editingSkill) {
@@ -59,9 +58,9 @@ export default function Skills() {
         await skillService.createSkill(formData);
         toast.success("Skill created successfully");
       }
-      setFormData({ name: "" });
+      setFormData({ name: "", description: "" });
       setEditingSkill(null);
-      setFormOpen(false);
+      setModalOpen(false);
       fetchSkills();
     } catch (err) {
       toast.error("Failed to save skill");
@@ -72,8 +71,8 @@ export default function Skills() {
 
   const handleEdit = (skill) => {
     setEditingSkill(skill);
-    setFormData({ name: skill.name });
-    setFormOpen(true);
+    setFormData({ name: skill.name, description: skill.description || "" });
+    setModalOpen(true);
   };
 
   const handleDelete = async () => {
@@ -88,9 +87,9 @@ export default function Skills() {
   };
 
   const handleCloseForm = () => {
-    setFormOpen(false);
+    setModalOpen(false);
     setEditingSkill(null);
-    setFormData({ name: "" });
+    setFormData({ name: "", description: "" });
   };
 
   if (error) {
@@ -114,21 +113,19 @@ export default function Skills() {
             Manage available skills for jobs and candidates
           </p>
         </div>
-        {!formOpen && (
-          <button
-            onClick={() => setFormOpen(true)}
-            className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
-          >
-            <Plus size={18} />
-            Add Skill
-          </button>
-        )}
+        <button
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+        >
+          <Plus size={18} />
+          Add Skill
+        </button>
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Table Section - 2/3 width */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 gap-4">
+        {/* Table Section */}
+        <div className="space-y-4">
           <SearchInput
             value={search}
             onChange={setSearch}
@@ -151,7 +148,12 @@ export default function Skills() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                       Name
                     </th>
-
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Description
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Created At
+                    </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
                       Actions
                     </th>
@@ -168,7 +170,16 @@ export default function Skills() {
                           {skill.name}
                         </p>
                       </td>
-
+                      <td className="px-4 py-3">
+                        <p className="text-gray-700">
+                          {skill.description || "-"}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-gray-500 text-sm">
+                          {new Date(skill.created_at).toLocaleDateString()}
+                        </p>
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <button
@@ -195,62 +206,75 @@ export default function Skills() {
           )}
         </div>
 
-        {/* Form Section - 1/3 width */}
-        {formOpen && (
-          <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm h-fit">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {editingSkill ? "Edit Skill" : "New Skill"}
-              </h3>
-              <button
-                onClick={handleCloseForm}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Skill Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="e.g., React"
-                  className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  disabled={submitting}
-                />
-              </div>
-
-
-
-              <div className="flex gap-2 pt-2">
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-30">
+            <div className="w-full max-w-lg rounded-lg border border-orange-100 bg-white p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {editingSkill ? "Edit Skill" : "New Skill"}
+                </h3>
                 <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:bg-gray-300"
-                >
-                  {submitting
-                    ? "Saving..."
-                    : editingSkill
-                      ? "Update"
-                      : "Create"}
-                </button>
-                <button
-                  type="button"
                   onClick={handleCloseForm}
-                  disabled={submitting}
-                  className="flex-1 rounded-lg border border-orange-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-orange-50 disabled:bg-gray-100"
+                  className="text-gray-400 hover:text-gray-600"
                 >
-                  Cancel
+                  <X size={20} />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleSave} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Skill Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    placeholder="e.g., React"
+                    className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    disabled={submitting}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    placeholder="Optional description"
+                    className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    disabled={submitting}
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:bg-gray-300"
+                  >
+                    {submitting
+                      ? "Saving..."
+                      : editingSkill
+                        ? "Update"
+                        : "Create"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseForm}
+                    disabled={submitting}
+                    className="flex-1 rounded-lg border border-orange-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-orange-50 disabled:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>

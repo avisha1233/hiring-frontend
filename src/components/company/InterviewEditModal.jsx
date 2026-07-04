@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-
-const DEFAULT_DURATION = 30;
 
 const formatDateValue = (value) => {
   if (!value) return "";
   return new Date(value).toISOString().slice(0, 10);
 };
 
-function InterviewScheduleModal({
+const formatTimeValue = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  return date.toTimeString().slice(0, 5);
+};
+
+function InterviewEditModal({
   open,
-  application,
+  interview,
   onClose,
   onSubmit,
   submitting = false,
@@ -18,56 +22,40 @@ function InterviewScheduleModal({
 }) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [mode, setMode] = useState("online");
-  const [interviewerName, setInterviewerName] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION);
-
-  const title = useMemo(() => {
-    if (!application) return "Schedule Interview";
-    const candidateName =
-      application.candidate?.full_name ||
-      application.candidate?.name ||
-      application.candidate_name ||
-      `Candidate #${application.candidate_id}`;
-    const jobTitle = application.job?.title || application.job_title || null;
-    return jobTitle
-      ? `Schedule Interview for ${candidateName} - ${jobTitle}`
-      : `Schedule Interview for ${candidateName}`;
-  }, [application]);
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [meetingLink, setMeetingLink] = useState("");
+  const [status, setStatus] = useState("scheduled");
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !interview) return;
 
-    const now = new Date();
-    setDate(formatDateValue(now));
-    setTime(now.toTimeString().slice(0, 5));
-    setMode("online");
-    setInterviewerName("");
-    setDurationMinutes(DEFAULT_DURATION);
-  }, [open]);
+    if (interview.scheduled_at) {
+      setDate(formatDateValue(interview.scheduled_at));
+      setTime(formatTimeValue(interview.scheduled_at));
+    }
+    setDurationMinutes(interview.duration_minutes || 30);
+    setMeetingLink(interview.meeting_link || "");
+    setStatus(interview.status || "scheduled");
+  }, [open, interview]);
 
-  if (!open || !application) {
+  if (!open || !interview) {
     return null;
   }
-
-  const [meetingLink, setMeetingLink] = useState('');
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!date || !time || !interviewerName.trim()) {
+    if (!date || !time) {
       return;
     }
 
     const scheduledAt = new Date(`${date}T${time}`);
 
-    await onSubmit({
-      application_id: Number(application.id),
-      interviewer_name: interviewerName.trim(),
-      interview_type: mode,
+    await onSubmit(interview.id, {
       scheduled_at: scheduledAt.toISOString(),
       duration_minutes: Number(durationMinutes),
       meeting_link: meetingLink || null,
+      status: status,
     });
   };
 
@@ -76,9 +64,9 @@ function InterviewScheduleModal({
       <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+            <h2 className="text-lg font-bold text-gray-900">Edit Interview</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Choose the interview details and save the schedule.
+              Update the interview schedule and details.
             </p>
           </div>
           <button
@@ -112,31 +100,7 @@ function InterviewScheduleModal({
             </label>
           </div>
 
-          <label className="space-y-1 text-sm font-medium text-gray-700">
-            <span>Interviewer Name</span>
-            <input
-              type="text"
-              value={interviewerName}
-              onChange={(event) => setInterviewerName(event.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
-              placeholder="Enter interviewer name"
-              required
-            />
-          </label>
-
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="space-y-1 text-sm font-medium text-gray-700">
-              <span>Interview Type</span>
-              <select
-                value={mode}
-                onChange={(event) => setMode(event.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
-              >
-                <option value="online">Online</option>
-                <option value="offline">Offline</option>
-              </select>
-            </label>
-
             <label className="space-y-1 text-sm font-medium text-gray-700">
               <span>Duration (minutes)</span>
               <input
@@ -149,16 +113,29 @@ function InterviewScheduleModal({
               />
             </label>
             <label className="space-y-1 text-sm font-medium text-gray-700">
-              <span>Meeting Link (optional)</span>
-              <input
-                type="url"
-                value={meetingLink || ''}
-                onChange={(e) => setMeetingLink(e.target.value)}
+              <span>Status</span>
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
                 className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
-                placeholder="https://..."
-              />
+              >
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
             </label>
           </div>
+
+          <label className="space-y-1 text-sm font-medium text-gray-700">
+            <span>Meeting Link (optional)</span>
+            <input
+              type="url"
+              value={meetingLink}
+              onChange={(e) => setMeetingLink(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100"
+              placeholder="https://..."
+            />
+          </label>
 
           {error ? (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -188,4 +165,4 @@ function InterviewScheduleModal({
   );
 }
 
-export default InterviewScheduleModal;
+export default InterviewEditModal;
