@@ -46,7 +46,7 @@ export default function AdminSidebar() {
       items: [
         { icon: CalendarDays, label: "Interviews", to: "/admin/interviews" },
         { icon: Bell, label: "Notifications", to: "/admin/notifications" },
-        { icon: Folder, label: "Files", to: "/admin/files" },
+        // { icon: Folder, label: "Files", to: "/admin/files" },
         { icon: MessageCircle, label: "Messages", to: "/admin/messages" },
       ],
     },
@@ -54,7 +54,7 @@ export default function AdminSidebar() {
       section: "ANALYTICS & SYSTEM",
       items: [
         { icon: BarChart3, label: "Reports", to: "/admin/reports" },
-        { icon: Settings, label: "Settings", to: "/admin/settings" },
+        // { icon: Settings, label: "Settings", to: "/admin/settings" },
       ],
     },
   ];
@@ -78,10 +78,9 @@ export default function AdminSidebar() {
                   key={to}
                   to={to}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition ${
-                      isActive
-                        ? "bg-white text-orange-600"
-                        : "text-orange-100 hover:bg-orange-500"
+                    `flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition ${isActive
+                      ? "bg-white text-orange-600"
+                      : "text-orange-100 hover:bg-orange-500"
                     }`
                   }
                 >

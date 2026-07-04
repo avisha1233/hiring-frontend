@@ -22,7 +22,7 @@ export default function CandidateSidebar() {
     { icon: User,            label: "Profile",         to: "/candidate/profile"        },
     { icon: MessageCircle,   label: "Messages",        to: "/candidate/messages"       },
     { icon: Bell,            label: "Notifications",   to: "/candidate/notifications"  },
-    { icon: Folder,          label: "Files",           to: "/candidate/files"          },
+    // { icon: Folder,          label: "Files",           to: "/candidate/files"          },
     { icon: Settings,        label: "Settings",        to: "/candidate/settings"       },
   ];
 

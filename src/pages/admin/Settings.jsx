@@ -191,8 +191,8 @@ export default function Settings() {
           </form>
         </div>
 
-        {/* System Settings */}
-        <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
+         {/* System Settings */}
+        {/* <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold text-gray-900">
             System Settings
           </h3>
@@ -262,7 +262,7 @@ export default function Settings() {
               Save Settings
             </button>
           </form>
-        </div>
+        </div>  */}
 
         {/* Danger Zone */}
         <div className="rounded-lg border border-red-100 bg-red-50 p-6 shadow-sm">

@@ -4,24 +4,10 @@ import { toast } from "react-toastify";
 import { apiClient } from "@/apis/api";
 import { Plus, Trash2, Pencil, X, Check, Layers, ChevronDown } from "lucide-react";
 
-const CATEGORIES = [
-  "Programming Languages",
-  "Frontend Development",
-  "Backend Development",
-  "Database",
-  "DevOps & Cloud",
-  "Mobile Development",
-  "Data Science & ML",
-  "Design & UI/UX",
-  "Project Management",
-  "Communication",
-  "Other",
-];
-
 // ── Modal Component ────────────────────────────────────────────────────────────
 function SkillModal({ isOpen, onClose, onSave, initial = null }) {
   const isEdit = Boolean(initial);
-  const [form, setForm] = useState({ name: "", description: "", category: "" });
+  const [form, setForm] = useState({ name: "", description: "" });
   const [saving, setSaving] = useState(false);
 
   // Reset form when modal opens
@@ -29,8 +15,8 @@ function SkillModal({ isOpen, onClose, onSave, initial = null }) {
     if (isOpen) {
       setForm(
         initial
-          ? { name: initial.name, description: initial.description || "", category: initial.category || "" }
-          : { name: "", description: "", category: "" }
+          ? { name: initial.name, description: initial.description || "" }
+          : { name: "", description: "" }
       );
     }
   }, [isOpen, initial]);
@@ -88,25 +74,7 @@ function SkillModal({ isOpen, onClose, onSave, initial = null }) {
             />
           </div>
 
-          {/* Category Dropdown */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Category
-            </label>
-            <div className="relative">
-              <select
-                value={form.category}
-                onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-                className="w-full appearance-none rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-              >
-                <option value="">Select a category</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              <ChevronDown size={16} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
+
 
           {/* Description */}
           <div>
@@ -248,7 +216,7 @@ export default function CompanySkills() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-orange-50 bg-orange-50/60">
-                {["#", "Skill Name", "Category", "Description", "Actions"].map((h) => (
+                {["#", "Skill Name", "Description", "Actions"].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
@@ -263,15 +231,7 @@ export default function CompanySkills() {
                 <tr key={skill.id} className="hover:bg-orange-50/30 transition-colors">
                   <td className="px-4 py-3 text-gray-400">{idx + 1}</td>
                   <td className="px-4 py-3 font-medium text-gray-900">{skill.name}</td>
-                  <td className="px-4 py-3">
-                    {skill.category ? (
-                      <span className="inline-block rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">
-                        {skill.category}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
+
                   <td className="px-4 py-3 text-gray-500 max-w-xs truncate">
                     {skill.description || "—"}
                   </td>

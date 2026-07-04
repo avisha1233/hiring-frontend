@@ -21,7 +21,7 @@ export default function Skills() {
   });
   const [formOpen, setFormOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState(null);
-  const [formData, setFormData] = useState({ name: "", category: "" });
+  const [formData, setFormData] = useState({ name: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const fetchSkills = async () => {
@@ -59,7 +59,7 @@ export default function Skills() {
         await skillService.createSkill(formData);
         toast.success("Skill created successfully");
       }
-      setFormData({ name: "", category: "" });
+      setFormData({ name: "" });
       setEditingSkill(null);
       setFormOpen(false);
       fetchSkills();
@@ -72,7 +72,7 @@ export default function Skills() {
 
   const handleEdit = (skill) => {
     setEditingSkill(skill);
-    setFormData({ name: skill.name, category: skill.category || "" });
+    setFormData({ name: skill.name });
     setFormOpen(true);
   };
 
@@ -90,7 +90,7 @@ export default function Skills() {
   const handleCloseForm = () => {
     setFormOpen(false);
     setEditingSkill(null);
-    setFormData({ name: "", category: "" });
+    setFormData({ name: "" });
   };
 
   if (error) {
@@ -151,9 +151,7 @@ export default function Skills() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                       Name
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                      Category
-                    </th>
+
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
                       Actions
                     </th>
@@ -170,9 +168,7 @@ export default function Skills() {
                           {skill.name}
                         </p>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {skill.category || "-"}
-                      </td>
+
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <button
@@ -231,29 +227,7 @@ export default function Skills() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Category
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  disabled={submitting}
-                >
-                  <option value="">Select Category</option>
-                  <option value="frontend">Frontend</option>
-                  <option value="backend">Backend</option>
-                  <option value="fullstack">Fullstack</option>
-                  <option value="devops">DevOps</option>
-                  <option value="mobile">Mobile</option>
-                  <option value="data">Data Science</option>
-                  <option value="design">Design</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
+
 
               <div className="flex gap-2 pt-2">
                 <button
