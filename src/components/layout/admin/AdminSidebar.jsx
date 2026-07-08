@@ -54,7 +54,7 @@ export default function AdminSidebar() {
       section: "ANALYTICS & SYSTEM",
       items: [
         { icon: BarChart3, label: "Reports", to: "/admin/reports" },
-        // { icon: Settings, label: "Settings", to: "/admin/settings" },
+        { icon: Settings, label: "Settings", to: "/admin/settings" },
       ],
     },
   ];

@@ -2,8 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Briefcase, Clock, Mail } from "lucide-react";
-import { api } from "../../services/api";
+import {
+  ArrowLeft,
+  MapPin,
+  Briefcase,
+  Clock,
+  Mail,
+  GraduationCap,
+  FileText,
+  ExternalLink,
+  CalendarDays,
+} from "lucide-react";
+import { api, getFileUrl } from "../../services/api";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
 import ErrorState from "../../components/shared/ErrorState";
 
@@ -61,15 +71,33 @@ function resolveLocation(c) {
   return raw ? safeStr(raw, "Not specified") : "Not specified";
 }
 
+/**
+ * Skills can arrive as:
+ *   - Array<{ id, name, level, years_of_experience }>  (from new mapCandidateProfile)
+ *   - Array<string>                                     (legacy/suggested-candidates)
+ *   - Array<{ skill: { name } }> or Array<{ name }>    (raw CandidateSkill objects)
+ */
 function resolveSkills(c) {
-  const raw = c?.skills || c?.candidate_skills || c?.user?.skills || [];
+  const raw =
+    c?.skills ||
+    c?.candidate_skills ||
+    c?.CandidateSkills ||
+    c?.user?.skills ||
+    [];
+
   return raw
     .map((s) => {
-      if (typeof s === "string") return s;
+      if (typeof s === "string") return { name: s, level: null, years_of_experience: null };
       if (typeof s === "object" && s !== null) {
-        return safeStr(
-          s?.skill?.name || s?.name || s?.skill || s?.title || null,
+        const name = safeStr(
+          s?.name || s?.skill?.name || s?.Skill?.name || s?.title || null,
         );
+        if (!name) return null;
+        return {
+          name,
+          level: s?.level ?? null,
+          years_of_experience: s?.years_of_experience ?? null,
+        };
       }
       return null;
     })
@@ -81,15 +109,13 @@ function resolveBio(c) {
   return raw ? safeStr(raw) : null;
 }
 
-function normalizePagedCandidates(response) {
-  const payload = response?.data?.data || response?.data || {};
-  const rows = payload?.data || payload?.rows || [];
-  const totalPage = Number(payload?.totalPage || payload?.total_page || 1);
-
-  return {
-    rows: Array.isArray(rows) ? rows : [],
-    totalPage: Number.isFinite(totalPage) && totalPage > 0 ? totalPage : 1,
-  };
+function formatDuration(start, end, isCurrent) {
+  const s = start?.slice(0, 7) ?? "";
+  const e = isCurrent ? "Present" : end?.slice(0, 7) ?? "";
+  if (!s && !e) return null;
+  if (!s) return e;
+  if (!e) return s;
+  return `${s} – ${e}`;
 }
 
 export default function CandidateProfile() {
@@ -106,12 +132,33 @@ export default function CandidateProfile() {
       setLoading(true);
       setError(null);
 
+      // 1. Try the state passed via navigate() — still check for completeness
+      //    (state may come from a list card that was fetched before the fix)
       const stateCandidate = location.state?.candidate;
-      if (stateCandidate && String(stateCandidate?.id) === String(id)) {
+      if (
+        stateCandidate &&
+        String(stateCandidate?.id) === String(id) &&
+        // Prefer a fresh fetch when state has no skills data at all
+        (stateCandidate?.skills?.length > 0 || stateCandidate?.bio)
+      ) {
         setCandidate(stateCandidate);
         return;
       }
 
+      // 2. Direct GET /company/candidates/:id  (new dedicated endpoint)
+      try {
+        const res = await api.get(`/company/candidates/${id}`);
+        const data = res?.data?.data || res?.data;
+        if (data) {
+          setCandidate(data);
+          return;
+        }
+      } catch (directErr) {
+        // If the endpoint isn't available yet (e.g. older backend), fall through
+        console.warn("[CandidateProfile] direct fetch failed, falling back to list search", directErr);
+      }
+
+      // 3. Fallback: paginate through the candidates list
       let page = 1;
       let totalPage = 1;
 
@@ -120,12 +167,12 @@ export default function CandidateProfile() {
           params: { page, limit: 100 },
         });
 
-        const { rows, totalPage: reportedTotalPage } =
-          normalizePagedCandidates(companyRes);
-        totalPage = reportedTotalPage;
+        const payload = companyRes?.data?.data || companyRes?.data || {};
+        const rows = payload?.data || payload?.rows || [];
+        totalPage = Number(payload?.totalPage || payload?.total_page || 1);
 
         const matchedCandidate = rows.find(
-          (candidate) => String(candidate?.id) === String(id),
+          (c) => String(c?.id) === String(id),
         );
 
         if (matchedCandidate) {
@@ -167,6 +214,8 @@ export default function CandidateProfile() {
   const loc = resolveLocation(candidate);
   const bio = resolveBio(candidate);
   const skills = resolveSkills(candidate);
+  const qualification = candidate?.qualification ?? null;
+  const resumeUrl = candidate?.resume_url ?? null;
   const notice =
     candidate?.notice_period_days != null
       ? candidate.notice_period_days === 0
@@ -187,9 +236,9 @@ export default function CandidateProfile() {
 
       {/* header card */}
       <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-4">
+        <div className="flex items-start gap-4">
           <Initials name={name} id={id} />
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-gray-900">{name}</h1>
             {email && (
               <div className="mt-1 flex items-center gap-1 text-sm text-gray-500">
@@ -198,6 +247,18 @@ export default function CandidateProfile() {
               </div>
             )}
           </div>
+          {resumeUrl && (
+            <a
+              href={getFileUrl(resumeUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm font-medium text-orange-700 hover:bg-orange-100 transition-colors"
+            >
+              <FileText size={14} />
+              Resume
+              <ExternalLink size={12} />
+            </a>
+          )}
         </div>
       </div>
 
@@ -236,6 +297,7 @@ export default function CandidateProfile() {
         </div>
       </div>
 
+
       {/* skills */}
       <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
         <h2 className="mb-3 font-semibold text-gray-900">Skills</h2>
@@ -245,10 +307,24 @@ export default function CandidateProfile() {
           <div className="flex flex-wrap gap-2">
             {skills.map((skill) => (
               <span
-                key={skill}
-                className="rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700"
+                key={skill.name}
+                title={
+                  skill.level || skill.years_of_experience
+                    ? [
+                        skill.level && `Level: ${skill.level}`,
+                        skill.years_of_experience &&
+                          `${skill.years_of_experience} yr(s) experience`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : undefined
+                }
+                className="rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700 cursor-default"
               >
-                {skill}
+                {skill.name}
+                {skill.years_of_experience
+                  ? ` · ${skill.years_of_experience}yr`
+                  : ""}
               </span>
             ))}
           </div>
@@ -260,6 +336,103 @@ export default function CandidateProfile() {
         <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
           <h2 className="mb-3 font-semibold text-gray-900">About</h2>
           <p className="text-sm leading-relaxed text-gray-600">{bio}</p>
+        </div>
+      )}
+
+      {/* work experiences */}
+      {candidate?.work_experiences?.length > 0 && (
+        <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Briefcase size={18} className="text-orange-400" />
+            <h2 className="font-semibold text-gray-900">Work Experience</h2>
+          </div>
+          <div className="space-y-6">
+            {candidate.work_experiences.map((work) => (
+              <div key={work.id} className="relative pl-4 border-l-2 border-orange-200">
+                <div className="absolute w-3 h-3 bg-orange-400 rounded-full -left-[7px] top-1.5 ring-4 ring-white" />
+                <h3 className="font-semibold text-gray-800 text-base">{work.title}</h3>
+                <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2">
+                  {work.company && (
+                    <div>
+                      <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Company</span>
+                      <span className="text-sm text-gray-700">{work.company}</span>
+                    </div>
+                  )}
+                  {work.employment_type && (
+                    <div>
+                      <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Type</span>
+                      <span className="text-sm text-gray-700">{work.employment_type}</span>
+                    </div>
+                  )}
+                  {work.location && (
+                    <div>
+                      <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Location</span>
+                      <span className="flex items-center gap-1 text-sm text-gray-700"><MapPin size={12} className="text-gray-400" /> {work.location}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Duration</span>
+                    <span className="flex items-center gap-1 text-sm text-gray-700"><CalendarDays size={12} className="text-gray-400" /> {formatDuration(work.start_date, work.end_date, work.is_current)}</span>
+                  </div>
+                </div>
+                {work.description && (
+                  <div className="mt-3">
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Description</span>
+                    <p className="text-sm leading-relaxed text-gray-600">{work.description}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* educations */}
+      {candidate?.educations?.length > 0 && (
+        <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <GraduationCap size={18} className="text-orange-400" />
+            <h2 className="font-semibold text-gray-900">Education</h2>
+          </div>
+          
+          <div className="space-y-6">
+            {candidate.educations.map((edu) => (
+              <div key={edu.id} className="relative pl-4 border-l-2 border-orange-200">
+                <div className="absolute w-3 h-3 bg-orange-400 rounded-full -left-[7px] top-1.5 ring-4 ring-white" />
+                <h3 className="font-semibold text-gray-800 text-base">{edu.degree}</h3>
+                <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2">
+                  {edu.institution && (
+                    <div>
+                      <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Institution</span>
+                      <span className="text-sm text-gray-700">{edu.institution}</span>
+                    </div>
+                  )}
+                  {edu.field && (
+                    <div>
+                      <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Field of Study</span>
+                      <span className="text-sm text-gray-700">{edu.field}</span>
+                    </div>
+                  )}
+                  {edu.grade && (
+                    <div>
+                      <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Grade / GPA</span>
+                      <span className="text-sm text-gray-700">{edu.grade}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400">Duration</span>
+                    <span className="flex items-center gap-1 text-sm text-gray-700"><CalendarDays size={12} className="text-gray-400" /> {formatDuration(edu.start_date, edu.end_date, edu.is_current)}</span>
+                  </div>
+                </div>
+                {edu.description && (
+                  <div className="mt-3">
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Activities / Description</span>
+                    <p className="text-sm leading-relaxed text-gray-600">{edu.description}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -20,19 +20,19 @@ import {
 } from "../../utils/applicationStatus";
 
 const EXPERIENCE_TABS = [
-  { value: "all",  label: "All"      },
-  { value: "0-1",  label: "0–1 yrs"  },
-  { value: "1-3",  label: "1–3 yrs"  },
-  { value: "3-5",  label: "3–5 yrs"  },
-  { value: "5+",   label: "5+ yrs"   },
+  { value: "all", label: "All" },
+  { value: "0-1", label: "0–1 yrs" },
+  { value: "1-3", label: "1–3 yrs" },
+  { value: "3-5", label: "3–5 yrs" },
+  { value: "5+", label: "5+ yrs" },
 ];
 
 const NOTICE_OPTIONS = [
   { value: "all", label: "Any notice period" },
-  { value: "0",   label: "Immediate"          },
-  { value: "30",  label: "≤ 30 days"          },
-  { value: "60",  label: "≤ 60 days"          },
-  { value: "90",  label: "≤ 90 days"          },
+  { value: "0", label: "Immediate" },
+  { value: "30", label: "≤ 30 days" },
+  { value: "60", label: "≤ 60 days" },
+  { value: "90", label: "≤ 90 days" },
 ];
 
 const STATUS_BADGE = {
@@ -45,7 +45,7 @@ const STATUS_BADGE = {
 function resolveName(c, userMap = {}) {
   const fromUser =
     c?.user?.full_name || c?.user?.name ||
-    c?.full_name       || c?.name       ||
+    c?.full_name || c?.name ||
     c?.candidate?.full_name || c?.candidate?.name;
   if (fromUser) return fromUser;
   const user = userMap[c?.user_id];
@@ -103,10 +103,10 @@ function formatSalary(value) {
 
 // ── Proposal Modal ──────────────────────────────────────────────────────────
 function ProposalModal({ candidate, candidateName, jobs, initialJobId, onClose, onSent }) {
-  const [jobId, setJobId]       = useState("");
-  const [message, setMessage]   = useState("");
-  const [salary, setSalary]     = useState("");
-  const [sending, setSending]   = useState(false);
+  const [jobId, setJobId] = useState("");
+  const [message, setMessage] = useState("");
+  const [salary, setSalary] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!candidate) return;
@@ -223,26 +223,26 @@ function ProposalModal({ candidate, candidateName, jobs, initialJobId, onClose, 
 
 // ── Main Component ──────────────────────────────────────────────────────────
 export default function Candidates() {
-  const location  = useLocation();
-  const navigate  = useNavigate();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const [candidates, setCandidates]   = useState([]);
-  const [userMap, setUserMap]         = useState({});
-  const [jobs, setJobs]               = useState([]);
+  const [candidates, setCandidates] = useState([]);
+  const [userMap, setUserMap] = useState({});
+  const [jobs, setJobs] = useState([]);
   const [suggestedCandidates, setSuggestedCandidates] = useState([]);
-  const [total, setTotal]             = useState(0);
-  const [loading, setLoading]         = useState(true);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [suggestionsLoading, setSuggestionsLoading] = useState(true);
   const [suggestionsError, setSuggestionsError] = useState(null);
-  const [error, setError]             = useState(null);
-  const [expFilter, setExpFilter]     = useState("all");
+  const [error, setError] = useState(null);
+  const [expFilter, setExpFilter] = useState("all");
   const [noticeFilter, setNoticeFilter] = useState("all");
   const [proposalTarget, setProposalTarget] = useState(null);
 
   // Interview scheduling state
-  const [scheduleTarget, setScheduleTarget]   = useState(null);
-  const [scheduling, setScheduling]           = useState(false);
-  const [scheduleError, setScheduleError]     = useState("");
+  const [scheduleTarget, setScheduleTarget] = useState(null);
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduleError, setScheduleError] = useState("");
 
   const [search, setSearch] = useState(
     new URLSearchParams(location.search).get("search") || ""
@@ -262,8 +262,8 @@ export default function Candidates() {
       const res = await api.get("/company/candidates", {
         params: { search: debouncedSearch || undefined, page, limit: pageSize },
       });
-      const body  = res?.data?.data || res?.data || {};
-      const rows  = Array.isArray(body?.data) ? body.data : Array.isArray(body?.rows) ? body.rows : Array.isArray(body) ? body : [];
+      const body = res?.data?.data || res?.data || {};
+      const rows = Array.isArray(body?.data) ? body.data : Array.isArray(body?.rows) ? body.rows : Array.isArray(body) ? body : [];
       const count = Number(body?.total || body?.totalCount || rows.length || 0);
       setCandidates(rows);
       setTotal(count);
@@ -364,17 +364,17 @@ export default function Candidates() {
   const shown = candidates.filter((c) => {
     if (expFilter !== "all") {
       const exp = Number(c.experience ?? 0);
-      if (expFilter === "0-1" && !(exp >= 0 && exp < 1))  return false;
-      if (expFilter === "1-3" && !(exp >= 1 && exp < 3))  return false;
-      if (expFilter === "3-5" && !(exp >= 3 && exp < 5))  return false;
-      if (expFilter === "5+"  && !(exp >= 5))              return false;
+      if (expFilter === "0-1" && !(exp >= 0 && exp < 1)) return false;
+      if (expFilter === "1-3" && !(exp >= 1 && exp < 3)) return false;
+      if (expFilter === "3-5" && !(exp >= 3 && exp < 5)) return false;
+      if (expFilter === "5+" && !(exp >= 5)) return false;
     }
     if (noticeFilter !== "all") {
       const np = Number(c.notice_period_days ?? 999);
-      if (noticeFilter === "0"  && np !== 0)  return false;
-      if (noticeFilter === "30" && np > 30)   return false;
-      if (noticeFilter === "60" && np > 60)   return false;
-      if (noticeFilter === "90" && np > 90)   return false;
+      if (noticeFilter === "0" && np !== 0) return false;
+      if (noticeFilter === "30" && np > 30) return false;
+      if (noticeFilter === "60" && np > 60) return false;
+      if (noticeFilter === "90" && np > 90) return false;
     }
     return true;
   });
@@ -524,9 +524,9 @@ export default function Candidates() {
               <thead className="border-b border-orange-100 bg-orange-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Match Score</th>
+
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Experience</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Skills</th>
+
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Location</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Notice Period</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Status</th>
@@ -535,11 +535,11 @@ export default function Candidates() {
               </thead>
               <tbody>
                 {shown.map((c) => {
-                  const name   = resolveName(c, userMap) ?? `Candidate #${c.id}`;
-                  const email  = resolveEmail(c, userMap);
+                  const name = resolveName(c, userMap) ?? `Candidate #${c.id}`;
+                  const email = resolveEmail(c, userMap);
                   const skills = resolveSkills(c);
-                  const exp    = Number(c.experience ?? 0);
-                  const loc    = c.location || "Not specified";
+                  const exp = Number(c.experience ?? 0);
+                  const loc = c.location || "Not specified";
                   const notice = c.notice_period_days != null
                     ? c.notice_period_days === 0 ? "Immediate" : `${c.notice_period_days} days`
                     : "–";
@@ -562,35 +562,7 @@ export default function Candidates() {
                         </div>
                       </td>
 
-                      {/* match score */}
-                      <td className="px-4 py-3 text-sm">
-                        {c.match_score !== undefined && c.match_score !== null ? (
-                          <div className="group relative inline-flex items-center">
-                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                              c.match_score >= 85 ? 'bg-emerald-100 text-emerald-800' :
-                              c.match_score >= 70 ? 'bg-blue-100 text-blue-800' :
-                              c.match_score >= 50 ? 'bg-orange-100 text-orange-800' :
-                              'bg-rose-100 text-rose-800'
-                            }`}>
-                              {c.match_score}% Match
-                            </span>
-                            {c.match_breakdown && (
-                              <div className="invisible absolute bottom-full left-1/2 z-10 mb-2 w-48 -translate-x-1/2 rounded bg-gray-900 p-3 text-xs text-white opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:opacity-100">
-                                <p className="font-semibold border-b border-gray-700 pb-1 mb-2">Score Breakdown</p>
-                                <div className="space-y-1">
-                                  <div className="flex justify-between"><span className="text-gray-400">Skills Fit:</span><span className="font-medium">{c.match_breakdown.skillScore}%</span></div>
-                                  <div className="flex justify-between"><span className="text-gray-400">Experience:</span><span className="font-medium">{c.match_breakdown.experienceScore}%</span></div>
-                                  <div className="flex justify-between"><span className="text-gray-400">Location:</span><span className="font-medium">{c.match_breakdown.locationScore}%</span></div>
-                                  <div className="flex justify-between"><span className="text-gray-400">Notice Period:</span><span className="font-medium">{c.match_breakdown.noticePeriodScore}%</span></div>
-                                </div>
-                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
-                      </td>
+
 
                       {/* experience */}
                       <td className="px-4 py-3 text-sm text-gray-600">
@@ -600,20 +572,6 @@ export default function Candidates() {
                         </div>
                       </td>
 
-                      {/* skills */}
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {skills.length === 0 ? (
-                            <span className="text-xs text-gray-400">—</span>
-                          ) : (
-                            skills.map((skill) => (
-                              <span key={skill} className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
-                                {skill}
-                              </span>
-                            ))
-                          )}
-                        </div>
-                      </td>
 
                       {/* location */}
                       <td className="px-4 py-3 text-sm text-gray-600">
@@ -641,38 +599,8 @@ export default function Candidates() {
                       {/* actions */}
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap items-center justify-end gap-2">
-                          {actions.primaryAction ? (
-                            <button
-                              onClick={() => {
-                                if (actions.primaryAction.type === "schedule") {
-                                  setScheduleTarget({
-                                    ...c,
-                                    id: applicationId,
-                                    candidate_name: name,
-                                  });
-                                  setScheduleError("");
-                                  return;
-                                }
 
-                                handleStatusUpdate(applicationId, actions.primaryAction.nextStatus);
-                              }}
-                              className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                actions.primaryAction.tone === "emerald"
-                                  ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-                                  : "border-amber-500 text-amber-600 hover:bg-amber-50"
-                              }`}
-                            >
-                              {actions.primaryAction.label}
-                            </button>
-                          ) : null}
-                          {actions.secondaryAction ? (
-                            <button
-                              onClick={() => handleStatusUpdate(applicationId, actions.secondaryAction.nextStatus)}
-                              className="rounded-lg border border-rose-400 px-3 py-1.5 text-xs font-semibold text-rose-500 transition-colors hover:bg-rose-50"
-                            >
-                              {actions.secondaryAction.label}
-                            </button>
-                          ) : null}
+
                           <button
                             onClick={() => navigate(`/company/candidates/${c.id}`, { state: { candidate: c } })}
                             className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-orange-600"

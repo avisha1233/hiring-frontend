@@ -75,9 +75,10 @@ export default function Settings() {
 
     setSaving(true);
     try {
-      await api.patch(`/users/${userId}`, {
-        current_password: pw.current,
-        password: pw.next,
+      await api.patch(`/user/password`, {
+        currentPassword: pw.current,
+        newPassword: pw.next,
+        confirmPassword: pw.confirm
       });
       setPw({ current: "", next: "", confirm: "" });
       setSaved(true);

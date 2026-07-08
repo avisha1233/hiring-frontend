@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { candidateApi, userSettingsApi } from "@/apis/candidate";
-import { api } from "@/services/api";
+
 import { getAuthUser } from "@/lib/auth";
 
 export function useCandidateProfile() {
@@ -65,30 +65,28 @@ export function useCandidateProfile() {
     if (!userId) return;
     setSaving(true);
     try {
-      await Promise.all([
-        api.put(`/candidates/${userId}`, {
-          phone: data.phone,
-          location: data.location,
-          bio: data.bio,
-          qualification: data.qualification,
-          experience: data.experience,
-          notice_period_days: data.notice_period_days,
-          is_open_to_work: data.is_open_to_work,
-          linkedin_url: data.linkedin_url,
-          github_url: data.github_url,
-          portfolio_url: data.portfolio_url,
-          twitter_url: data.twitter_url,
-        }),
-        api.patch(`/users/${userId}`, {
-          full_name: data.full_name,
-          email: data.email,
-        }),
-      ]);
+      // Use the candidate's own self-service endpoint — no admin role required.
+      // PATCH /candidate/profile handles both User fields (full_name, email, phone)
+      // and Candidate fields (location, bio, qualification, …) in one call.
+      await candidateApi.updateProfile({
+        full_name: data.full_name,
+        email: data.email,
+        phone: data.phone,
+        location: data.location,
+        bio: data.bio,
+        qualification: data.qualification,
+        experience: data.experience,
+        notice_period_days: data.notice_period_days,
+        is_open_to_work: data.is_open_to_work,
+        linkedin_url: data.linkedin_url,
+        github_url: data.github_url,
+        portfolio_url: data.portfolio_url,
+        twitter_url: data.twitter_url,
+      });
 
+      // Resume upload — POST /candidate/profile/resume with field name "resume"
       if (resumeFile) {
-        const fd = new FormData();
-        fd.append("file", resumeFile);
-        await api.post(`/candidates/${userId}/resume`, fd);
+        await candidateApi.uploadResume(resumeFile);
       }
 
       setProfile((current) => ({ ...current, ...data }));

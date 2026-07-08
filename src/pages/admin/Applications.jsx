@@ -21,12 +21,6 @@ const STATUS_TABS = [
   { value: "shortlisted", label: "Shortlisted" },
 ];
 
-const STATUSES = [
-  { value: "pending", label: "Pending" },
-  { value: "accepted", label: "Accepted" },
-  { value: "rejected", label: "Rejected" },
-  { value: "shortlisted", label: "Shortlisted" },
-];
 
 function getStatusMeta(status) {
   const normalized = String(status || "").toLowerCase();
@@ -71,7 +65,7 @@ export default function Applications() {
     open: false,
     application: null,
   });
-  const [statusUpdating, setStatusUpdating] = useState(null);
+
   const [selectedApplicationId, setSelectedApplicationId] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState(null);
@@ -124,20 +118,6 @@ export default function Applications() {
     setDetailError(null);
   };
 
-  const handleStatusChange = async (application, newStatus) => {
-    try {
-      setStatusUpdating(application.id);
-      await applicationService.updateApplication(application.id, {
-        status: newStatus,
-      });
-      toast.success("Application status updated");
-      fetchApplications();
-    } catch (err) {
-      toast.error("Failed to update application status");
-    } finally {
-      setStatusUpdating(null);
-    }
-  };
 
   const handleDelete = async () => {
     try {
@@ -211,9 +191,6 @@ export default function Applications() {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                  Change Status
-                </th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
                   Actions
                 </th>
@@ -245,20 +222,6 @@ export default function Applications() {
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={app.status}>{app.status}</StatusBadge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={app.status}
-                      onChange={(e) => handleStatusChange(app, e.target.value)}
-                      disabled={statusUpdating === app.id}
-                      className="rounded-lg border border-orange-200 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s.value} value={s.value}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">

@@ -11,6 +11,13 @@ export const api = axios.create({
   timeout: 15000,
 });
 
+export const getFileUrl = (path) => {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  const base = baseURL.replace(/\/api$/, "");
+  return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) {

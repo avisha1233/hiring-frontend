@@ -15,7 +15,13 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [adminProfile, setAdminProfile] = useState({});
-  const [systemSettings, setSystemSettings] = useState({});
+  const [systemSettings, setSystemSettings] = useState([]);
+  const [passwords, setPasswords] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [updating, setUpdating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +38,7 @@ export default function Settings() {
       setError(null);
 
       const settle = (promise) =>
-        promise.then((v) => ({ok: true, value: v})).catch((e) => ({ok: false, error:  e}));
+        promise.then((v) => ({ ok: true, value: v })).catch((e) => ({ ok: false, error: e }));
 
 
       const [settingsRes, profileRes, logsRes] = await Promise.all([
@@ -41,7 +47,9 @@ export default function Settings() {
         settle(settingService.getAuditLog({ page, limit: pageSize })),
       ]);
 
-      setSystemSettings(settingsRes.ok ? (settingsRes.value.data || {}) : {});
+      const fetchedSettings = settingsRes.ok ? (settingsRes.value.data || []) : [];
+      setSystemSettings(Array.isArray(fetchedSettings) ? fetchedSettings : []);
+
       setAdminProfile(profileRes.ok ? (profileRes.value.data?.data || profileRes.value.data || {}) : {});
       setAuditLogs(
         logsRes.ok
@@ -84,6 +92,48 @@ export default function Settings() {
       toast.error("Failed to update settings");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleSettingChange = (index, newValue) => {
+    const updated = [...systemSettings];
+    updated[index] = { ...updated[index], value: String(newValue) };
+    setSystemSettings(updated);
+  };
+
+  const handleImageChange = (index, file) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleSettingChange(index, reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      toast.error("New password and confirm password do not match");
+      return;
+    }
+    try {
+      setChangingPassword(true);
+      const res = await userService.changePassword({
+        currentPassword: passwords.currentPassword,
+        newPassword: passwords.newPassword,
+        confirmPassword: passwords.confirmPassword,
+      });
+      if (res.ok) {
+        toast.success("Password changed successfully");
+        setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      } else {
+        toast.error(res.error || "Failed to change password");
+      }
+    } catch (error) {
+      toast.error("An error occurred while changing password");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -191,231 +241,144 @@ export default function Settings() {
           </form>
         </div>
 
-         {/* System Settings */}
-        {/* <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm">
+        {/* Change Password */}
+        <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm col-span-1 lg:col-span-1">
           <h3 className="mb-4 text-lg font-semibold text-gray-900">
-            System Settings
+            Change Password
           </h3>
-          <form onSubmit={handleUpdateSettings} className="space-y-4">
+          <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Max Upload Size (MB)
+                Current Password
               </label>
               <input
-                type="number"
-                value={systemSettings.max_upload_size || 10}
-                onChange={(e) =>
-                  setSystemSettings({
-                    ...systemSettings,
-                    max_upload_size: e.target.value,
-                  })
-                }
+                type="password"
+                value={passwords.currentPassword}
+                onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
                 className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-                disabled={updating}
+                disabled={changingPassword}
+                required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2">
-                Notifications
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                New Password
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={systemSettings.email_notifications || false}
-                  onChange={(e) =>
-                    setSystemSettings({
-                      ...systemSettings,
-                      email_notifications: e.target.checked,
-                    })
-                  }
-                  disabled={updating}
-                  className="rounded"
-                />
-                <span className="text-sm text-gray-600">
-                  Email Notifications
-                </span>
+              <input
+                type="password"
+                value={passwords.newPassword}
+                onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                disabled={changingPassword}
+                required
+                minLength={6}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Confirm New Password
               </label>
-              <label className="flex items-center gap-2 cursor-pointer mt-2">
-                <input
-                  type="checkbox"
-                  checked={systemSettings.sms_notifications || false}
-                  onChange={(e) =>
-                    setSystemSettings({
-                      ...systemSettings,
-                      sms_notifications: e.target.checked,
-                    })
-                  }
-                  disabled={updating}
-                  className="rounded"
-                />
-                <span className="text-sm text-gray-600">SMS Notifications</span>
-              </label>
+              <input
+                type="password"
+                value={passwords.confirmPassword}
+                onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                disabled={changingPassword}
+                required
+                minLength={6}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={changingPassword}
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-orange-500 bg-orange-50 text-orange-600 px-4 py-2 text-sm font-medium hover:bg-orange-100 disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-300"
+            >
+              Update Password
+            </button>
+          </form>
+        </div>
+
+        {/* System Settings */}
+        <div className="rounded-lg border border-orange-100 bg-white p-6 shadow-sm col-span-1 lg:col-span-2">
+          <h3 className="mb-4 text-lg font-semibold text-gray-900">
+            System Settings
+          </h3>
+          <form onSubmit={handleUpdateSettings} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.isArray(systemSettings) && systemSettings.map((setting, idx) => (
+                <div key={setting.id || setting.key}>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1 capitalize">
+                    {setting.key.replace(/_/g, ' ')}
+                  </label>
+                  {setting.type.toLowerCase() === 'boolean' ? (
+                    <label className="flex items-center gap-2 cursor-pointer py-2">
+                      <input
+                        type="checkbox"
+                        checked={setting.value === 'true'}
+                        onChange={(e) => handleSettingChange(idx, e.target.checked)}
+                        disabled={updating}
+                        className="rounded"
+                      />
+                      <span className="text-sm text-gray-600">Enabled</span>
+                    </label>
+                  ) : setting.type.toLowerCase() === 'number' ? (
+                    <input
+                      type="number"
+                      value={setting.value}
+                      onChange={(e) => handleSettingChange(idx, e.target.value)}
+                      className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      disabled={updating}
+                    />
+                  ) : setting.type.toLowerCase() === 'image' ? (
+                    <div className="flex items-center gap-4 py-1">
+                      {setting.value && setting.value !== "#" && (
+                        <img src={setting.value} alt={setting.key} className="h-12 w-12 object-contain rounded border border-gray-200" />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageChange(idx, e.target.files[0])}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                        disabled={updating}
+                      />
+                    </div>
+                  ) : setting.type.toLowerCase() === 'text' ? (
+                    <textarea
+                      value={setting.value}
+                      onChange={(e) => handleSettingChange(idx, e.target.value)}
+                      className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      disabled={updating}
+                      rows={2}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={setting.value}
+                      onChange={(e) => handleSettingChange(idx, e.target.value)}
+                      className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                      disabled={updating}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
 
             <button
               type="submit"
               disabled={updating}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:bg-gray-300"
+              className="mt-4 w-full md:w-auto flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-6 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:bg-gray-300"
             >
               <Save size={18} />
               Save Settings
             </button>
           </form>
-        </div>  */}
-
-        {/* Danger Zone */}
-        <div className="rounded-lg border border-red-100 bg-red-50 p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle size={20} className="text-red-600" />
-            <h3 className="text-lg font-semibold text-red-900">Danger Zone</h3>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-semibold text-red-900 mb-2">
-                Change Password
-              </h4>
-              <button
-                onClick={() =>
-                  toast.info("Password change feature coming soon")
-                }
-                className="w-full rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-              >
-                Reset Password
-              </button>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-red-900 mb-2">
-                End All Sessions
-              </h4>
-              <button
-                onClick={() =>
-                  toast.info("Logout all sessions feature coming soon")
-                }
-                className="w-full flex items-center justify-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-              >
-                <LogOut size={16} />
-                Logout All Sessions
-              </button>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-red-900 mb-2">
-                Delete Account
-              </h4>
-              <button
-                onClick={() => setDeleteConfirm({ open: true })}
-                className="w-full flex items-center justify-center gap-2 rounded-lg border border-red-600 bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-              >
-                <Trash2 size={16} />
-                Delete Account
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Audit Log Table */}
-      <div className="rounded-lg border border-orange-100 bg-white shadow-sm">
-        <div className="border-b border-orange-100 bg-orange-50 px-6 py-4">
-          <h3 className="text-lg font-semibold text-gray-900">Audit Log</h3>
-          <p className="text-xs text-gray-500">
-            System activity and security events
-          </p>
-        </div>
 
-        {auditLogs.length === 0 ? (
-          <EmptyState
-            title="No audit logs"
-            message="System events will appear here"
-          />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-orange-100 bg-orange-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
-                    Action
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
-                    Resource
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
-                    IP Address
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
-                    Timestamp
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {auditLogs.map((log) => (
-                  <tr
-                    key={log.id}
-                    className="border-b border-orange-50 hover:bg-orange-50"
-                  >
-                    <td className="px-6 py-3">
-                      <span
-                        className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${
-                          log.action === "create"
-                            ? "bg-green-100 text-green-700"
-                            : log.action === "update"
-                              ? "bg-blue-100 text-blue-700"
-                              : log.action === "delete"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {log.action}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-sm text-gray-600">
-                      {log.resource || "-"}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-gray-600">
-                      {log.user_name || "-"}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-gray-600">
-                      {log.ip_address || "-"}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-gray-600">
-                      {formatDateTime(log.created_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {!loading && auditLogs.length > 0 && (
-          <div className="border-t border-orange-100 px-6 py-4">
-            <Pagination
-              page={page}
-              pageSize={pageSize}
-              total={auditLogs.length * 2}
-              onPageChange={goToPage}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Modals */}
-      <ConfirmDialog
-        isOpen={deleteConfirm.open}
-        onClose={() => setDeleteConfirm({ open: false })}
-        onConfirm={handleDeleteAccount}
-        title="Delete Account"
-        message="Are you sure you want to permanently delete your admin account? This action cannot be undone and all your data will be lost."
-        confirmLabel="Delete My Account"
-        confirmStyle="danger"
-      />
     </div>
   );
 }

@@ -220,6 +220,261 @@ function SkillGapModal({ open, onClose, application }) {
   );
 }
 
+function ConfirmationModal({ open, onClose, onConfirm, action, application }) {
+  if (!open || !application || !action) return null;
+  const candidateName = resolveCandidateName(application);
+  const jobTitle = application.job?.title || application.job_title || `Job #${application.job_id}`;
+  
+  const isHire = action === "hired";
+  
+  const displayScore =
+    application.match_score !== undefined && application.match_score !== null
+      ? Number(application.match_score)
+      : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden border border-orange-100">
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 text-center">Confirm Action</h2>
+          <p className="text-gray-700 text-center mb-2">
+            Are you sure you want to {isHire ? "Hire" : "Reject"} <span className="font-semibold text-orange-600">{candidateName}</span> for <span className="font-semibold">{jobTitle}</span>?
+          </p>
+          {displayScore !== null && (
+            <p className="text-sm text-gray-500 text-center mb-6">
+              Match Score: <span className="font-medium text-orange-600">{displayScore}%</span>
+            </p>
+          )}
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-orange-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className={`rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
+                isHire ? "bg-emerald-500 hover:bg-emerald-600" : "bg-rose-500 hover:bg-rose-600"
+              }`}
+            >
+              Confirm {isHire ? "Hire" : "Reject"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CandidateProfileModal({ open, onClose, application, allApplications }) {
+  if (!open || !application) return null;
+
+  const candidate = application.candidate || {};
+  const candidateName = resolveCandidateName(application);
+  const email = candidate.email || "No email provided";
+  
+  let skills = candidate.skills || candidate.candidate_skills || [];
+  if (typeof skills === 'string') {
+    try { skills = JSON.parse(skills); } catch(e) {}
+  }
+  if (!Array.isArray(skills)) skills = [];
+
+  const workExperiences = candidate.work_experiences || candidate.WorkExperiences || [];
+  const educations = candidate.educations || candidate.Educations || [];
+  
+  const displayScore =
+    application.match_score !== undefined && application.match_score !== null
+      ? Number(application.match_score)
+      : null;
+
+  const history = (allApplications || []).filter(
+    (a) => a.candidate_id === application.candidate_id || 
+           (a.candidate && application.candidate && a.candidate.id === application.candidate.id)
+  ).sort((a, b) => new Date(b.created_at || b.applied_at) - new Date(a.created_at || a.applied_at));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-orange-100">
+        <div className="px-6 py-4 border-b border-orange-100 flex items-start justify-between bg-orange-50/50">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{candidateName}</h2>
+            <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
+              {email}
+            </div>
+            {candidate.location && (
+              <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
+                {candidate.location}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-orange-100 hover:text-orange-600 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto space-y-6">
+          {/* Score + Status */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Match Score</div>
+              <div className="mt-1 text-2xl font-bold text-orange-600">
+                {displayScore !== null ? `${displayScore}%` : 'N/A'}
+              </div>
+              <div className="text-xs text-gray-500 mt-1 truncate">For {application.job?.title || 'this role'}</div>
+            </div>
+            <div className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Current Status</div>
+              <div className="mt-2">
+                <StatusBadge status={normalizeApplicationStatus(application.status)}>
+                  {normalizeApplicationStatus(application.status)}
+                </StatusBadge>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick meta */}
+          {(candidate.qualification || candidate.experience != null) && (
+            <div className="flex flex-wrap gap-3">
+              {candidate.qualification && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                  🎓 {candidate.qualification}
+                </span>
+              )}
+              {candidate.experience != null && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-100 bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700">
+                  💼 {candidate.experience} yr{candidate.experience !== 1 ? 's' : ''} experience
+                </span>
+              )}
+              {candidate.notice_period_days != null && candidate.notice_period_days > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+                  ⏱ {candidate.notice_period_days}d notice
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Bio */}
+          {candidate.bio && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-2 border-b border-orange-50 pb-2">About</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{candidate.bio}</p>
+            </div>
+          )}
+
+          {/* Skills & Resume */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 border-b border-orange-50 pb-2">Skills & Resume</h3>
+            {skills.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {skills.map((s, i) => {
+                   const skillName = typeof s === 'string' ? s : (s?.skill?.name || s?.name || "Unknown");
+                   return (
+                     <span key={i} className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
+                       {skillName}
+                     </span>
+                   )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 italic">No skills listed</p>
+            )}
+            
+            {candidate.resume_url ? (
+              <div className="mt-3">
+                <a href={candidate.resume_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-orange-600 hover:text-orange-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                  View Resume
+                </a>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-gray-400 italic">No resume uploaded</p>
+            )}
+          </div>
+
+          {/* Work Experience */}
+          {workExperiences.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 border-b border-orange-50 pb-2">Work Experience</h3>
+              <div className="space-y-3">
+                {workExperiences.map((w, i) => (
+                  <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                    <div className="font-medium text-sm text-gray-900">{w.title || w.job_title || 'Role'}</div>
+                    <div className="text-xs text-gray-600 mt-0.5">{w.company || w.company_name || ''}</div>
+                    {(w.start_date || w.end_date) && (
+                      <div className="text-xs text-gray-400 mt-1">
+                        {w.start_date ? formatDate(w.start_date) : '?'} — {w.is_current || w.current ? 'Present' : (w.end_date ? formatDate(w.end_date) : '?')}
+                      </div>
+                    )}
+                    {w.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{w.description}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Education */}
+          {educations.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 border-b border-orange-50 pb-2">Education</h3>
+              <div className="space-y-3">
+                {educations.map((e, i) => (
+                  <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                    <div className="font-medium text-sm text-gray-900">{e.degree || e.qualification || 'Degree'}</div>
+                    <div className="text-xs text-gray-600 mt-0.5">{e.institution || e.school || ''}{e.field_of_study ? ` · ${e.field_of_study}` : ''}</div>
+                    {(e.start_date || e.end_date) && (
+                      <div className="text-xs text-gray-400 mt-1">
+                        {e.start_date ? formatDate(e.start_date) : '?'} — {e.is_current || e.current ? 'Present' : (e.end_date ? formatDate(e.end_date) : '?')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Application History */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 border-b border-orange-50 pb-2">Application History</h3>
+            {history.length > 0 ? (
+              <div className="space-y-3">
+                {history.map((h, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3 shadow-sm">
+                    <div>
+                      <div className="font-medium text-sm text-gray-900">{h.job?.title || h.job_title || `Job #${h.job_id}`}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">Applied on {formatDate(h.applied_at || h.created_at)}</div>
+                    </div>
+                    <StatusBadge status={normalizeApplicationStatus(h.status)}>
+                      {normalizeApplicationStatus(h.status)}
+                    </StatusBadge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 italic">No previous applications found</p>
+            )}
+          </div>
+        </div>
+        
+        <div className="px-6 py-4 border-t border-orange-100 bg-gray-50 flex justify-end">
+          <button
+            onClick={onClose}
+            className="rounded-lg bg-orange-100 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-200 transition-colors"
+          >
+            Close Profile
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function Applications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -230,6 +485,8 @@ export default function Applications() {
   const [scheduling, setScheduling] = useState(false);
   const [scheduleError, setScheduleError] = useState("");
   const [skillGapTarget, setSkillGapTarget] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [profileTarget, setProfileTarget] = useState(null);
 
   const user = getAuthUser();
 
@@ -325,7 +582,15 @@ export default function Applications() {
       render: (row) => (
         <div>
           <div className="font-medium text-gray-900 flex items-center gap-2">
-            {resolveCandidateName(row)}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setProfileTarget(row);
+              }}
+              className="text-orange-600 hover:text-orange-800 hover:underline transition-colors text-left"
+            >
+              {resolveCandidateName(row)}
+            </button>
             {row.match_score >= 85 && (
               <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 uppercase tracking-wider">
                 Recommended
@@ -424,7 +689,7 @@ export default function Applications() {
                     return;
                   }
 
-                  handleStatusChange(row.id, actions.primaryAction.nextStatus);
+                  setConfirmAction({ application: row, nextStatus: actions.primaryAction.nextStatus });
                 }}
                 className={`rounded-md border px-3 py-1 text-xs font-semibold transition-colors ${
                   actions.primaryAction.tone === "emerald"
@@ -440,7 +705,7 @@ export default function Applications() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStatusChange(row.id, actions.secondaryAction.nextStatus);
+                  setConfirmAction({ application: row, nextStatus: actions.secondaryAction.nextStatus });
                 }}
                 className="rounded-md border border-rose-400 px-3 py-1 text-xs font-semibold text-rose-500 transition-colors hover:bg-rose-50"
               >
@@ -515,6 +780,24 @@ export default function Applications() {
         open={Boolean(skillGapTarget)}
         application={skillGapTarget}
         onClose={() => setSkillGapTarget(null)}
+      />
+
+      <ConfirmationModal
+        open={Boolean(confirmAction)}
+        onClose={() => setConfirmAction(null)}
+        action={confirmAction?.nextStatus}
+        application={confirmAction?.application}
+        onConfirm={() => {
+          handleStatusChange(confirmAction.application.id, confirmAction.nextStatus);
+          setConfirmAction(null);
+        }}
+      />
+
+      <CandidateProfileModal
+        open={Boolean(profileTarget)}
+        onClose={() => setProfileTarget(null)}
+        application={profileTarget}
+        allApplications={applications}
       />
     </div>
   );

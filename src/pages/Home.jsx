@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   ChevronRight,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import * as settingService from "../services/settingService";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -78,13 +80,7 @@ const FEATURES = [
     title: "Interview scheduling",
     desc: "Schedule, confirm and reschedule interviews online or on-site. Both sides manage their calendar from one screen.",
   },
-  {
-    icon: ClipboardList,
-    bg: "bg-violet-50",
-    iconColor: "text-violet-600",
-    title: "Task assessments",
-    desc: "Keep candidate communication, screening, and interview scheduling in one place.",
-  },
+ 
   {
     icon: MessageSquare,
     bg: "bg-amber-50",
@@ -105,16 +101,20 @@ const FOOTER_LINKS = ["About", "Features", "Privacy", "Terms", "Contact"];
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 
-function Navbar() {
+function Navbar({ settings }) {
   const navigate = useNavigate();
 
   return (
     <nav className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b border-orange-100 bg-white px-8">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white"></div>
+        {settings.logo && settings.logo !== "#" ? (
+          <img src={settings.logo} alt="Logo" className="h-8 w-8 object-contain rounded" />
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white"></div>
+        )}
         <span className="text-sm font-semibold text-gray-900">
-          Smart Hiring{" "}
+          {settings.app_name || "Smart Hiring"}
         </span>
       </div>
 
@@ -155,23 +155,26 @@ function Navbar() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
-function Hero() {
+function Hero({ settings }) {
   const navigate = useNavigate();
 
   return (
     <section className="border-b border-orange-100 bg-[radial-gradient(circle_at_top,_#fff7ed_0,_#fff_60%,_#fff_100%)] px-8 py-16 text-center">
       {/* Title */}
       <h1 className="mb-3 text-4xl font-semibold leading-tight text-gray-900">
-        The smarter way to
-        <br />
-        hire and get <span className="text-orange-500">hired.</span>
+        {settings.hero_title || (
+          <>
+            The smarter way to
+            <br />
+            hire and get <span className="text-orange-500">hired.</span>
+          </>
+        )}
       </h1>
 
       {/* Subtitle */}
       <p className="mx-auto mb-8 max-w-lg text-sm leading-relaxed text-gray-500">
-        Smart Hiring connects companies with the right candidates through
-        skill-based profiles, structured hiring workflows, task assessments and
-        seamless communication — all in one platform.
+        {settings.hero_description ||
+          "Smart Hiring connects companies with the right candidates through skill-based profiles, structured hiring workflows, task assessments and seamless communication — all in one platform."}
       </p>
 
       {/* Buttons */}
@@ -329,18 +332,28 @@ function CTA() {
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
-function Footer() {
+function Footer({ settings }) {
   return (
     <footer
       id="contact"
       className="flex flex-wrap items-center justify-between gap-4 border-t border-orange-100 bg-white px-8 py-5"
     >
       {/* Logo */}
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500 text-white"></div>
-        <span className="text-sm font-semibold text-gray-900">
-          Smart Hiring
-        </span>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          {settings.logo && settings.logo !== "#" ? (
+            <img src={settings.logo} alt="Logo" className="h-7 w-7 object-contain rounded" />
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500 text-white"></div>
+          )}
+          <span className="text-sm font-semibold text-gray-900">
+            {settings.app_name || "Smart Hiring"}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 text-xs text-gray-500">
+          {settings.support_email && <span>Email: {settings.support_email}</span>}
+          {settings.support_phone && <span>Phone: {settings.support_phone}</span>}
+        </div>
       </div>
 
       {/* Links */}
@@ -366,14 +379,34 @@ function Footer() {
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const [settings, setSettings] = useState({});
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await settingService.getSettings();
+        if (res?.data && Array.isArray(res.data)) {
+          const settingsObj = res.data.reduce((acc, curr) => {
+            acc[curr.key] = curr.value;
+            return acc;
+          }, {});
+          setSettings(settingsObj);
+        }
+      } catch (err) {
+        console.error("Failed to load settings", err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   return (
     <main className="min-h-screen">
-      <Navbar />
-      <Hero />
+      <Navbar settings={settings} />
+      <Hero settings={settings} />
       <HowItWorks />
       <Features />
       <CTA />
-      <Footer />
+      <Footer settings={settings} />
     </main>
   );
 }

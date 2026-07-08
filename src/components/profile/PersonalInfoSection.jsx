@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { FileText } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CheckCircle2, FileText, Trash2, UploadCloud } from "lucide-react";
+import { getFileUrl } from "../../services/api";
 
 const inputClass =
   "h-10 w-full rounded-lg border border-orange-100 px-3 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100";
@@ -9,20 +10,50 @@ export default function PersonalInfoSection({
   resumeUrl,
   onResumeChange,
 }) {
+  // resumeFile  = newly selected local File object (not yet saved)
+  // resumeName  = display name (from upload or existing URL)
+  // resumeUrl   = persisted URL from the server
+  const [resumeFile, setResumeFileState] = useState(null);
   const [resumeName, setResumeName] = useState(
     resumeUrl ? resumeUrl.split("/").pop() : null,
   );
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    setResumeName(resumeUrl ? resumeUrl.split("/").pop() : null);
-  }, [resumeUrl]);
+    // Only update from URL when we don't have a freshly picked local file
+    if (!resumeFile) {
+      setResumeName(resumeUrl ? resumeUrl.split("/").pop() : null);
+    }
+  }, [resumeUrl, resumeFile]);
 
   function handleResumeChange(e) {
     const file = e.target.files[0];
     if (!file) return;
+    setResumeFileState(file);
     setResumeName(file.name);
     onResumeChange(file);
+    // reset input so the same file can be re-selected after removal
+    e.target.value = "";
   }
+
+  function handleReplace() {
+    fileInputRef.current?.click();
+  }
+
+  function handleRemove() {
+    setResumeFileState(null);
+    setResumeName(null);
+    onResumeChange(null);
+  }
+
+  // Determine the URL to preview:
+  // — freshly picked local file  → object URL
+  // — existing server URL        → resumeUrl
+  const previewHref = resumeFile
+    ? URL.createObjectURL(resumeFile)
+    : resumeUrl ? getFileUrl(resumeUrl) : null;
+
+  const hasResume = !!resumeName;
 
   return (
     <div className="space-y-4">
@@ -149,21 +180,70 @@ export default function PersonalInfoSection({
 
       <div className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm space-y-3">
         <h2 className="text-sm font-semibold text-gray-700">Resume / CV</h2>
-        <label className="flex items-center gap-3 rounded-lg border border-dashed border-orange-200 p-3 cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition-colors">
-          <FileText size={20} className="text-orange-400 shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-gray-700">
-              {resumeName ?? "Click to upload resume"}
-            </p>
-            <p className="text-xs text-gray-400">PDF, DOC or DOCX · max 5 MB</p>
+
+        {/* Hidden file input — triggered only by the upload zone or Replace button */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx"
+          className="hidden"
+          onChange={handleResumeChange}
+        />
+
+        {hasResume ? (
+          /* ── Uploaded / existing file success state ── */
+          <div className="flex items-center gap-3 rounded-lg border border-green-100 bg-green-50/50 px-3 py-2.5">
+            <CheckCircle2 size={18} className="text-green-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              {previewHref ? (
+                <a
+                  href={previewHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-medium text-gray-800 hover:text-orange-600 hover:underline truncate block transition-colors"
+                  title="Click to preview"
+                >
+                  {resumeName}
+                </a>
+              ) : (
+                <p className="text-sm font-medium text-gray-800 truncate">{resumeName}</p>
+              )}
+              <p className="text-xs text-gray-400">Resume / CV</p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleReplace}
+                className="flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:border-orange-300 hover:text-orange-600 transition-colors"
+                title="Replace file"
+              >
+                <UploadCloud size={11} />
+                Replace
+              </button>
+              <button
+                type="button"
+                onClick={handleRemove}
+                className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                title="Remove file"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           </div>
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            className="hidden"
-            onChange={handleResumeChange}
-          />
-        </label>
+        ) : (
+          /* ── Upload drop zone (shown only when no file) ── */
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full items-center gap-3 rounded-lg border border-dashed border-orange-200 p-3 text-left cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition-colors"
+          >
+            <FileText size={20} className="text-orange-400 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-gray-700">Click to upload resume</p>
+              <p className="text-xs text-gray-400">PDF, DOC or DOCX · max 5 MB</p>
+            </div>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { Building2, Briefcase, Calendar, MessageSquare, CheckCircle, XCircle } f
 import { toast } from "react-toastify";
 import EmptyState from "../../components/shared/EmptyState";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
+import Modal from "../../components/shared/Modal";
 import { candidateApi } from "../../apis/candidate";
 
 const STATUS_CONFIG = {
@@ -24,8 +25,10 @@ function StatusBadge({ status }) {
 
 function ProposalCard({ proposal, onAction }) {
   const [acting, setActing] = useState(null); // "accepted" | "rejected"
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [showJobModal, setShowJobModal] = useState(false);
 
-  const company  = proposal?.company;
+  const company  = proposal?.company || proposal?.job?.company;
   const job      = proposal?.job;
   const salary   = Number(proposal?.salary || 0);
   const created  = proposal?.created_at
@@ -63,7 +66,10 @@ function ProposalCard({ proposal, onAction }) {
               {(company?.name || "?")[0].toUpperCase()}
             </div>
             <div>
-              <p className="font-semibold text-gray-900">{company?.name || "Unknown Company"}</p>
+              <p className="font-semibold text-gray-900 flex items-center gap-2">
+                {company?.name || "Unknown Company"}
+                <button onClick={() => setShowCompanyModal(true)} className="text-xs font-normal text-orange-600 hover:underline">View Details</button>
+              </p>
               <p className="text-xs text-gray-500 flex items-center gap-1">
                 <Building2 size={11} />
                 {company?.location || "—"}
@@ -74,9 +80,12 @@ function ProposalCard({ proposal, onAction }) {
         </div>
 
         {/* job */}
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2">
-          <Briefcase size={14} className="text-orange-500 shrink-0" />
-          <span className="text-sm font-medium text-gray-800">{job?.title || `Job #${proposal.job_id}`}</span>
+        <div className="mt-4 flex items-center justify-between gap-2 rounded-lg bg-orange-50 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <Briefcase size={14} className="text-orange-500 shrink-0" />
+            <span className="text-sm font-medium text-gray-800">{job?.title || `Job #${proposal.job_id}`}</span>
+          </div>
+          <button onClick={() => setShowJobModal(true)} className="text-xs text-orange-600 hover:underline">View Job</button>
         </div>
 
         {/* message */}
@@ -129,6 +138,119 @@ function ProposalCard({ proposal, onAction }) {
           </div>
         )}
       </div>
+
+      <Modal isOpen={showCompanyModal} onClose={() => setShowCompanyModal(false)} title="Company Details">
+        <div className="space-y-4">
+          {company?.logo_url && (
+            <div className="flex justify-center mb-4">
+              <img src={company.logo_url} alt={`${company.name} logo`} className="h-16 w-16 rounded-xl object-cover border border-gray-100 shadow-sm" />
+            </div>
+          )}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500">Company Name</h3>
+            <p className="text-base font-semibold text-gray-900">{company?.name || "Unknown Company"}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500">Location</h3>
+            <p className="text-base text-gray-900">{company?.location || "Not specified"}</p>
+          </div>
+          {company?.website_url && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Website</h3>
+              <a href={company.website_url} target="_blank" rel="noopener noreferrer" className="text-base text-orange-600 hover:underline break-all">
+                {company.website_url}
+              </a>
+            </div>
+          )}
+          {company?.description && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Description</h3>
+              <p className="text-sm text-gray-700 whitespace-pre-line">{company.description}</p>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <Modal isOpen={showJobModal} onClose={() => setShowJobModal(false)} title="Job Details">
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          <div>
+            <h3 className="text-sm font-medium text-gray-500">Job Title</h3>
+            <p className="text-base font-semibold text-gray-900">{job?.title || `Job #${proposal.job_id}`}</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            {job?.job_type && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Job Type</h3>
+                <p className="text-sm text-gray-900 capitalize">{job.job_type.replace('_', ' ')}</p>
+              </div>
+            )}
+            {job?.location && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Location</h3>
+                <p className="text-sm text-gray-900">{job.location}</p>
+              </div>
+            )}
+            {job?.min_salary !== undefined && job?.max_salary !== undefined && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Salary</h3>
+                <p className="text-sm text-gray-900">{job.currency || 'NPR'} {job.min_salary} - {job.max_salary}</p>
+              </div>
+            )}
+            {job?.experience_level && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Experience Level</h3>
+                <p className="text-sm text-gray-900 capitalize">{job.experience_level}</p>
+              </div>
+            )}
+            {job?.required_experience !== undefined && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Required Experience</h3>
+                <p className="text-sm text-gray-900">{job.required_experience} years</p>
+              </div>
+            )}
+            {job?.is_remote !== undefined && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Remote Working</h3>
+                <p className="text-sm text-gray-900">{job.is_remote ? 'Yes' : 'No'}</p>
+              </div>
+            )}
+            {job?.project_duration_days && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Duration</h3>
+                <p className="text-sm text-gray-900">{job.project_duration_days} days</p>
+              </div>
+            )}
+            {job?.deadline && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500">Deadline</h3>
+                <p className="text-sm text-gray-900">{new Date(job.deadline).toLocaleDateString()}</p>
+              </div>
+            )}
+          </div>
+
+          {job?.JobSkills && job.JobSkills.length > 0 && (
+            <div className="pt-2 border-t border-gray-100">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Required Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {job.JobSkills.map((js) => (
+                  <span key={js.id} className="inline-flex items-center rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-600/10">
+                    {js?.Skill?.name || "Unknown Skill"}
+                    {js?.required_level && <span className="ml-1 opacity-75 capitalize">({js.required_level})</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {job?.description && (
+            <div className="pt-2 border-t border-gray-100">
+              <h3 className="text-sm font-medium text-gray-500 mb-1">Description</h3>
+              <p className="text-sm text-gray-700 whitespace-pre-line">{job.description}</p>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

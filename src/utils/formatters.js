@@ -56,13 +56,15 @@ export function getStatusColor(status) {
   if (!status) return "bg-gray-100 text-gray-500";
   const s = status.toLowerCase();
 
-  if (["open", "active", "hired"].includes(s))
+  if (["open", "active"].includes(s))
     return "bg-orange-100 text-orange-700";
+  if (["hired"].includes(s))
+    return "bg-green-100 text-green-700";
   if (["completed", "approved", "success"].includes(s))
     return "bg-green-100 text-green-700";
   if (["interviewing", "scheduled", "pending"].includes(s))
-    return "bg-amber-100 text-amber-700";
-  if (["applied"].includes(s)) return "bg-orange-100 text-orange-700";
+    return "bg-orange-100 text-orange-700";
+  if (["applied"].includes(s)) return "bg-blue-100 text-blue-700";
   if (["offered", "offer"].includes(s)) return "bg-green-100 text-green-700";
   if (["rejected", "blocked", "closed", "cancelled", "failed"].includes(s))
     return "bg-red-100 text-red-600";

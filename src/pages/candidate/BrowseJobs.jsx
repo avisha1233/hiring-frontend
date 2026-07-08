@@ -217,6 +217,30 @@ function ScoreBadge({ score, onClick }) {
   );
 }
 
+/** Coloured application status badge */
+function ApplicationStatusBadge({ status }) {
+  if (!status) return null;
+
+  const normalized = String(status).toLowerCase();
+  
+  let cls = "bg-gray-100 text-gray-700 ring-1 ring-gray-200";
+  if (normalized === "hired") {
+    cls = "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200";
+  } else if (normalized === "rejected") {
+    cls = "bg-red-100 text-red-700 ring-1 ring-red-200";
+  } else if (["interviewing", "pending", "applied", "in_review", "shortlisted"].includes(normalized)) {
+    cls = "bg-amber-100 text-amber-700 ring-1 ring-amber-200";
+  }
+
+  const label = normalized.charAt(0).toUpperCase() + normalized.slice(1).replace(/_/g, " ");
+
+  return (
+    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1 ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
 function SkillGapModal({ isOpen, onClose, score, breakdown, jobTitle, companyName }) {
   if (!isOpen) return null;
 
@@ -533,7 +557,8 @@ export default function BrowseJobs() {
       ) : (
         <div className="flex flex-col gap-4">
           {filteredJobs.map((job) => {
-            const isApplied = hasApplied(job.id);
+            const application = applications.find((app) => Number(app.job_id) === Number(job.id));
+            const isApplied = !!application;
             const isClosed = job.status === "closed";
             const isApplying = applyingId === job.id;
 
@@ -568,7 +593,10 @@ export default function BrowseJobs() {
                       <h2 className="text-base font-semibold leading-snug text-gray-900">
                         {job.title || `Job #${job.id}`}
                       </h2>
-                      <ScoreBadge score={score} onClick={() => setGapModalJob({ job, score, breakdown })} />
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {application?.status && <ApplicationStatusBadge status={application.status} />}
+                        <ScoreBadge score={score} onClick={() => setGapModalJob({ job, score, breakdown })} />
+                      </div>
                     </div>
 
                     {metaParts.length > 0 && (

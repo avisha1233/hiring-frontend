@@ -119,29 +119,37 @@ export const candidateApi = {
   },
 
   getWork: async () => {
-    return { data: [] };
+    const { data } = await api.get("/candidate/work");
+    return data;
   },
   addWork: async (payload) => {
-    return { data: { id: Date.now(), ...payload } };
+    const { data } = await api.post("/candidate/work", payload);
+    return data;
   },
   updateWork: async (id, payload) => {
-    return { data: { id, ...payload } };
+    const { data } = await api.patch(`/candidate/work/${id}`, payload);
+    return data;
   },
   deleteWork: async (id) => {
-    return { success: true };
+    const { data } = await api.delete(`/candidate/work/${id}`);
+    return data;
   },
 
   getEdu: async () => {
-    return { data: [] };
+    const { data } = await api.get("/candidate/edu");
+    return data;
   },
   addEdu: async (payload) => {
-    return { data: { id: Date.now(), ...payload } };
+    const { data } = await api.post("/candidate/edu", payload);
+    return data;
   },
   updateEdu: async (id, payload) => {
-    return { data: { id, ...payload } };
+    const { data } = await api.patch(`/candidate/edu/${id}`, payload);
+    return data;
   },
   deleteEdu: async (id) => {
-    return { success: true };
+    const { data } = await api.delete(`/candidate/edu/${id}`);
+    return data;
   },
 
   getCerts: async () => {

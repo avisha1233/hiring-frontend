@@ -10,3 +10,4 @@ export const blockUser = (id, reason) =>
   api.patch(`/users/${id}`, { status: "blocked", block_reason: reason });
 export const unblockUser = (id) =>
   api.patch(`/users/${id}`, { status: "active" });
+export const changePassword = (data) => api.patch("/user/password", data);
