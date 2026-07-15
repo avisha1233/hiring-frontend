@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Pencil, Trash2, Plus, X } from "lucide-react";
+import { Pencil, Trash2, Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
 import SearchInput from "../../components/shared/SearchInput";
 import ConfirmDialog from "../../components/shared/ConfirmDialog";
@@ -9,29 +9,35 @@ import EmptyState from "../../components/shared/EmptyState";
 import { useDebounce } from "../../hooks";
 import * as skillService from "../../services/skillService";
 
+const PAGE_LIMIT = 10;
+
 export default function Skills() {
-  const [skills, setSkills] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
-  const [deleteConfirm, setDeleteConfirm] = useState({
-    open: false,
-    skill: null,
-  });
-  const [modalOpen, setModalOpen] = useState(false);
+  const [skills, setSkills]         = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(null);
+  const [search, setSearch]         = useState("");
+  const debouncedSearch             = useDebounce(search, 300);
+  const [page, setPage]             = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal]           = useState(0);
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, skill: null });
+  const [modalOpen, setModalOpen]   = useState(false);
   const [editingSkill, setEditingSkill] = useState(null);
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData]     = useState({ name: "", description: "" });
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchSkills = async () => {
+  const fetchSkills = async (currentPage) => {
+    const pg = currentPage ?? 1;
     try {
       setLoading(true);
-      const params = {
-        search: debouncedSearch,
-      };
-      const res = await skillService.getSkills(params);
-      setSkills(res.data.data || []);
+      // Always send page + limit so the API honours server-side pagination
+      const res = await skillService.getSkills({ search: debouncedSearch, page: pg, limit: PAGE_LIMIT });
+      // API shape: { data: [...], total, totalPage, currentPage, perPage }
+      const payload = res.data;
+      setSkills(payload.data || []);
+      setTotal(payload.total ?? 0);
+      setTotalPages(payload.totalPage ?? 1);
+      setPage(payload.currentPage ?? pg);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -39,9 +45,15 @@ export default function Skills() {
     }
   };
 
+  // Reset to page 1 whenever the search term changes
   useEffect(() => {
-    fetchSkills();
+    setPage(1);
+    fetchSkills(1);
   }, [debouncedSearch]);
+
+  const goToPage = (p) => {
+    if (p >= 1 && p <= totalPages) fetchSkills(p);
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -80,7 +92,9 @@ export default function Skills() {
       await skillService.deleteSkill(deleteConfirm.skill.id);
       toast.success("Skill deleted successfully");
       setDeleteConfirm({ open: false, skill: null });
-      fetchSkills();
+      // If we just deleted the last item on this page, step back one
+      const newPage = skills.length === 1 && page > 1 ? page - 1 : page;
+      fetchSkills(newPage);
     } catch (err) {
       toast.error("Failed to delete skill");
     }
@@ -97,10 +111,23 @@ export default function Skills() {
       <ErrorState
         title="Failed to load skills"
         message={error}
-        onRetry={fetchSkills}
+        onRetry={() => fetchSkills(page)}
       />
     );
   }
+
+  // "Showing 11–20 of 35"
+  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_LIMIT + 1;
+  const rangeEnd   = Math.min(page * PAGE_LIMIT, total);
+
+  // Page chips with ellipsis compression
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1)
+    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+    .reduce((acc, p, idx, arr) => {
+      if (idx > 0 && p - arr[idx - 1] > 1) acc.push("ellipsis-" + p);
+      acc.push(p);
+      return acc;
+    }, []);
 
   const filteredSkills = skills;
 
@@ -141,68 +168,81 @@ export default function Skills() {
               message="Try adjusting your search or create a new skill"
             />
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-orange-100 bg-white shadow-sm">
-              <table className="w-full">
-                <thead className="border-b border-orange-100 bg-orange-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                      Name
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                      Description
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                      Created At
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSkills.map((skill) => (
-                    <tr
-                      key={skill.id}
-                      className="border-b border-orange-50 hover:bg-orange-50"
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">
-                          {skill.name}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-gray-700">
-                          {skill.description || "-"}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-gray-500 text-sm">
-                          {new Date(skill.created_at).toLocaleDateString()}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleEdit(skill)}
-                            className="text-gray-400 hover:text-orange-600"
-                          >
-                            <Pencil size={18} />
-                          </button>
-                          <button
-                            onClick={() =>
-                              setDeleteConfirm({ open: true, skill })
-                            }
-                            className="text-gray-400 hover:text-red-600"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto rounded-lg border border-orange-100 bg-white shadow-sm">
+                <table className="w-full">
+                  <thead className="border-b border-orange-100 bg-orange-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Name</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Description</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Created At</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredSkills.map((skill) => (
+                      <tr key={skill.id} className="border-b border-orange-50 hover:bg-orange-50">
+                        <td className="px-4 py-3"><p className="font-medium text-gray-900">{skill.name}</p></td>
+                        <td className="px-4 py-3"><p className="text-gray-700">{skill.description || "-"}</p></td>
+                        <td className="px-4 py-3"><p className="text-gray-500 text-sm">{new Date(skill.created_at).toLocaleDateString()}</p></td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => handleEdit(skill)} className="text-gray-400 hover:text-orange-600"><Pencil size={18} /></button>
+                            <button onClick={() => setDeleteConfirm({ open: true, skill })} className="text-gray-400 hover:text-red-600"><Trash2 size={18} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ── Pagination controls ── */}
+              <div className="flex items-center justify-between px-1 pt-1">
+                <p className="text-sm text-gray-500">
+                  Showing{" "}
+                  <span className="font-medium text-gray-700">{rangeStart}–{rangeEnd}</span>
+                  {" "}of{" "}
+                  <span className="font-medium text-gray-700">{total}</span> skills
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => goToPage(page - 1)}
+                    disabled={page <= 1 || loading}
+                    className="inline-flex items-center gap-1 rounded-lg border border-orange-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40 transition"
+                  >
+                    <ChevronLeft size={15} /> Previous
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {pageNumbers.map((p) =>
+                      typeof p === "string" ? (
+                        <span key={p} className="px-1 text-gray-400">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => goToPage(p)}
+                          disabled={loading}
+                          className={`min-w-[32px] rounded-lg border px-2 py-1.5 text-sm font-medium transition ${
+                            p === page
+                              ? "border-orange-500 bg-orange-500 text-white"
+                              : "border-orange-200 text-gray-600 hover:bg-orange-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                  </div>
+                  <button
+                    onClick={() => goToPage(page + 1)}
+                    disabled={page >= totalPages || loading}
+                    className="inline-flex items-center gap-1 rounded-lg border border-orange-200 px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40 transition"
+                  >
+                    Next <ChevronRight size={15} />
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
 

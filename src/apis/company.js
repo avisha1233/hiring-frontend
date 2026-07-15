@@ -189,9 +189,11 @@ export async function sendMessage(conversationId, payload) {
 
 export async function getCompanyProfile() {
   const user = await getCurrentUser();
-  const companyId = user?.company_id ?? user?.id;
+  // /auth/me now always includes company_id for company-role users.
+  // Do NOT fall back to user.id — that's a users table PK, not a companies PK.
+  const companyId = user?.company_id;
 
-  if (!companyId) throw new Error("User has no company");
+  if (!companyId) return {}; // company row not yet created — profile is empty
 
   try {
     const response = await apiClient.get(`/companies/${companyId}`);

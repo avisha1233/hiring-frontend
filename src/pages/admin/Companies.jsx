@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, Pencil, ShieldX, ShieldCheck, Trash2, Plus } from "lucide-react";
+import { Eye, Pencil, ShieldX, ShieldCheck, Trash2, Plus, X } from "lucide-react";
 import { toast } from "react-toastify";
 import SearchInput from "../../components/shared/SearchInput";
 import FilterTabs from "../../components/shared/FilterTabs";
@@ -37,6 +37,31 @@ export default function Companies() {
     company: null,
   });
   const [blockingCompany, setBlockingCompany] = useState(null);
+  
+  const [viewCompany, setViewCompany] = useState(null);
+  const [editCompany, setEditCompany] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await companyService.updateCompany(editCompany.id, {
+        name: editForm.name,
+        location: editForm.location,
+        website_url: editForm.website_url,
+      });
+      toast.success("Company updated successfully");
+      setEditCompany(null);
+      fetchCompanies();
+    } catch (err) {
+      toast.error("Failed to update company");
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
@@ -216,10 +241,23 @@ export default function Companies() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <button className="text-gray-400 hover:text-orange-600">
+                      <button 
+                        onClick={() => setViewCompany(company)}
+                        className="text-gray-400 hover:text-orange-600"
+                      >
                         <Eye size={18} />
                       </button>
-                      <button className="text-gray-400 hover:text-orange-600">
+                      <button 
+                        onClick={() => {
+                          setEditCompany(company);
+                          setEditForm({
+                            name: company.name || "",
+                            location: company.location || "",
+                            website_url: company.website_url || "",
+                          });
+                        }}
+                        className="text-gray-400 hover:text-orange-600"
+                      >
                         <Pencil size={18} />
                       </button>
                       {company.status !== "blocked" ? (
@@ -284,6 +322,122 @@ export default function Companies() {
         confirmLabel="Delete"
         confirmStyle="danger"
       />
+
+      {/* View Company Modal */}
+      {viewCompany && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <h2 className="text-xl font-bold text-gray-900">Company Details</h2>
+              <button onClick={() => setViewCompany(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar name={viewCompany.name} size="lg" />
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">{viewCompany.name}</h3>
+                  <p className="text-sm text-gray-500">{viewCompany.email || "No email"}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Location</h3>
+                  <p className="mt-1 text-gray-900">{viewCompany.location || "—"}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Status</h3>
+                  <div className="mt-1"><StatusBadge status={viewCompany.status}>{viewCompany.status}</StatusBadge></div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Website</h3>
+                  <p className="mt-1 text-gray-900 text-sm truncate">
+                    {viewCompany.website_url ? (
+                      <a href={viewCompany.website_url.startsWith('http') ? viewCompany.website_url : `https://${viewCompany.website_url}`} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">
+                        {viewCompany.website_url}
+                      </a>
+                    ) : "—"}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Registered On</h3>
+                  <p className="mt-1 text-gray-900 text-sm">{formatDate(viewCompany.created_at) || "—"}</p>
+                </div>
+              </div>
+            </div>
+            <div className="border-t px-6 py-4 flex justify-end">
+              <button
+                onClick={() => setViewCompany(null)}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Company Modal */}
+      {editCompany && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <h2 className="text-xl font-bold text-gray-900">Edit Company</h2>
+              <button onClick={() => setEditCompany(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Company Name</label>
+                  <input
+                    name="name"
+                    value={editForm.name}
+                    onChange={handleEditChange}
+                    className="w-full rounded-lg border px-3 py-2 outline-none focus:border-orange-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Location</label>
+                  <input
+                    name="location"
+                    value={editForm.location}
+                    onChange={handleEditChange}
+                    className="w-full rounded-lg border px-3 py-2 outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Website URL</label>
+                  <input
+                    name="website_url"
+                    value={editForm.website_url}
+                    onChange={handleEditChange}
+                    className="w-full rounded-lg border px-3 py-2 outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+              <div className="border-t px-6 py-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditCompany(null)}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

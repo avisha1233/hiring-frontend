@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Plus, X, Loader2, Users, ChevronDown, Check } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Plus, X, Loader2, Users, ChevronDown, Check, RefreshCw } from "lucide-react";
+import { useDebounce } from "../../hooks";
 import { useLocation, useNavigate } from "react-router-dom";
 import SearchInput from "../../components/shared/SearchInput";
 import EmptyState from "../../components/shared/EmptyState";
@@ -12,7 +13,7 @@ import { getAuthUser } from "../../lib/auth";
 // ── level pill ────────────────────────────────────────────────────────────────
 const LEVEL_STYLE = {
   junior: "bg-blue-100 text-blue-700",
-  mid:    "bg-orange-100 text-orange-700",
+  mid: "bg-orange-100 text-orange-700",
   senior: "bg-purple-100 text-purple-700",
 };
 
@@ -29,15 +30,15 @@ function LevelPill({ level }) {
 function fmtSalary(min, max) {
   const fmt = (n) => Number(n).toLocaleString("en-NP");
   if (min && max) return `NPR ${fmt(min)} – ${fmt(max)}`;
-  if (min)        return `NPR ${fmt(min)}+`;
-  if (max)        return `Up to NPR ${fmt(max)}`;
+  if (min) return `NPR ${fmt(min)}+`;
+  if (max) return `Up to NPR ${fmt(max)}`;
   return "—";
 }
 
 // ── deadline cell ─────────────────────────────────────────────────────────────
 function DeadlineCell({ deadline }) {
   if (!deadline) return <span className="text-xs text-gray-400">—</span>;
-  const d    = new Date(deadline);
+  const d = new Date(deadline);
   const days = Math.ceil((d - Date.now()) / 86_400_000);
   const label = d.toLocaleDateString("en-NP", { day: "numeric", month: "short", year: "numeric" });
   const urgent = days >= 0 && days <= 7;
@@ -70,43 +71,45 @@ function unwrap(res) {
 }
 
 export default function Jobs() {
-  const location  = useLocation();
-  const navigate  = useNavigate();
-  const authUser  = getAuthUser();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const authUser = getAuthUser();
 
   const [search, setSearch] = useState(
     new URLSearchParams(location.search).get("search") || "",
   );
-  const [jobs, setJobs]         = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState("");
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [companyId, setCompanyId] = useState(null);
 
   // ── modal state ──────────────────────────────────────────────────────────
-  const [showModal, setShowModal]   = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError]   = useState("");
+  const [formError, setFormError] = useState("");
   const [form, setForm] = useState({
-    title:                  "",
-    description:            "",
-    location:               "",
-    min_salary:             "",
-    max_salary:             "",
-    currency:               "NPR",
-    job_type:               "full_time",
-    status:                 "open",
-    experience_level:       "",
-    required_experience:    "",
-    project_duration_days:  "",
-    is_remote:              false,
-    deadline:               "",
+    title: "",
+    description: "",
+    location: "",
+    min_salary: "",
+    max_salary: "",
+    currency: "NPR",
+    job_type: "full_time",
+    status: "open",
+    experience_level: "",
+    required_experience: "",
+    project_duration_days: "",
+    is_remote: false,
+    deadline: "",
   });
 
   // ── skills for multi-select ───────────────────────────────────────────────
-  const [allSkills, setAllSkills]       = useState([]);
+  const [allSkills, setAllSkills] = useState([]);
   const [selectedSkills, setSelectedSkills] = useState([]); // [{id, name}]
-  const [skillDropOpen, setSkillDropOpen]   = useState(false);
-  const [skillSearch, setSkillSearch]       = useState("");
+  const [skillDropOpen, setSkillDropOpen] = useState(false);
+  const [skillSearch, setSkillSearch] = useState("");
+  const debouncedSkillSearch = useDebounce(skillSearch, 300);
+  const [creatingSkill, setCreatingSkill] = useState(false);
   const skillDropRef = useRef(null);
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -120,14 +123,13 @@ export default function Jobs() {
   useEffect(() => {
     async function loadCompanyId() {
       try {
-        const profile  = await getCompanyProfile();
-        const company  = profile?.data?.data || profile?.data || profile || {};
-        const id       = Number(company?.id || company?.company_id || authUser?.company_id || authUser?.id);
+        const profile = await getCompanyProfile();
+        const company = profile?.data?.data || profile?.data || profile || {};
+        const id = Number(company?.id || company?.company_id);
         if (id) setCompanyId(id);
       } catch {
-        // fallback: try authUser directly
-        const id = Number(authUser?.company_id || authUser?.id);
-        if (id) setCompanyId(id);
+        // Leave companyId null if company profile fetch fails. 
+        // Backend will resolve it securely via user_id.
       }
     }
     loadCompanyId();
@@ -142,9 +144,9 @@ export default function Jobs() {
       setError("");
       try {
         // pass company_id so the API returns only THIS company's jobs
-        const res  = await getCompanyJobs({
+        const res = await getCompanyJobs({
           search,
-          limit:      50,
+          limit: 50,
           company_id: companyId || authUser?.company_id || authUser?.id,
         });
         const data = unwrap(res);
@@ -161,15 +163,20 @@ export default function Jobs() {
   }, [search, companyId]);
 
   // ── load company skills for the dropdown ─────────────────────────────────
+  const refreshSkills = useCallback(async () => {
+    try {
+      const res = await apiClient.get("/skills", { 
+        params: { limit: 50, search: debouncedSkillSearch } 
+      });
+      const data = res?.data?.data || res?.data || [];
+      setAllSkills(Array.isArray(data) ? data : []);
+    } catch { /* ignore */ }
+  }, [debouncedSkillSearch]);
+
   useEffect(() => {
     if (!showModal) return;
-    apiClient.get("/skills", { params: { limit: 200 } })
-      .then((res) => {
-        const data = res?.data?.data || res?.data || [];
-        setAllSkills(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {});
-  }, [showModal]);
+    refreshSkills();
+  }, [showModal, refreshSkills]);
 
   // ── close skills dropdown on outside click ────────────────────────────────
   useEffect(() => {
@@ -223,34 +230,34 @@ export default function Jobs() {
 
   // ── submit new job ────────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!form.title.trim())       { setFormError("Job title is required."); return; }
+    if (!form.title.trim()) { setFormError("Job title is required."); return; }
     if (!form.description.trim()) { setFormError("Description is required."); return; }
-    if (!form.location.trim())    { setFormError("Location is required."); return; }
+    if (!form.location.trim()) { setFormError("Location is required."); return; }
 
     setSubmitting(true);
     setFormError("");
 
     try {
       const payload = {
-        title:                 form.title.trim(),
-        description:           form.description.trim(),
-        location:              form.location.trim(),
-        min_salary:            form.min_salary     ? Number(form.min_salary)            : undefined,
-        max_salary:            form.max_salary     ? Number(form.max_salary)            : undefined,
-        currency:              form.currency       || "NPR",
-        job_type:              form.job_type       || "full_time",
-        status:                form.status         || "open",
-        experience_level:      form.experience_level      || undefined,
-        required_experience:   form.required_experience   ? Number(form.required_experience)   : undefined,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        location: form.location.trim(),
+        min_salary: form.min_salary ? Number(form.min_salary) : undefined,
+        max_salary: form.max_salary ? Number(form.max_salary) : undefined,
+        currency: form.currency || "NPR",
+        job_type: form.job_type || "full_time",
+        status: form.status || "open",
+        experience_level: form.experience_level || undefined,
+        required_experience: form.required_experience ? Number(form.required_experience) : undefined,
         project_duration_days: form.project_duration_days ? Number(form.project_duration_days) : undefined,
-        is_remote:             form.is_remote,
-        deadline:              form.deadline       || undefined,
-        company_id:            companyId || authUser?.company_id || authUser?.id,
+        is_remote: form.is_remote,
+        deadline: form.deadline || undefined,
+        company_id: companyId || undefined,
       };
 
-      const res    = await api.post("/jobs", payload);
+      const res = await api.post("/jobs", payload);
       const newJob = res?.data?.data || res?.data || res;
-      const jobId  = newJob?.id;
+      const jobId = newJob?.id;
 
       // Link selected skills to the new job (with required_level)
       if (jobId && selectedSkills.length > 0) {
@@ -608,23 +615,58 @@ export default function Jobs() {
                         className="w-full rounded-lg border border-orange-100 px-3 py-1.5 text-sm outline-none focus:border-orange-300"
                       />
                     </div>
-                    {allSkills
-                      .filter((s) => s.name.toLowerCase().includes(skillSearch.toLowerCase()))
-                      .map((skill) => {
-                        const isSelected = selectedSkills.some((s) => s.id === skill.id);
-                        return (
-                          <button key={skill.id} type="button"
-                            onClick={() => toggleSkill(skill)}
-                            className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition hover:bg-orange-50 ${
-                              isSelected ? "text-orange-600 font-medium" : "text-gray-700"
+                    {/* matching skills */}
+                    {allSkills.map((skill) => {
+                      const isSelected = selectedSkills.some((s) => s.id === skill.id);
+                      return (
+                        <button key={skill.id} type="button"
+                          onClick={() => toggleSkill(skill)}
+                          className={`flex w-full items-center justify-between px-4 py-2.5 text-sm transition hover:bg-orange-50 ${isSelected ? "text-orange-600 font-medium" : "text-gray-700"
                             }`}>
-                            <span>{skill.name}</span>
-                            {isSelected && <Check size={14} className="text-orange-500" />}
-                          </button>
-                        );
-                      })}
-                    {allSkills.filter((s) => s.name.toLowerCase().includes(skillSearch.toLowerCase())).length === 0 && (
-                      <p className="px-4 py-3 text-sm text-gray-400">No skills found. Add them in Skills Library first.</p>
+                          <span>{skill.name}</span>
+                          {isSelected && <Check size={14} className="text-orange-500" />}
+                        </button>
+                      );
+                    })}
+
+                    {/* ── inline create: shown when search text doesn't exactly match any skill ── */}
+                    {skillSearch.trim() !== "" &&
+                      !allSkills.some((s) => s.name.toLowerCase() === skillSearch.trim().toLowerCase()) && (
+                        <button
+                          type="button"
+                          disabled={creatingSkill}
+                          onClick={async () => {
+                            const name = skillSearch.trim();
+                            if (!name) return;
+                            setCreatingSkill(true);
+                            try {
+                              const res = await apiClient.post("/skills", { name });
+                              const created = res?.data?.data || res?.data || res;
+                              if (created?.id) {
+                                setAllSkills((prev) => [created, ...prev]);
+                                setSelectedSkills((prev) => [
+                                  ...prev,
+                                  { id: created.id, name: created.name, required_level: "intermediate" },
+                                ]);
+                                setSkillSearch("");
+                              }
+                            } catch {
+                              // error logic
+                            } finally {
+                              setCreatingSkill(false);
+                            }
+                          }}
+                          className="flex w-full items-center gap-2 border-t border-orange-50 px-4 py-2.5 text-sm font-medium text-orange-600 hover:bg-orange-50 transition disabled:opacity-50"
+                        >
+                          {creatingSkill
+                            ? <><Loader2 size={13} className="animate-spin" /> Creating…</>
+                            : <><Plus size={13} /> Create &ldquo;{skillSearch.trim()}&rdquo;</>}
+                        </button>
+                      )}
+
+                    {/* empty state when no match AND search is blank */}
+                    {skillSearch.trim() === "" && allSkills.length === 0 && (
+                      <p className="px-4 py-3 text-sm text-gray-400">No skills found. Type a name to search or create.</p>
                     )}
                   </div>
                 )}

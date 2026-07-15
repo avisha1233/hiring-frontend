@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Eye, Pencil, Trash2, Plus, ChevronDown } from "lucide-react";
+import { Eye, Pencil, Trash2, Plus, ChevronDown, X } from "lucide-react";
 import { toast } from "react-toastify";
 import SearchInput from "../../components/shared/SearchInput";
 import FilterTabs from "../../components/shared/FilterTabs";
@@ -42,6 +42,34 @@ export default function Jobs() {
     open: false,
     job: null,
   });
+  const [viewJob, setViewJob] = useState(null);
+  const [editJob, setEditJob] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
+  const handleEditChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await jobService.updateJob(editJob.id, {
+        title: editForm.title,
+        location: editForm.location,
+        experience_level: editForm.experience_level,
+        status: editForm.status,
+      });
+      toast.success("Job updated successfully");
+      setEditJob(null);
+      fetchJobs();
+    } catch (err) {
+      toast.error("Failed to update job");
+    }
+  };
 
   const fetchJobs = async () => {
     try {
@@ -100,7 +128,7 @@ export default function Jobs() {
   };
 
   const filteredJobs = jobs.filter((job) => {
-    if (levelFilter !== "all" && job.level !== levelFilter) return false;
+    if (levelFilter !== "all" && job.experience_level !== levelFilter) return false;
     if (companyFilter !== "all" && job.company_id !== parseInt(companyFilter))
       return false;
     return true;
@@ -228,7 +256,7 @@ export default function Jobs() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       <span className="inline-block rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">
-                        {job.level}
+                        {job.experience_level || "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -241,10 +269,24 @@ export default function Jobs() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
-                        <button className="text-gray-400 hover:text-orange-600">
+                        <button 
+                          onClick={() => setViewJob(job)}
+                          className="text-gray-400 hover:text-orange-600"
+                        >
                           <Eye size={18} />
                         </button>
-                        <button className="text-gray-400 hover:text-orange-600">
+                        <button 
+                          onClick={() => {
+                            setEditJob(job);
+                            setEditForm({
+                              title: job.title || "",
+                              location: job.location || "",
+                              experience_level: job.experience_level || "",
+                              status: job.status || "open",
+                            });
+                          }}
+                          className="text-gray-400 hover:text-orange-600"
+                        >
                           <Pencil size={18} />
                         </button>
                         <button
@@ -290,6 +332,141 @@ export default function Jobs() {
         confirmLabel="Delete"
         confirmStyle="danger"
       />
+
+      {/* View Job Modal */}
+      {viewJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <h2 className="text-xl font-bold text-gray-900">Job Details</h2>
+              <button onClick={() => setViewJob(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">Title</h3>
+                <p className="mt-1 text-gray-900">{viewJob.title}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">Company</h3>
+                <p className="mt-1 text-gray-900">{companies[viewJob.company_id]?.name || "—"}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Location</h3>
+                  <p className="mt-1 text-gray-900">{viewJob.location || "—"}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Level</h3>
+                  <p className="mt-1 text-gray-900 capitalize">{viewJob.experience_level || "—"}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Status</h3>
+                  <div className="mt-1"><StatusBadge status={viewJob.status}>{viewJob.status}</StatusBadge></div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500">Job Type</h3>
+                  <p className="mt-1 text-gray-900 capitalize">{String(viewJob.job_type || "").replace("_", " ") || "—"}</p>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-500">Description</h3>
+                <p className="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{viewJob.description || "No description provided."}</p>
+              </div>
+            </div>
+            <div className="border-t px-6 py-4 flex justify-end">
+              <button
+                onClick={() => setViewJob(null)}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Job Modal */}
+      {editJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <h2 className="text-xl font-bold text-gray-900">Edit Job</h2>
+              <button onClick={() => setEditJob(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Job Title</label>
+                  <input
+                    name="title"
+                    value={editForm.title}
+                    onChange={handleEditChange}
+                    className="w-full rounded-lg border px-3 py-2 outline-none focus:border-orange-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Location</label>
+                  <input
+                    name="location"
+                    value={editForm.location}
+                    onChange={handleEditChange}
+                    className="w-full rounded-lg border px-3 py-2 outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Experience Level</label>
+                    <select
+                      name="experience_level"
+                      value={editForm.experience_level}
+                      onChange={handleEditChange}
+                      className="w-full rounded-lg border px-3 py-2 outline-none focus:border-orange-500"
+                    >
+                      <option value="">Select Level</option>
+                      <option value="junior">Junior</option>
+                      <option value="mid">Mid</option>
+                      <option value="senior">Senior</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
+                    <select
+                      name="status"
+                      value={editForm.status}
+                      onChange={handleEditChange}
+                      className="w-full rounded-lg border px-3 py-2 outline-none focus:border-orange-500"
+                    >
+                      <option value="open">Open</option>
+                      <option value="closed">Closed</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="border-t px-6 py-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditJob(null)}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
