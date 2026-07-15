@@ -18,7 +18,6 @@ export default function CompanySidebar() {
     { label: "Applications", icon: FileText, to: "/company/applications" },
     { label: "Interviews", icon: CalendarDays, to: "/company/interviews" },
     { label: "Messages", icon: MessageSquare, to: "/company/messages" },
-    { label: "Skills Library", icon: Layers, to: "/company/skills" },
     { label: "Company Profile", icon: Settings, to: "/company/profile" },
   ];
 

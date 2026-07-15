@@ -10,7 +10,6 @@ const TITLE_MAP = {
   "/company/candidates":    "Candidates",
   "/company/interviews":    "Interviews",
   "/company/messages":      "Messages",
-  "/company/skills":        "Skills Library",
   "/company/profile":       "Company Profile",
   "/company/notifications": "Notifications",
 };
