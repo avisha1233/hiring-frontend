@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { Pencil, Trash2, Check, X, Plus, Zap } from "lucide-react";
+import { Pencil, Trash2, Check, X, Plus, Zap, ChevronDown } from "lucide-react";
 import axiosApi from "../../api/axios";
 
 // ─── constants ───────────────────────────────────────────────────────────────
@@ -55,6 +55,11 @@ export default function SkillsSection() {
   const [addForm, setAddForm]         = useState({ skill_id: "", level: LEVELS[2], years_of_experience: "" });
   const [saving, setSaving]           = useState(false);
 
+  // searchable dropdown state
+  const [skillSearch, setSkillSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
   // ── load ────────────────────────────────────────────────────────────────────
   useEffect(() => {
     let alive = true;
@@ -84,6 +89,48 @@ export default function SkillsSection() {
     load();
     return () => { alive = false; };
   }, []);
+
+  // ── close dropdown on click outside ──
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ── available skills for add-form (exclude already-added ones) ──────────────
+  const availableSkills = useMemo(() => {
+    return skills.filter(
+      (s) => !rows.some((r) => String(r.skill_id ?? r.Skill?.id ?? r.skillId) === String(s.id)),
+    );
+  }, [skills, rows]);
+
+  // ── filtered skills for dropdown ──
+  const filteredSkills = useMemo(() => {
+    const selectedSkillName = availableSkills.find(s => String(s.id) === String(addForm.skill_id))?.name || "";
+    if (skillSearch === selectedSkillName) {
+      return availableSkills;
+    }
+    return availableSkills.filter((s) =>
+      s.name.toLowerCase().includes(skillSearch.toLowerCase())
+    );
+  }, [availableSkills, skillSearch, addForm.skill_id]);
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSkillSearch(val);
+    setShowDropdown(true);
+    
+    const matchingSkill = availableSkills.find(s => s.name.toLowerCase() === val.trim().toLowerCase());
+    if (matchingSkill) {
+      setAddForm(p => ({ ...p, skill_id: matchingSkill.id }));
+    } else {
+      setAddForm(p => ({ ...p, skill_id: "" }));
+    }
+  };
 
   // ── add ─────────────────────────────────────────────────────────────────────
   async function handleAdd() {
@@ -123,6 +170,7 @@ export default function SkillsSection() {
 
       setRows((prev) => [newRow, ...prev]);
       setAddForm({ skill_id: "", level: LEVELS[2], years_of_experience: "" });
+      setSkillSearch("");
       setShowAdd(false);
       toast.success("Skill added");
     } catch (err) {
@@ -185,10 +233,6 @@ export default function SkillsSection() {
     }
   }
 
-  // ── available skills for add-form (exclude already-added ones) ──────────────
-  const availableSkills = skills.filter(
-    (s) => !rows.some((r) => String(r.skill_id ?? r.Skill?.id ?? r.skillId) === String(s.id)),
-  );
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
@@ -216,19 +260,46 @@ export default function SkillsSection() {
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">New Skill</p>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <label className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 relative" ref={dropdownRef}>
               <span className="text-xs text-gray-500">Skill</span>
-              <select
-                value={addForm.skill_id}
-                onChange={(e) => setAddForm((p) => ({ ...p, skill_id: e.target.value }))}
-                className={selectClass}
-              >
-                <option value="">— Select skill —</option>
-                {availableSkills.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search skill..."
+                  value={skillSearch}
+                  onFocus={() => setShowDropdown(true)}
+                  onChange={handleSearchChange}
+                  className="h-9 w-full rounded-lg border border-orange-100 pl-3 pr-8 text-sm outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100 bg-white"
+                />
+                <ChevronDown
+                  size={14}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                />
+              </div>
+
+              {showDropdown && (
+                <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-48 overflow-y-auto rounded-lg border border-orange-100 bg-white shadow-lg">
+                  {filteredSkills.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-gray-400">No matching skills</p>
+                  ) : (
+                    filteredSkills.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setAddForm((p) => ({ ...p, skill_id: s.id }));
+                          setSkillSearch(s.name);
+                          setShowDropdown(false);
+                        }}
+                        className="flex w-full items-center px-3 py-2 text-sm text-left hover:bg-orange-50 text-gray-700 transition"
+                      >
+                        {s.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
 
             <label className="flex flex-col gap-1">
               <span className="text-xs text-gray-500">Level</span>
@@ -266,7 +337,7 @@ export default function SkillsSection() {
             </button>
             <button
               type="button"
-              onClick={() => setShowAdd(false)}
+              onClick={() => { setShowAdd(false); setSkillSearch(""); }}
               className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
             >
               Cancel
