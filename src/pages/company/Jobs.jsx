@@ -166,7 +166,7 @@ export default function Jobs() {
   const refreshSkills = useCallback(async () => {
     try {
       const res = await apiClient.get("/skills", { 
-        params: { limit: 50, search: debouncedSkillSearch } 
+        params: { limit: 10, search: debouncedSkillSearch } 
       });
       const data = res?.data?.data || res?.data || [];
       setAllSkills(Array.isArray(data) ? data : []);
@@ -629,44 +629,9 @@ export default function Jobs() {
                       );
                     })}
 
-                    {/* ── inline create: shown when search text doesn't exactly match any skill ── */}
-                    {skillSearch.trim() !== "" &&
-                      !allSkills.some((s) => s.name.toLowerCase() === skillSearch.trim().toLowerCase()) && (
-                        <button
-                          type="button"
-                          disabled={creatingSkill}
-                          onClick={async () => {
-                            const name = skillSearch.trim();
-                            if (!name) return;
-                            setCreatingSkill(true);
-                            try {
-                              const res = await apiClient.post("/skills", { name });
-                              const created = res?.data?.data || res?.data || res;
-                              if (created?.id) {
-                                setAllSkills((prev) => [created, ...prev]);
-                                setSelectedSkills((prev) => [
-                                  ...prev,
-                                  { id: created.id, name: created.name, required_level: "intermediate" },
-                                ]);
-                                setSkillSearch("");
-                              }
-                            } catch {
-                              // error logic
-                            } finally {
-                              setCreatingSkill(false);
-                            }
-                          }}
-                          className="flex w-full items-center gap-2 border-t border-orange-50 px-4 py-2.5 text-sm font-medium text-orange-600 hover:bg-orange-50 transition disabled:opacity-50"
-                        >
-                          {creatingSkill
-                            ? <><Loader2 size={13} className="animate-spin" /> Creating…</>
-                            : <><Plus size={13} /> Create &ldquo;{skillSearch.trim()}&rdquo;</>}
-                        </button>
-                      )}
-
-                    {/* empty state when no match AND search is blank */}
-                    {skillSearch.trim() === "" && allSkills.length === 0 && (
-                      <p className="px-4 py-3 text-sm text-gray-400">No skills found. Type a name to search or create.</p>
+                    {/* empty state when no skills found */}
+                    {allSkills.length === 0 && (
+                      <p className="px-4 py-3 text-sm text-gray-400">No skills found.</p>
                     )}
                   </div>
                 )}

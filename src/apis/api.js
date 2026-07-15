@@ -14,9 +14,23 @@ export class ApiError extends Error {
 
 async function request(path, options = {}) {
   const token = getAccessToken();
-  const { data, headers, ...rest } = options;
+  const { data, headers, params, ...rest } = options;
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  let url = `${API_BASE_URL}${path}`;
+  if (params) {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        searchParams.append(key, value);
+      }
+    });
+    const queryString = searchParams.toString();
+    if (queryString) {
+      url += (url.includes("?") ? "&" : "?") + queryString;
+    }
+  }
+
+  const response = await fetch(url, {
     ...rest,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
