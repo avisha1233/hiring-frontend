@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import LoadingSkeleton from "@/components/shared/LoadingSkeleton";
 import { candidateApi } from "@/apis/candidate";
@@ -178,7 +178,7 @@ export default function Interviews() {
       ? interviews
       : interviews.filter((i) => i.status === filter.toLowerCase());
 
-  if (loading) return <LoadingSkeleton rows={5} columns={9} />;
+  if (loading) return <LoadingSkeleton rows={5} columns={6} />;
 
   return (
     <div className="space-y-4">
@@ -242,25 +242,22 @@ export default function Interviews() {
             <p className="text-sm text-gray-400">No interviews found.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
             <thead>
               <tr className="border-b border-orange-50 bg-orange-50/60">
                 {[
-                  "Interviewer",
-                  "Job",
-                  "Scheduled At",
-                  "Duration",
-                  "Type",
-                  "Status",
-                  "Notes",
-                  "Feedback",
-                  "Action",
-                ].map((h) => (
+                  { name: "Interviewer", width: "w-[20%]" },
+                  { name: "Job", width: "w-[20%]" },
+                  { name: "Scheduled At", width: "w-[22%]" },
+                  { name: "Duration", width: "w-[13%]" },
+                  { name: "Type", width: "w-[12%]" },
+                  { name: "Status", width: "w-[13%]" },
+                ].map((col) => (
                   <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+                    key={col.name}
+                    className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 ${col.width}`}
                   >
-                    {h}
+                    {col.name}
                   </th>
                 ))}
               </tr>
@@ -272,22 +269,22 @@ export default function Interviews() {
                   className="transition-colors hover:bg-orange-50/30"
                 >
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-800">
+                    <p className="font-medium text-gray-800 truncate">
                       {interview.interviewerName || "—"}
                     </p>
                     {interview.interviewerRole && (
-                      <p className="mt-0.5 text-xs text-gray-400">
+                      <p className="mt-0.5 text-xs text-gray-400 truncate">
                         {interview.interviewerRole}
                       </p>
                     )}
                   </td>
 
                   <td className="px-4 py-3">
-                    <p className="max-w-[160px] truncate font-medium text-gray-800">
+                    <p className="font-medium text-gray-800 truncate">
                       {interview.jobTitle || "—"}
                     </p>
                     {interview.companyName && (
-                      <p className="mt-0.5 text-xs text-gray-400">
+                      <p className="mt-0.5 text-xs text-gray-400 truncate">
                         {interview.companyName}
                       </p>
                     )}
@@ -317,7 +314,7 @@ export default function Interviews() {
 
                   <td className="px-4 py-3">
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${
                         TYPE_STYLES[interview.type] || "bg-gray-100 text-gray-600"
                       }`}
                     >
@@ -327,51 +324,12 @@ export default function Interviews() {
 
                   <td className="px-4 py-3">
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${
                         STATUS_STYLES[interview.status] || "bg-gray-100 text-gray-600"
                       }`}
                     >
                       {STATUS_LABELS[interview.status] || interview.status || "—"}
                     </span>
-                  </td>
-
-                  <td className="max-w-[200px] px-4 py-3 text-gray-500">
-                    <p className="truncate text-xs">{interview.notes || "—"}</p>
-                  </td>
-
-                  <td className="px-4 py-3">
-                    {interview.feedback ? (
-                      <button
-                        type="button"
-                        onClick={() => setActiveFeedback(interview)}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
-                      >
-                        View feedback
-                      </button>
-                    ) : (
-                      <span className="text-xs text-gray-400">No feedback yet</span>
-                    )}
-                  </td>
-
-                  <td className="px-4 py-3">
-                    {interview.status === "scheduled" && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleJoin(interview)}
-                          className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700"
-                        >
-                          Join
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCancel(interview.id)}
-                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
                   </td>
                 </tr>
               ))}
