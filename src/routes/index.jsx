@@ -113,11 +113,7 @@ function CandidateDashboardPage() {
             value={Number(stats.appliedJobs || 0)}
             Icon={Briefcase}
           />
-          <StatCard
-            title="Pending Tasks"
-            value={Number(stats.pendingTasks || 0)}
-            Icon={CheckSquare}
-          />
+          
           <StatCard
             title="Upcoming Interviews"
             value={Number(stats.upcomingInterviews || 0)}

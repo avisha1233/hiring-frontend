@@ -21,20 +21,10 @@ export const candidateApi = {
     return data;
   },
 
-  getTasks: async (params = {}) => {
-    const { data } = await api.get("/candidate/tasks", { params });
-    return data;
-  },
 
-  createTask: async (payload) => {
-    const { data } = await api.post("/candidate/tasks", payload);
-    return data;
-  },
+ 
 
-  updateTaskStatus: async (id, status) => {
-    const { data } = await api.patch(`/candidate/tasks/${id}`, { status });
-    return data;
-  },
+  
 
   getProfile: async () => {
     const { data } = await api.get("/candidate/profile");

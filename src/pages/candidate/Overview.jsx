@@ -153,41 +153,49 @@ export default function Overview() {
             />
           )}
 
-          {applications.slice(0, 5).map((a) => (
-            <div
-              key={`app-${a.id}`}
-              className="flex items-center justify-between"
-            >
-              <div>
-                <p className="text-sm text-gray-800">
-                  Applied to {a.job_title || a.job?.title || "a job"}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {new Date(
-                    a.created_at || a.created_at || a.date,
-                  ).toLocaleString()}
-                </p>
+          {applications.slice(0, 5).map((a) => {
+            const dateStr = a.applied_at || a.appliedAt || a.created_at || a.createdAt || a.date;
+            const dateObj = dateStr ? new Date(dateStr) : null;
+            const isValidDate = dateObj && !isNaN(dateObj.getTime());
+            return (
+              <div
+                key={`app-${a.id}`}
+                className="flex items-center justify-between"
+              >
+                <div>
+                  <p className="text-sm text-gray-800">
+                    Applied to {a.job_title || a.job?.title || "a job"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {isValidDate ? dateObj.toLocaleString() : "—"}
+                  </p>
+                </div>
+                <StatusBadge status={a.status} />
               </div>
-              <StatusBadge status={a.status} />
-            </div>
-          ))}
+            );
+          })}
 
-          {interviews.slice(0, 5).map((i) => (
-            <div
-              key={`int-${i.id}`}
-              className="flex items-center justify-between"
-            >
-              <div>
-                <p className="text-sm text-gray-800">
-                  {i.title || "Interview"}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {new Date(i.scheduled_at).toLocaleString()}
-                </p>
+          {interviews.slice(0, 5).map((i) => {
+            const dateStr = i.scheduled_at || i.scheduledAt || i.created_at || i.createdAt || i.date;
+            const dateObj = dateStr ? new Date(dateStr) : null;
+            const isValidDate = dateObj && !isNaN(dateObj.getTime());
+            return (
+              <div
+                key={`int-${i.id}`}
+                className="flex items-center justify-between"
+              >
+                <div>
+                  <p className="text-sm text-gray-800">
+                    {i.title || "Interview"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {isValidDate ? dateObj.toLocaleString() : "—"}
+                  </p>
+                </div>
+                <CalendarDays className="text-orange-600" />
               </div>
-              <CalendarDays className="text-orange-600" />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
